@@ -7,7 +7,6 @@ source:
 
 selection:
   target_count: 20
-  afdb_global_plddt_max: 85.0
   length_min: 100
   length_max: 500
   min_pdb_to_uniprot_length_ratio: 0.90
@@ -20,6 +19,12 @@ selection:
   unique_sequence_cluster: true
   max_per_organism: 4
   seed: 20260730
+
+confidence_ranking:
+  enabled: true
+  direction: ascending
+  hard_max: null
+  historical_nonbinding_reference_max: 85.0
 
 preflight:
   warn_full_length_mapping_coverage: 0.70

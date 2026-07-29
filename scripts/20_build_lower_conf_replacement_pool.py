@@ -102,7 +102,7 @@ def _candidate_accessions(
             float(selection["length_max"]),
             inclusive="both",
         )
-        & global_plddt.le(float(selection["afdb_global_plddt_max"]))
+        & global_plddt.notna()
     ]
     used = set(
         current_pool["uniprot_id"].astype(str).str.strip().str.upper()
@@ -202,6 +202,7 @@ def _build_shortlist(
     metadata: pd.DataFrame,
     *,
     selection: dict[str, Any],
+    confidence_ranking: dict[str, Any],
 ) -> tuple[pd.DataFrame, dict[str, int]]:
     source = discovered.copy()
     source["uniprot_id"] = (
@@ -224,7 +225,7 @@ def _build_shortlist(
         source,
         current_pool,
         target_count=int(selection["target_count"]),
-        global_plddt_max=float(selection["afdb_global_plddt_max"]),
+        confidence_ranking=confidence_ranking,
         diversity_config=selection,
         seed=int(selection["seed"]),
     )
@@ -503,6 +504,7 @@ def main() -> None:
     root = Path(config["project_root"]).expanduser().resolve()
     source = config["source"]
     selection = config["selection"]
+    confidence_ranking = config["confidence_ranking"]
     runtime = config["runtime"]
     output = config["output"]
 
@@ -549,6 +551,7 @@ def main() -> None:
         current_pool,
         metadata,
         selection=selection,
+        confidence_ranking=confidence_ranking,
     )
     if args.limit is not None:
         shortlist = shortlist.head(args.limit).copy()
@@ -627,6 +630,7 @@ def main() -> None:
         thresholds=selection,
         seed=int(selection["seed"]),
         source_counts=source_counts,
+        ranking_config=confidence_ranking,
     )
     audit["inputs"] = {
         "discovered_candidates": str(

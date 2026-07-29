@@ -1,0 +1,25 @@
+experiment:
+  name: a0_interaction_pilot
+  protein_count_target: 12
+  sequences_per_protein: 64
+  backbone_conditions:
+    - pdb_clean
+    - afdb_native
+    - local_low_conf
+    - local_high_conf_control
+    - high_pae_domain
+    - random_matched_control
+candidate_generation:
+  generator: proteinmpnn
+  temperatures: [0.1, 0.3, 0.7]
+  counts: [16, 16, 16]
+  guided_count: 16
+quality_control:
+  min_mapping_coverage: 0.90
+  min_sequence_identity: 0.95
+  max_missing_backbone_fraction: 0.10
+  min_length: 100
+  max_length: 500
+analysis:
+  minimum_complete_score_fraction: 0.90
+  random_seed: 20260729

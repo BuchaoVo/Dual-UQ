@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dual-uq-inverse-folding"
+version = "0.1.0"
+description = "Unified structure and evaluator uncertainty for protein inverse folding"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "pyarrow>=16",
+  "pyyaml>=6",
+  "pydantic>=2.7",
+  "biopython>=1.83",
+  "scipy>=1.13",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

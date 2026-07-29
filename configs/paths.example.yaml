@@ -1,0 +1,5 @@
+paths:
+  project_root: /absolute/path/to/dual_uq_inverse_folding
+  pdb_cache: /absolute/path/to/pdb_cache
+  afdb_cache: /absolute/path/to/afdb_cache
+  model_cache: /absolute/path/to/model_cache

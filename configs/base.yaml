@@ -1,0 +1,15 @@
+project:
+  name: dual_uq_inverse_folding
+  seed: 20260729
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  manifest_dir: data/manifests
+  report_dir: reports
+logging:
+  level: INFO
+  save_runtime: true
+reproducibility:
+  deterministic: true
+  record_git_commit: true
+  record_package_versions: true

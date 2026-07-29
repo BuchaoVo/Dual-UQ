@@ -1,0 +1,3 @@
+pdb_id	chain_id	uniprot_id	role	note
+1ake	A	P69441	easy	Single-chain adenylate kinase smoke pair
+1lyz	A	P00698	edge_case	Experimental mature chain versus UniProt precursor; expected coverage warning

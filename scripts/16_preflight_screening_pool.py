@@ -8,9 +8,13 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from dual_uq.afdb import get_afdb_prediction_metadata
+from dual_uq.afdb import get_afdb_prediction_records
 from dual_uq.pdb_archive import fetch_pdb_mmcif
-from dual_uq.preflight import classify_preflight, compute_preflight_metrics
+from dual_uq.preflight import (
+    classify_preflight,
+    compute_preflight_metrics,
+    evaluate_afdb_fragment_support,
+)
 from dual_uq.sifts import fetch_sifts_xml, parse_sifts_residue_mapping
 from dual_uq.structure_io import load_chain_ca_table
 
@@ -25,17 +29,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--only", default=None, help="Comma-separated screening indices.")
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
-
-
-def get_uniprot_sequence(metadata: dict) -> str:
-    sequence = str(
-        metadata.get("uniprotSequence")
-        or metadata.get("sequence")
-        or ""
-    ).replace("\n", "").replace(" ", "").strip().upper()
-    if not sequence:
-        raise ValueError("AlphaFold DB metadata contains no UniProt sequence.")
-    return sequence
 
 
 def main() -> None:
@@ -94,8 +87,6 @@ def main() -> None:
         }
 
         try:
-            metadata = get_afdb_prediction_metadata(uniprot_id)
-            sequence = get_uniprot_sequence(metadata)
             pdb_path = fetch_pdb_mmcif(pdb_id, root / "data/raw/pdb")
             sifts_path = fetch_sifts_xml(pdb_id, root / "data/raw/mappings")
             mapping = parse_sifts_residue_mapping(
@@ -104,25 +95,53 @@ def main() -> None:
                 uniprot_id=uniprot_id,
             )
             pdb_ca = load_chain_ca_table(pdb_path, chain_id)
+            mapped_positions = (
+                mapping["uniprot_residue_number"].dropna().astype(int).unique()
+            )
+            if len(mapped_positions) == 0:
+                raise ValueError("SIFTS mapping contains no UniProt residue positions.")
+            mapped_interval = (
+                int(mapped_positions.min()),
+                int(mapped_positions.max()),
+            )
+            prediction_records = get_afdb_prediction_records(uniprot_id)
+            fragment_support = evaluate_afdb_fragment_support(
+                prediction_records,
+                mapped_interval,
+            )
 
             metrics = compute_preflight_metrics(
                 mapping,
                 pdb_ca,
-                uniprot_length=len(sequence),
+                uniprot_length=int(fragment_support["canonical_uniprot_length"]),
                 pdb_entity_length=int(float(item.length)),
             )
-            status, reason = classify_preflight(metrics, thresholds)
             result.update(metrics)
             result.update(
                 {
-                    "preflight_status": status,
-                    "preflight_reason": reason,
-                    "afdb_model_entity_id": metadata.get("modelEntityId"),
-                    "afdb_version": metadata.get("latestVersion"),
-                    "runtime_seconds": time.perf_counter() - started,
-                    "error": None,
+                    key: value
+                    for key, value in fragment_support.items()
+                    if key != "prediction"
                 }
             )
+
+            if fragment_support["afdb_fragment_status"] == "unsupported_afdb_fragment":
+                result.update(
+                    {
+                        "runtime_seconds": time.perf_counter() - started,
+                        "error": None,
+                    }
+                )
+            else:
+                status, reason = classify_preflight(metrics, thresholds)
+                result.update(
+                    {
+                        "preflight_status": status,
+                        "preflight_reason": reason,
+                        "runtime_seconds": time.perf_counter() - started,
+                        "error": None,
+                    }
+                )
         except Exception as exc:
             result.update(
                 {
@@ -163,6 +182,10 @@ def main() -> None:
         ].astype(int).tolist(),
         "failed_indices": final.loc[
             final["preflight_status"].isin(["fail_preflight", "failed_runtime"]),
+            "screening_index",
+        ].astype(int).tolist(),
+        "unsupported_afdb_fragment_indices": final.loc[
+            final["preflight_status"] == "unsupported_afdb_fragment",
             "screening_index",
         ].astype(int).tolist(),
         "output_path": str(final_path),

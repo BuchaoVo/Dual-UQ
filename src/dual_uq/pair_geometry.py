@@ -10,11 +10,7 @@ from scipy.stats import spearmanr
 
 from .confidence import load_pae, load_plddt
 from .geometry import kabsch_align, pairwise_distances, rmsd
-from .structure_io import load_chain_ca_table
-
-
-def _normalise_residue_number(value: Any) -> str:
-    return str(value).strip()
+from .structure_io import join_residue_mapping_to_ca, load_chain_ca_table
 
 
 def _safe_spearman(x: np.ndarray, y: np.ndarray) -> dict[str, float | None]:
@@ -40,14 +36,9 @@ def analyze_pair_geometry(
     pair_dir = report_path.parent
 
     mapping = pd.read_parquet(report["mapping_path"]).copy()
-    mapping["pdb_residue_number_norm"] = mapping["pdb_residue_number"].map(
-        _normalise_residue_number
-    )
 
     pdb_table = load_chain_ca_table(report["pdb_path"], report["chain_id"])
-    pdb_table["pdb_residue_number_norm"] = pdb_table["pdb_residue_number"].map(
-        _normalise_residue_number
-    )
+    mapped_pdb, join_diagnostics = join_residue_mapping_to_ca(mapping, pdb_table)
 
     afdb_table = load_chain_ca_table(report["afdb_model_path"], chain_id="A")
     afdb_table = afdb_table.rename(
@@ -61,7 +52,7 @@ def analyze_pair_geometry(
         }
     )
 
-    pdb_keep = pdb_table.rename(
+    pdb_keep = mapped_pdb.rename(
         columns={
             "residue_one_letter": "pdb_residue_one_letter",
             "x": "pdb_x",
@@ -71,7 +62,13 @@ def analyze_pair_geometry(
         }
     )[
         [
-            "pdb_residue_number_norm",
+            "uniprot_residue_number",
+            "auth_asym_id",
+            "label_asym_id",
+            "auth_seq_id",
+            "label_seq_id",
+            "insertion_code",
+            "residue_join_mode",
             "pdb_residue_one_letter",
             "pdb_x",
             "pdb_y",
@@ -80,13 +77,7 @@ def analyze_pair_geometry(
         ]
     ]
 
-    merged = mapping.merge(
-        pdb_keep,
-        on="pdb_residue_number_norm",
-        how="inner",
-        validate="many_to_one",
-    )
-    merged = merged.merge(
+    merged = pdb_keep.merge(
         afdb_table[
             [
                 "uniprot_residue_number",
@@ -188,7 +179,7 @@ def analyze_pair_geometry(
         "pdb_id": report["pdb_id"],
         "chain_id": report["chain_id"],
         "uniprot_id": report["uniprot_id"],
-        "mapped_ca_count": int(len(merged)),
+        "mapped_ca_count": len(merged),
         "uniprot_length": sequence_length,
         "mapped_ca_coverage": float(len(merged) / sequence_length),
         "alignment_mode": alignment_mode,
@@ -206,6 +197,7 @@ def analyze_pair_geometry(
         "plddt_vs_local_disagreement_spearman": local_correlation,
         "symmetric_pae_vs_pairwise_error_spearman": pair_correlation,
         "pair_min_sequence_separation": pair_min_sequence_separation,
+        **join_diagnostics,
         "residue_output": str(residue_output),
         "pairwise_output": str(pairwise_output),
         "terminology_note": (

@@ -183,7 +183,7 @@ def build_pair(
         "chain_id": chain_id,
         "uniprot_id": uniprot_id,
         "uniprot_length": canonical_uniprot_length,
-        "mapped_residue_count": int(len(mapped_positions)),
+        "mapped_residue_count": len(mapped_positions),
         "mapped_uniprot_start": mapped_interval[0],
         "mapped_uniprot_end": mapped_interval[1],
         "mapping_coverage": mapping_coverage,

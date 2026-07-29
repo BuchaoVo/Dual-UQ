@@ -11,9 +11,9 @@ import yaml
 from dual_uq.afdb import get_afdb_prediction_records
 from dual_uq.pdb_archive import fetch_pdb_mmcif
 from dual_uq.preflight import (
-    classify_preflight,
     compute_preflight_metrics,
     evaluate_afdb_fragment_support,
+    finalize_preflight_status,
 )
 from dual_uq.sifts import fetch_sifts_xml, parse_sifts_residue_mapping
 from dual_uq.structure_io import load_chain_ca_table
@@ -124,25 +124,20 @@ def main() -> None:
                     if key != "prediction"
                 }
             )
-
-            if fragment_support["afdb_fragment_status"] == "unsupported_afdb_fragment":
-                result.update(
-                    {
-                        "runtime_seconds": time.perf_counter() - started,
-                        "error": None,
-                    }
+            result.update(
+                finalize_preflight_status(
+                    fragment_support,
+                    metrics,
+                    thresholds,
                 )
-            else:
-                status, reason = classify_preflight(metrics, thresholds)
-                result.update(
-                    {
-                        "preflight_status": status,
-                        "preflight_reason": reason,
-                        "runtime_seconds": time.perf_counter() - started,
-                        "error": None,
-                    }
-                )
-        except Exception as exc:
+            )
+            result.update(
+                {
+                    "runtime_seconds": time.perf_counter() - started,
+                    "error": None,
+                }
+            )
+        except (KeyError, LookupError, OSError, RuntimeError, TypeError, ValueError) as exc:
             result.update(
                 {
                     "preflight_status": "failed_runtime",
@@ -172,7 +167,7 @@ def main() -> None:
     final.to_csv(final_path, sep="\t", index=False)
 
     summary = {
-        "attempted": int(len(final)),
+        "attempted": len(final),
         "status_counts": final["preflight_status"].value_counts(dropna=False).to_dict(),
         "pass_indices": final.loc[
             final["preflight_status"] == "pass_full_length", "screening_index"

@@ -7,7 +7,6 @@ from typing import Any
 
 from .net import download_file, request_json
 
-
 AFDB_PREDICTION_API = "https://alphafold.ebi.ac.uk/api/prediction/{accession}"
 
 

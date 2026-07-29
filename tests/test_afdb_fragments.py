@@ -6,13 +6,16 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import dual_uq.pairing as pairing
+from dual_uq import pairing
 from dual_uq.afdb import (
     UnsupportedAFDBFragment,
     fetch_afdb_prediction,
     select_prediction_for_interval,
 )
-from dual_uq.preflight import evaluate_afdb_fragment_support
+from dual_uq.preflight import (
+    evaluate_afdb_fragment_support,
+    finalize_preflight_status,
+)
 
 
 def _record(model_id: str, start: int, end: int, *, version: int = 6) -> dict:
@@ -259,3 +262,36 @@ def test_preflight_returns_structured_unsupported_status() -> None:
     assert support["preflight_status"] == "unsupported_afdb_fragment"
     assert support["preflight_reason"] == "no_afdb_fragment_covers_mapped_interval"
     assert "failed_runtime" not in support.values()
+
+
+def test_mapping_quality_and_afdb_coverage_remain_orthogonal() -> None:
+    support = evaluate_afdb_fragment_support(
+        [
+            _record("AF-X-LEFT", 1, 1050),
+            _record("AF-X-RIGHT", 1233, 7095),
+        ],
+        (1024, 1192),
+    )
+    metrics = {
+        "full_length_mapping_coverage": 169 / 7095,
+        "entity_mapping_coverage": 169 / 173,
+        "sequence_identity": 1.0,
+        "observed_ca_fraction_of_mapped": 1.0,
+        "internal_unmapped_fraction": 0.0,
+    }
+    thresholds = {
+        "min_full_length_mapping_coverage": 0.90,
+        "min_entity_mapping_coverage": 0.90,
+        "min_sequence_identity": 0.95,
+        "min_observed_ca_fraction": 0.90,
+        "warn_full_length_mapping_coverage": 0.70,
+        "max_internal_unmapped_fraction": 0.05,
+    }
+
+    result = finalize_preflight_status(support, metrics, thresholds)
+
+    assert result["preflight_status"] == "unsupported_afdb_fragment"
+    assert result["afdb_coverage_status"] == "unsupported_afdb_fragment"
+    assert result["mapping_quality_status"] == "fail_preflight"
+    assert "low_full_length_mapping_coverage" in result["mapping_quality_reason"]
+    assert result["geometry_launched"] is False

@@ -13,6 +13,7 @@ from .afdb import (
     prediction_interval,
     select_prediction_for_interval,
 )
+from .structure_io import join_residue_mapping_to_ca
 
 
 def normalise_residue_name(name: Any) -> str | None:
@@ -66,19 +67,10 @@ def compute_preflight_metrics(
     uniprot_length: int,
     pdb_entity_length: int,
 ) -> dict[str, Any]:
-    mapping = mapping.copy()
-    mapping["pdb_residue_number_norm"] = (
-        mapping["pdb_residue_number"].astype(str).str.strip()
-    )
-    pdb_ca_table = pdb_ca_table.copy()
-    pdb_ca_table["pdb_residue_number_norm"] = (
-        pdb_ca_table["pdb_residue_number"].astype(str).str.strip()
-    )
-
     mapped_positions = np.sort(
         mapping["uniprot_residue_number"].dropna().astype(int).unique()
     )
-    mapped_count = int(len(mapped_positions))
+    mapped_count = len(mapped_positions)
     if mapped_count == 0:
         raise ValueError("No mapped UniProt residue positions.")
 
@@ -94,11 +86,7 @@ def compute_preflight_metrics(
         else float("nan")
     )
 
-    observed = mapping.merge(
-        pdb_ca_table[["pdb_residue_number_norm"]].drop_duplicates(),
-        on="pdb_residue_number_norm",
-        how="inner",
-    )
+    observed, join_diagnostics = join_residue_mapping_to_ca(mapping, pdb_ca_table)
     observed_positions = observed["uniprot_residue_number"].dropna().astype(int).unique()
     observed_ca_fraction = len(observed_positions) / mapped_count
 
@@ -114,7 +102,7 @@ def compute_preflight_metrics(
         "full_length_mapping_coverage": float(full_length_coverage),
         "entity_mapping_coverage": float(entity_mapping_coverage),
         "sequence_identity": sequence_identity,
-        "observed_ca_count": int(len(observed_positions)),
+        "observed_ca_count": len(observed_positions),
         "observed_ca_fraction_of_mapped": float(observed_ca_fraction),
         "first_mapped_uniprot_position": first_position,
         "last_mapped_uniprot_position": last_position,
@@ -123,6 +111,7 @@ def compute_preflight_metrics(
         "internal_unmapped_count": int(internal_unmapped_count),
         "internal_unmapped_fraction": float(internal_unmapped_count / max(span_length, 1)),
         "pdb_to_uniprot_length_ratio": float(pdb_entity_length / uniprot_length),
+        **join_diagnostics,
     }
 
 
@@ -178,3 +167,26 @@ def classify_preflight(
         reasons.append("internal_mapping_gaps")
 
     return "fail_preflight", ";".join(reasons) or "quality_threshold_failure"
+
+
+def finalize_preflight_status(
+    fragment_support: dict[str, Any],
+    metrics: dict[str, Any],
+    thresholds: dict[str, float],
+) -> dict[str, Any]:
+    mapping_status, mapping_reason = classify_preflight(metrics, thresholds)
+    afdb_status = str(fragment_support["afdb_fragment_status"])
+    if afdb_status == "unsupported_afdb_fragment":
+        preflight_status = "unsupported_afdb_fragment"
+        preflight_reason = str(fragment_support["preflight_reason"])
+    else:
+        preflight_status = mapping_status
+        preflight_reason = mapping_reason
+    return {
+        "preflight_status": preflight_status,
+        "preflight_reason": preflight_reason,
+        "afdb_coverage_status": afdb_status,
+        "mapping_quality_status": mapping_status,
+        "mapping_quality_reason": mapping_reason,
+        "geometry_launched": False,
+    }

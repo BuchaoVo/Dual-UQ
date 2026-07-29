@@ -6,6 +6,14 @@ import numpy as np
 import pandas as pd
 from Bio.Data.PDBData import protein_letters_3to1_extended
 
+from .afdb import (
+    UnsupportedAFDBFragment,
+    canonical_uniprot_length,
+    prediction_fragment_length,
+    prediction_interval,
+    select_prediction_for_interval,
+)
+
 
 def normalise_residue_name(name: Any) -> str | None:
     if name is None:
@@ -14,6 +22,41 @@ def normalise_residue_name(name: Any) -> str | None:
     if len(value) == 1 and value.isalpha():
         return value
     return protein_letters_3to1_extended.get(value)
+
+
+def evaluate_afdb_fragment_support(
+    records: list[dict[str, Any]],
+    mapped_interval: tuple[int, int],
+) -> dict[str, Any]:
+    canonical_length = canonical_uniprot_length(records)
+    try:
+        prediction = select_prediction_for_interval(records, mapped_interval)
+    except UnsupportedAFDBFragment as exc:
+        return {
+            "afdb_fragment_status": "unsupported_afdb_fragment",
+            "preflight_status": "unsupported_afdb_fragment",
+            "preflight_reason": "no_afdb_fragment_covers_mapped_interval",
+            "canonical_uniprot_length": canonical_length,
+            "afdb_fragment_intervals": [list(interval) for interval in exc.fragment_intervals],
+            "mapped_uniprot_start": mapped_interval[0],
+            "mapped_uniprot_end": mapped_interval[1],
+        }
+
+    interval = prediction_interval(prediction)
+    if interval is None:
+        raise ValueError("Selected AlphaFold DB prediction has no valid interval.")
+    return {
+        "afdb_fragment_status": "supported",
+        "canonical_uniprot_length": canonical_length,
+        "afdb_fragment_length": prediction_fragment_length(prediction),
+        "afdb_fragment_start": interval[0],
+        "afdb_fragment_end": interval[1],
+        "afdb_model_entity_id": prediction.get("modelEntityId"),
+        "afdb_version": prediction.get("latestVersion"),
+        "prediction": prediction,
+        "mapped_uniprot_start": mapped_interval[0],
+        "mapped_uniprot_end": mapped_interval[1],
+    }
 
 
 def compute_preflight_metrics(
@@ -35,7 +78,7 @@ def compute_preflight_metrics(
     mapped_positions = np.sort(
         mapping["uniprot_residue_number"].dropna().astype(int).unique()
     )
-    mapped_count = int(len(mapped_positions))
+    mapped_count = len(mapped_positions)
     if mapped_count == 0:
         raise ValueError("No mapped UniProt residue positions.")
 
@@ -71,7 +114,7 @@ def compute_preflight_metrics(
         "full_length_mapping_coverage": float(full_length_coverage),
         "entity_mapping_coverage": float(entity_mapping_coverage),
         "sequence_identity": sequence_identity,
-        "observed_ca_count": int(len(observed_positions)),
+        "observed_ca_count": len(observed_positions),
         "observed_ca_fraction_of_mapped": float(observed_ca_fraction),
         "first_mapped_uniprot_position": first_position,
         "last_mapped_uniprot_position": last_position,
@@ -135,3 +178,26 @@ def classify_preflight(
         reasons.append("internal_mapping_gaps")
 
     return "fail_preflight", ";".join(reasons) or "quality_threshold_failure"
+
+
+def finalize_preflight_status(
+    fragment_support: dict[str, Any],
+    metrics: dict[str, Any],
+    thresholds: dict[str, float],
+) -> dict[str, Any]:
+    mapping_status, mapping_reason = classify_preflight(metrics, thresholds)
+    afdb_status = str(fragment_support["afdb_fragment_status"])
+    if afdb_status == "unsupported_afdb_fragment":
+        preflight_status = "unsupported_afdb_fragment"
+        preflight_reason = str(fragment_support["preflight_reason"])
+    else:
+        preflight_status = mapping_status
+        preflight_reason = mapping_reason
+    return {
+        "preflight_status": preflight_status,
+        "preflight_reason": preflight_reason,
+        "afdb_coverage_status": afdb_status,
+        "mapping_quality_status": mapping_status,
+        "mapping_quality_reason": mapping_reason,
+        "geometry_launched": False,
+    }

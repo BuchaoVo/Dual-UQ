@@ -61,14 +61,16 @@ def build_pair(
     initialize_manifests(manifest_dir)
 
     pdb_path = fetch_pdb_mmcif(pdb_id, root / "data/raw/pdb")
-    afdb = fetch_afdb_prediction(uniprot_id, root / "data/raw/afdb")
     sifts_path = fetch_sifts_xml(pdb_id, root / "data/raw/mappings")
-
     mapping = parse_sifts_residue_mapping(
         sifts_path,
         chain_id=chain_id,
         uniprot_id=uniprot_id,
     )
+    mapped_positions = mapping["uniprot_residue_number"].dropna().astype(int).unique()
+    if len(mapped_positions) == 0:
+        raise ValueError("SIFTS mapping contains no UniProt residue positions.")
+    mapped_interval = (int(mapped_positions.min()), int(mapped_positions.max()))
 
     pair_name = f"{pdb_id}_{chain_id}__{uniprot_id}"
     pair_dir = root / "data/processed/pairs" / pair_name
@@ -76,6 +78,11 @@ def build_pair(
     mapping_path = pair_dir / "residue_mapping.parquet"
     mapping.to_parquet(mapping_path, index=False)
 
+    afdb = fetch_afdb_prediction(
+        uniprot_id,
+        root / "data/raw/afdb",
+        mapped_interval=mapped_interval,
+    )
     prediction = afdb["prediction"]
     sequence = str(
         prediction.get("uniprotSequence")
@@ -85,8 +92,8 @@ def build_pair(
     if not sequence:
         raise ValueError(f"No UniProt sequence present in AFDB metadata for {uniprot_id}")
 
-    mapped_positions = mapping["uniprot_residue_number"].dropna().astype(int).unique()
-    mapping_coverage = len(mapped_positions) / len(sequence)
+    canonical_uniprot_length = int(afdb["canonical_uniprot_length"])
+    mapping_coverage = len(mapped_positions) / canonical_uniprot_length
 
     pdb_letters = mapping["pdb_residue_name"].map(_normalise_residue_name)
     uniprot_letters = mapping["uniprot_residue_name"].map(_normalise_residue_name)
@@ -175,8 +182,10 @@ def build_pair(
         "pdb_id": pdb_id,
         "chain_id": chain_id,
         "uniprot_id": uniprot_id,
-        "uniprot_length": len(sequence),
+        "uniprot_length": canonical_uniprot_length,
         "mapped_residue_count": int(len(mapped_positions)),
+        "mapped_uniprot_start": mapped_interval[0],
+        "mapped_uniprot_end": mapped_interval[1],
         "mapping_coverage": mapping_coverage,
         "sequence_identity": sequence_identity,
         "quality_flag": quality_flag,
@@ -188,6 +197,9 @@ def build_pair(
         "mapping_path": str(mapping_path),
         "afdb_model_entity_id": prediction.get("modelEntityId"),
         "afdb_version": prediction.get("latestVersion"),
+        "afdb_fragment_start": afdb["fragment_interval"][0],
+        "afdb_fragment_end": afdb["fragment_interval"][1],
+        "afdb_fragment_length": afdb["fragment_length"],
     }
     report_path = pair_dir / "pair_qc.json"
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")

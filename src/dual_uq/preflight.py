@@ -6,6 +6,14 @@ import numpy as np
 import pandas as pd
 from Bio.Data.PDBData import protein_letters_3to1_extended
 
+from .afdb import (
+    UnsupportedAFDBFragment,
+    canonical_uniprot_length,
+    prediction_fragment_length,
+    prediction_interval,
+    select_prediction_for_interval,
+)
+
 
 def normalise_residue_name(name: Any) -> str | None:
     if name is None:
@@ -14,6 +22,41 @@ def normalise_residue_name(name: Any) -> str | None:
     if len(value) == 1 and value.isalpha():
         return value
     return protein_letters_3to1_extended.get(value)
+
+
+def evaluate_afdb_fragment_support(
+    records: list[dict[str, Any]],
+    mapped_interval: tuple[int, int],
+) -> dict[str, Any]:
+    canonical_length = canonical_uniprot_length(records)
+    try:
+        prediction = select_prediction_for_interval(records, mapped_interval)
+    except UnsupportedAFDBFragment as exc:
+        return {
+            "afdb_fragment_status": "unsupported_afdb_fragment",
+            "preflight_status": "unsupported_afdb_fragment",
+            "preflight_reason": "no_afdb_fragment_covers_mapped_interval",
+            "canonical_uniprot_length": canonical_length,
+            "afdb_fragment_intervals": [list(interval) for interval in exc.fragment_intervals],
+            "mapped_uniprot_start": mapped_interval[0],
+            "mapped_uniprot_end": mapped_interval[1],
+        }
+
+    interval = prediction_interval(prediction)
+    if interval is None:
+        raise ValueError("Selected AlphaFold DB prediction has no valid interval.")
+    return {
+        "afdb_fragment_status": "supported",
+        "canonical_uniprot_length": canonical_length,
+        "afdb_fragment_length": prediction_fragment_length(prediction),
+        "afdb_fragment_start": interval[0],
+        "afdb_fragment_end": interval[1],
+        "afdb_model_entity_id": prediction.get("modelEntityId"),
+        "afdb_version": prediction.get("latestVersion"),
+        "prediction": prediction,
+        "mapped_uniprot_start": mapped_interval[0],
+        "mapped_uniprot_end": mapped_interval[1],
+    }
 
 
 def compute_preflight_metrics(

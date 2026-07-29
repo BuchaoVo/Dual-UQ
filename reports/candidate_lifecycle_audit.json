@@ -1,0 +1,36 @@
+{
+  "total_candidates": 36,
+  "preflight_status_counts": {
+    "fail_preflight": 11,
+    "pass_full_length": 15,
+    "warn_construct_difference": 10
+  },
+  "pair_status_counts": {
+    "complete": 6,
+    "not_started": 19,
+    "skipped_preflight": 11
+  },
+  "geometry_status_counts": {
+    "complete": 5,
+    "failed_geometry": 1,
+    "not_started": 19,
+    "skipped_preflight": 11
+  },
+  "robust_status_counts": {
+    "complete": 5,
+    "not_started": 20,
+    "skipped_preflight": 11
+  },
+  "segment_context_status_counts": {
+    "complete": 3,
+    "not_started": 21,
+    "skipped_preflight": 11,
+    "successful_no_segments": 1
+  },
+  "complete_diagnostics": 4,
+  "quality_pass": 3,
+  "primary_category_counts": {
+    "low_conf_local": 3,
+    "unclassified": 33
+  }
+}

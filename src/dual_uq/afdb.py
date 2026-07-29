@@ -17,7 +17,6 @@ def _select_monomer_prediction(records: list[dict[str, Any]]) -> dict[str, Any]:
     monomers = [record for record in records if not record.get("isComplex", False)]
     candidates = monomers or records
 
-    # For ordinary UniProt entries prefer F1. Fragmented long proteins may have F2/F3.
     for record in candidates:
         entity_id = str(record.get("modelEntityId") or record.get("entryId") or "")
         if entity_id.endswith("-F1"):
@@ -26,16 +25,20 @@ def _select_monomer_prediction(records: list[dict[str, Any]]) -> dict[str, Any]:
     return candidates[0]
 
 
+def get_afdb_prediction_metadata(accession: str) -> dict[str, Any]:
+    accession = accession.strip().upper()
+    records = request_json(AFDB_PREDICTION_API.format(accession=accession))
+    if not isinstance(records, list):
+        raise TypeError(f"Unexpected AlphaFold DB response for {accession}: expected a list")
+    return _select_monomer_prediction(records)
+
+
 def fetch_afdb_prediction(accession: str, output_dir: str | Path) -> dict[str, Any]:
     accession = accession.strip().upper()
     output = Path(output_dir) / accession
     output.mkdir(parents=True, exist_ok=True)
 
-    records = request_json(AFDB_PREDICTION_API.format(accession=accession))
-    if not isinstance(records, list):
-        raise TypeError(f"Unexpected AlphaFold DB response for {accession}: expected a list")
-
-    prediction = _select_monomer_prediction(records)
+    prediction = get_afdb_prediction_metadata(accession)
     metadata_path = output / "metadata.json"
     metadata_path.write_text(json.dumps(prediction, indent=2), encoding="utf-8")
 

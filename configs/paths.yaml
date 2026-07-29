@@ -1,6 +1,6 @@
 paths:
-  project_root: /home/zbc/data/AI4S/ProteinDesign/Dual-UQ
-  pdb_cache: /home/zbc/data/AI4S/ProteinDesign/Dual-UQ/data/raw/pdb
-  afdb_cache: /home/zbc/data/AI4S/ProteinDesign/Dual-UQ/data/raw/afdb
-  mapping_cache: /home/zbc/data/AI4S/ProteinDesign/Dual-UQ/data/raw/mappings
-  model_cache: /home/zbc/data/AI4S/ProteinDesign/Dual-UQ/checkpoints
+  project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+  pdb_cache: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/raw/pdb
+  afdb_cache: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/raw/afdb
+  mapping_cache: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/raw/mappings
+  model_cache: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/checkpoints

@@ -1,0 +1,16 @@
+project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+source:
+  discovered_candidates: data/processed/discovery/discovered_candidates.parquet
+  current_pool: data/manifests/screening_pool.tsv
+selection:
+  target_count: 20
+  global_plddt_max: 85.0
+  length_min: 100
+  length_max: 500
+  min_pdb_to_uniprot_length_ratio: 0.90
+  max_pdb_to_uniprot_length_ratio: 1.10
+  require_single_chain_proxy: true
+  max_per_organism: 4
+  random_seed: 20260729
+output:
+  replacement_pool: data/manifests/lower_conf_replacement_pool.tsv

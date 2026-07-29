@@ -1,0 +1,32 @@
+selection:
+  target_total: 12
+  target_per_primary_category:
+    easy_control: 3
+    low_conf_local: 3
+    high_pae_long_range: 3
+    high_conf_state_disagreement: 3
+
+thresholds:
+  easy_control:
+    median_plddt_min: 90.0
+    p90_disagreement_max: 1.0
+    high_conf_segment_max_length: 2
+
+  low_conf_local:
+    min_plddt_max: 70.0
+    q10_plddt_max: 80.0
+
+  high_pae_long_range:
+    min_sequence_separation: 48
+    pae_q90_min: 10.0
+    pae_above_10_fraction_min: 0.20
+
+  high_conf_state_disagreement:
+    plddt_min: 90.0
+    disagreement_threshold: 1.0
+    min_contiguous_length: 5
+
+quality:
+  min_mapping_coverage: 0.90
+  min_aa_match_fraction: 0.95
+  max_plddt_bfactor_median_abs_delta: 0.10

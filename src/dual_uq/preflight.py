@@ -13,6 +13,7 @@ from .afdb import (
     prediction_interval,
     select_prediction_for_interval,
 )
+from .structure_io import join_residue_mapping_to_ca
 
 
 def normalise_residue_name(name: Any) -> str | None:
@@ -66,15 +67,6 @@ def compute_preflight_metrics(
     uniprot_length: int,
     pdb_entity_length: int,
 ) -> dict[str, Any]:
-    mapping = mapping.copy()
-    mapping["pdb_residue_number_norm"] = (
-        mapping["pdb_residue_number"].astype(str).str.strip()
-    )
-    pdb_ca_table = pdb_ca_table.copy()
-    pdb_ca_table["pdb_residue_number_norm"] = (
-        pdb_ca_table["pdb_residue_number"].astype(str).str.strip()
-    )
-
     mapped_positions = np.sort(
         mapping["uniprot_residue_number"].dropna().astype(int).unique()
     )
@@ -94,11 +86,7 @@ def compute_preflight_metrics(
         else float("nan")
     )
 
-    observed = mapping.merge(
-        pdb_ca_table[["pdb_residue_number_norm"]].drop_duplicates(),
-        on="pdb_residue_number_norm",
-        how="inner",
-    )
+    observed, join_diagnostics = join_residue_mapping_to_ca(mapping, pdb_ca_table)
     observed_positions = observed["uniprot_residue_number"].dropna().astype(int).unique()
     observed_ca_fraction = len(observed_positions) / mapped_count
 
@@ -123,6 +111,7 @@ def compute_preflight_metrics(
         "internal_unmapped_count": int(internal_unmapped_count),
         "internal_unmapped_fraction": float(internal_unmapped_count / max(span_length, 1)),
         "pdb_to_uniprot_length_ratio": float(pdb_entity_length / uniprot_length),
+        **join_diagnostics,
     }
 
 

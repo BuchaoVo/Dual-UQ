@@ -1,0 +1,56 @@
+project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+
+discovery:
+  query_rows: 40
+  experimental_methods:
+    - X-RAY DIFFRACTION
+    - ELECTRON MICROSCOPY
+  resolution_max: 3.0
+  length_min: 100
+  length_max: 500
+  require_single_uniprot: true
+  prefer_single_protein_chain: true
+
+  # Disable RCSB sequence-identity grouping during network diagnosis.
+  # Diversity is still controlled later from cluster metadata.
+  sequence_identity_grouping: null
+
+  afdb_metadata_probe_limit: 12
+  discovery_batch_size: 1
+  request_pause_seconds: 0.0
+  random_seed: 20260729
+
+screening_pool:
+  target_total: 8
+  quotas:
+    high_global_confidence: 2
+    lower_global_confidence: 2
+    long_backbone_proxy: 2
+    balanced_background: 2
+
+  definitions:
+    high_global_confidence:
+      global_plddt_min: 90.0
+      length_max: 320
+    lower_global_confidence:
+      global_plddt_max: 85.0
+    long_backbone_proxy:
+      length_min: 300
+
+  diversity:
+    unique_uniprot: true
+    unique_sequence_cluster: true
+    max_per_organism: 4
+    length_bins:
+      - [100, 180]
+      - [181, 300]
+      - [301, 500]
+
+batch:
+  local_permutations: 100
+  pair_permutations: 50
+  pair_min_separation: 6
+  segment_threshold: 1.0
+  segment_min_length: 3
+  segment_flank_size: 10
+  continue_on_error: true

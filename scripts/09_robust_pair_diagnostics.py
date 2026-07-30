@@ -13,6 +13,11 @@ from dual_uq.robust_stats import (
     matrix_label_permutation_test,
     safe_spearman,
 )
+from dual_uq.schema import (
+    RESIDUE_NUMBERING_COLUMNS,
+    AmbiguousLegacyResidueIdentifier,
+    normalize_residue_mapping,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,9 +45,121 @@ def quantiles(values: np.ndarray) -> dict[str, float]:
     }
 
 
-def main() -> None:
-    args = parse_args()
-    pair_dir = Path(args.pair_dir).expanduser().resolve()
+def prepare_residue_geometry(
+    residues: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, object]]:
+    prepared = residues.copy()
+    if (
+        "aligned_ca_distance" not in prepared
+        and "ca_disagreement" in prepared
+    ):
+        prepared["aligned_ca_distance"] = prepared["ca_disagreement"]
+
+    required_values = {
+        "uniprot_residue_number",
+        "plddt",
+        "aligned_ca_distance",
+    }
+    missing_values = sorted(required_values - set(prepared.columns))
+    if missing_values:
+        raise ValueError(
+            "Residue geometry missing required columns: "
+            + ",".join(missing_values)
+        )
+
+    explicit_author = {
+        "auth_asym_id",
+        "auth_seq_id",
+    }.issubset(prepared.columns)
+    if explicit_author:
+        missing_numbering = sorted(
+            set(RESIDUE_NUMBERING_COLUMNS) - set(prepared.columns)
+        )
+        if missing_numbering:
+            raise ValueError(
+                "Explicit residue geometry missing numbering columns: "
+                + ",".join(missing_numbering)
+            )
+        mode = "explicit_auth_label"
+    else:
+        if "pdb_residue_number" not in prepared:
+            raise AmbiguousLegacyResidueIdentifier(
+                "Residue geometry has neither explicit author numbering "
+                "nor a legacy pdb_residue_number."
+            )
+        chain_columns = [
+            column
+            for column in ("pdb_chain_id", "chain_id")
+            if column in prepared
+        ]
+        if not chain_columns or prepared[chain_columns].isna().all(axis=1).any():
+            raise AmbiguousLegacyResidueIdentifier(
+                "Legacy residue numbering requires an unambiguous chain alias."
+            )
+        mode = "legacy_alias"
+
+    prepared = normalize_residue_mapping(prepared)
+    uniprot = pd.to_numeric(
+        prepared["uniprot_residue_number"],
+        errors="coerce",
+    )
+    invalid_uniprot = uniprot.isna() | uniprot.mod(1).ne(0)
+    if invalid_uniprot.any():
+        raise ValueError("Residue geometry contains invalid UniProt positions.")
+    prepared["uniprot_residue_number"] = uniprot.astype(int)
+    if prepared["uniprot_residue_number"].duplicated().any():
+        raise ValueError("Residue geometry contains duplicate UniProt positions.")
+
+    if prepared["auth_asym_id"].isna().any() or prepared["auth_seq_id"].isna().any():
+        raise AmbiguousLegacyResidueIdentifier(
+            "Residue geometry contains an incomplete author residue identity."
+        )
+    author_key = [
+        "auth_asym_id",
+        "auth_seq_id",
+        "insertion_code",
+    ]
+    if prepared.duplicated(author_key).any():
+        raise ValueError("Residue geometry contains a duplicate author residue key.")
+
+    if mode == "explicit_auth_label":
+        if (
+            prepared["label_asym_id"].isna().any()
+            or prepared["label_seq_id"].isna().any()
+        ):
+            raise ValueError(
+                "Explicit residue geometry contains an incomplete label identity."
+            )
+        if prepared.duplicated(["label_asym_id", "label_seq_id"]).any():
+            raise ValueError(
+                "Residue geometry contains a duplicate label residue key."
+            )
+
+    prepared = prepared.sort_values(
+        "uniprot_residue_number",
+        kind="mergesort",
+    ).reset_index(drop=True)
+    provenance = {
+        "mode": mode,
+        "residue_count": len(prepared),
+        "join_modes": sorted(
+            prepared["residue_join_mode"].dropna().astype(str).unique().tolist()
+        )
+        if "residue_join_mode" in prepared
+        else [],
+    }
+    return prepared, provenance
+
+
+def run_robust_diagnostics(
+    pair_dir: str | Path,
+    *,
+    local_permutations: int,
+    pair_permutations: int,
+    min_separation: int,
+    seed: int,
+) -> dict[str, object]:
+    pair_dir = Path(pair_dir).expanduser().resolve()
 
     residue_path = pair_dir / "residue_geometry.parquet"
     pairwise_path = pair_dir / "pairwise_geometry.npz"
@@ -51,9 +168,9 @@ def main() -> None:
             "Run scripts/06_analyze_pair_geometry.py before robust diagnostics."
         )
 
-    residues = pd.read_parquet(residue_path).sort_values(
-        "uniprot_residue_number"
-    ).reset_index(drop=True)
+    residues, numbering_provenance = prepare_residue_geometry(
+        pd.read_parquet(residue_path)
+    )
     pairwise = np.load(pairwise_path)
 
     positions = residues["uniprot_residue_number"].astype(int).to_numpy()
@@ -64,16 +181,16 @@ def main() -> None:
     local_test = circular_shift_permutation_test(
         uncertainty,
         local_disagreement,
-        n_permutations=args.local_permutations,
-        seed=args.seed,
+        n_permutations=local_permutations,
+        seed=seed,
     )
     pair_test = matrix_label_permutation_test(
         pairwise["symmetric_pae"],
         pairwise["absolute_pairwise_error"],
         pairwise["uniprot_positions"],
-        min_sequence_separation=args.min_separation,
-        n_permutations=args.pair_permutations,
-        seed=args.seed,
+        min_sequence_separation=min_separation,
+        n_permutations=pair_permutations,
+        seed=seed,
     )
 
     segments = []
@@ -121,14 +238,28 @@ def main() -> None:
     strata_path = pair_dir / "pairwise_strata.csv"
     strata_table.to_csv(strata_path, index=False)
 
+    provenance_columns = [
+        column
+        for column in (
+            *RESIDUE_NUMBERING_COLUMNS,
+            "residue_mapping_provenance",
+            "residue_join_mode",
+        )
+        if column in residues
+    ]
+    descriptive_columns = [
+        column
+        for column in ("pdb_residue_one_letter",)
+        if column in residues
+    ]
     high_confidence_disagreement = residues[
         (residues["plddt"] >= 90.0)
         & (residues["aligned_ca_distance"] >= 1.0)
     ][
         [
             "uniprot_residue_number",
-            "pdb_residue_number",
-            "pdb_residue_one_letter",
+            *provenance_columns,
+            *descriptive_columns,
             "plddt",
             "aligned_ca_distance",
         ]
@@ -138,12 +269,13 @@ def main() -> None:
 
     summary = {
         "pair_dir": str(pair_dir),
-        "residue_count": int(len(residues)),
+        "residue_count": len(residues),
         "plddt_distribution": quantiles(plddt),
         "local_disagreement_distribution": quantiles(local_disagreement),
         "local_plddt_disagreement_test": local_test,
         "pae_pairwise_error_test": pair_test,
-        "high_confidence_disagreement_count": int(len(high_confidence_disagreement)),
+        "residue_numbering_provenance": numbering_provenance,
+        "high_confidence_disagreement_count": len(high_confidence_disagreement),
         "high_confidence_disagreement_definition": "pLDDT >= 90 and aligned CA distance >= 1 A",
         "largest_segment_residue_count_at_1A": (
             int(segment_table.loc[segment_table["threshold"] == 1.0, "residue_count"].max())
@@ -165,6 +297,18 @@ def main() -> None:
 
     output = pair_dir / "robust_pair_diagnostics.json"
     output.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return summary
+
+
+def main() -> None:
+    args = parse_args()
+    summary = run_robust_diagnostics(
+        args.pair_dir,
+        local_permutations=args.local_permutations,
+        pair_permutations=args.pair_permutations,
+        min_separation=args.min_separation,
+        seed=args.seed,
+    )
     print(json.dumps(summary, indent=2))
 
 

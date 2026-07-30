@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -37,9 +37,68 @@ LABEL_COLUMNS = (
     "is_construct_difference",
     "is_missing_coordinate_stress",
 )
+LIFECYCLE_REQUIRED_COLUMNS = {
+    *CANDIDATE_KEY,
+    "pair_name",
+    "pair_status",
+    "geometry_status",
+    "robust_status",
+    "segment_context_status",
+}
+LIFECYCLE_STATUS_VALUES = {
+    "pair_status": {
+        "complete",
+        "skipped_complete",
+        "not_started",
+        "in_progress",
+        "running",
+        "running_pair",
+        "blocked_upstream",
+        "skipped_preflight",
+        "unsupported_afdb_fragment",
+        "failed_pair",
+    },
+    "geometry_status": {
+        "complete",
+        "skipped_complete",
+        "not_started",
+        "in_progress",
+        "running",
+        "running_geometry",
+        "blocked_upstream",
+        "skipped_preflight",
+        "unsupported_afdb_fragment",
+        "failed_geometry",
+    },
+    "robust_status": {
+        "complete",
+        "skipped_complete",
+        "not_started",
+        "in_progress",
+        "running",
+        "running_robust",
+        "blocked_upstream",
+        "skipped_preflight",
+        "unsupported_afdb_fragment",
+        "failed_robust",
+    },
+    "segment_context_status": {
+        "complete",
+        "skipped_complete",
+        "successful_no_segments",
+        "not_started",
+        "in_progress",
+        "running",
+        "running_segment_context",
+        "blocked_upstream",
+        "skipped_preflight",
+        "unsupported_afdb_fragment",
+        "failed_segment_context",
+    },
+}
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Build evidence-driven, multi-label A0 candidate classifications "
@@ -66,7 +125,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fail if any candidate has a model/evidence mismatch.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--lifecycle",
+        action="append",
+        default=None,
+        help=(
+            "Normalized lifecycle CSV. Repeat for multiple cohorts. "
+            "Defaults to reports/candidate_lifecycle.csv."
+        ),
+    )
+    return parser.parse_args(argv)
 
 
 def resolve_path(root: Path, value: str) -> Path:
@@ -249,6 +317,112 @@ def _read_table(path: Path, *, sep: str = ",") -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_csv(path, sep=sep)
+
+
+def _validate_lifecycle_table(
+    table: pd.DataFrame,
+    *,
+    source_path: Path,
+) -> pd.DataFrame:
+    missing = sorted(LIFECYCLE_REQUIRED_COLUMNS - set(table.columns))
+    if missing:
+        raise ValueError(
+            "missing_required_lifecycle_columns:"
+            f"{source_path}:{','.join(missing)}"
+        )
+
+    validated = table.copy()
+    indices = validated["screening_index"].map(_optional_int)
+    if indices.isna().any():
+        raise ValueError(f"invalid_screening_index:{source_path}")
+    validated["screening_index"] = indices.astype(int)
+
+    normalized_keys: list[tuple[int, str, str, str]] = []
+    canonical_pairs: list[str] = []
+    for record in validated.to_dict(orient="records"):
+        key = _candidate_key(record)
+        if key[0] is None:
+            raise ValueError(f"invalid_screening_index:{source_path}")
+        normalized_key = (int(key[0]), key[1], key[2], key[3])
+        normalized_keys.append(normalized_key)
+        canonical_pairs.append(
+            f"{key[1]}_{key[2]}__{key[3]}"
+        )
+    supplied_pairs = validated["pair_name"].map(_clean_text)
+    if supplied_pairs.isna().any():
+        raise ValueError(f"invalid_pair_name:{source_path}")
+    if supplied_pairs.tolist() != canonical_pairs:
+        raise ValueError(f"pair_name_identity_conflict:{source_path}")
+
+    for column, allowed in LIFECYCLE_STATUS_VALUES.items():
+        normalized = validated[column].map(
+            lambda value: _clean_text(value, lower=True)
+        )
+        invalid = normalized.isna() | ~normalized.isin(allowed)
+        if invalid.any():
+            values = sorted(
+                {
+                    str(value)
+                    for value in validated.loc[invalid, column].tolist()
+                }
+            )
+            raise ValueError(
+                "invalid_lifecycle_status:"
+                f"{source_path}:{column}:{','.join(values)}"
+            )
+        validated[column] = normalized
+
+    validated["_lifecycle_key"] = normalized_keys
+    _validate_lifecycle_identity(validated, source_name=str(source_path))
+    cohort = (
+        validated["source"].map(_clean_text)
+        if "source" in validated
+        else pd.Series([None] * len(validated), index=validated.index)
+    )
+    validated["lifecycle_cohort"] = cohort
+    validated["lifecycle_source_path"] = str(source_path)
+    return validated
+
+
+def _validate_lifecycle_identity(
+    table: pd.DataFrame,
+    *,
+    source_name: str,
+) -> None:
+    if table["_lifecycle_key"].duplicated(keep=False).any():
+        raise ValueError(f"duplicate_candidate_key:{source_name}")
+    if table["screening_index"].duplicated(keep=False).any():
+        raise ValueError(
+            f"screening_index_identity_conflict:{source_name}"
+        )
+    if table["pair_name"].duplicated(keep=False).any():
+        raise ValueError(f"pair_name_identity_conflict:{source_name}")
+
+
+def load_lifecycle_tables(
+    root: Path,
+    lifecycle_paths: Sequence[str] | None,
+) -> pd.DataFrame:
+    requested = list(lifecycle_paths or ["reports/candidate_lifecycle.csv"])
+    if not requested:
+        requested = ["reports/candidate_lifecycle.csv"]
+    tables: list[pd.DataFrame] = []
+    for value in requested:
+        path = resolve_path(root, value).expanduser().resolve()
+        table = _read_table(path)
+        tables.append(
+            _validate_lifecycle_table(table, source_path=path)
+        )
+    combined = pd.concat(tables, ignore_index=True, sort=False)
+    _validate_lifecycle_identity(
+        combined,
+        source_name="combined_lifecycle_inputs",
+    )
+    combined = combined.sort_values(
+        [*CANDIDATE_KEY, "pair_name"],
+        kind="mergesort",
+    ).reset_index(drop=True)
+    return combined.drop(columns=["_lifecycle_key"])
 
 
 def _build_candidate_universe(
@@ -622,6 +796,13 @@ def _assemble_candidate(
     index, pdb_id, chain_id, uniprot_id = key
     pair_name = str(candidate["pair_name"])
     source = str(candidate["source"])
+    lifecycle_record_available = bool(lifecycle)
+    lifecycle_source_path = _clean_text(
+        lifecycle.get("lifecycle_source_path")
+    )
+    lifecycle_cohort = _clean_text(lifecycle.get("lifecycle_cohort"))
+    if lifecycle_record_available and lifecycle_cohort is None:
+        lifecycle_cohort = _clean_text(lifecycle.get("source")) or source
     records = (mechanism, preflight, replacement, lifecycle, candidate)
     preflight_status = _clean_text(
         _first_value(records, "preflight_status")
@@ -770,6 +951,9 @@ def _assemble_candidate(
         "pair_name": pair_name,
         "provisional_stratum": evidence.provisional_stratum,
         "pilot_role": pilot_role,
+        "lifecycle_record_available": lifecycle_record_available,
+        "lifecycle_source_path": lifecycle_source_path,
+        "lifecycle_cohort": lifecycle_cohort,
         "preflight_status": preflight_status,
         "full_length_mapping_coverage": full_coverage,
         "entity_mapping_coverage": entity_coverage,
@@ -935,6 +1119,7 @@ def main() -> None:
         _read_table(root / "reports/geometry_pilot_mechanisms.csv"),
         pilot_table,
     )
+    lifecycle_table = load_lifecycle_tables(root, args.lifecycle)
     universe = _filter_only(
         _build_candidate_universe(screening_pool, replacement_pool),
         args.only,
@@ -948,7 +1133,7 @@ def main() -> None:
             "screening preflight",
         ),
         "lifecycle": _records_by_key(
-            _read_table(root / "reports/candidate_lifecycle.csv"),
+            lifecycle_table,
             "candidate lifecycle",
         ),
         "replacement": _records_by_key(
@@ -974,6 +1159,7 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     for candidate in universe.to_dict(orient="records"):
         key = _candidate_key(candidate)
+        lifecycle_record = _lookup(sources["lifecycle"], key)
         base = {
             "screening_index": key[0],
             "source": candidate["source"],
@@ -985,6 +1171,18 @@ def main() -> None:
                 candidate.get("provisional_stratum")
             ),
             "pilot_role": None,
+            "lifecycle_record_available": bool(lifecycle_record),
+            "lifecycle_source_path": _clean_text(
+                lifecycle_record.get("lifecycle_source_path")
+            ),
+            "lifecycle_cohort": (
+                _clean_text(lifecycle_record.get("lifecycle_cohort"))
+                or (
+                    str(candidate["source"])
+                    if lifecycle_record
+                    else None
+                )
+            ),
         }
         try:
             rows.append(
@@ -993,7 +1191,7 @@ def main() -> None:
                     root=root,
                     config=config,
                     preflight=_lookup(sources["preflight"], key),
-                    lifecycle=_lookup(sources["lifecycle"], key),
+                    lifecycle=lifecycle_record,
                     replacement=_lookup(sources["replacement"], key),
                     pilot=_lookup(sources["pilot"], key),
                     mechanism=_lookup(sources["mechanism"], key),

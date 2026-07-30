@@ -109,6 +109,12 @@ def build_candidate_lifecycle(
     preflight_join = preflight[available_preflight].copy()
     preflight_join["screening_index"] = preflight_join["screening_index"].astype(int)
     preflight_join = preflight_join.drop_duplicates("screening_index", keep="last")
+    embedded_preflight = [
+        column
+        for column in available_preflight
+        if column != "screening_index" and column in base.columns
+    ]
+    base = base.drop(columns=embedded_preflight)
     base = base.merge(preflight_join, on="screening_index", how="left")
 
     status_lookup: dict[int, str] = {}

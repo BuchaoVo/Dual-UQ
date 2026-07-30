@@ -5,7 +5,7 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -96,6 +96,27 @@ LIFECYCLE_STATUS_VALUES = {
         "failed_segment_context",
     },
 }
+GEOMETRY_STATISTIC_FIELDS = {
+    "ca_disagreement_median": "median_aligned_ca_distance",
+    "ca_disagreement_p90": "p90_aligned_ca_distance",
+    "ca_disagreement_max": "max_aligned_ca_distance",
+}
+GEOMETRY_COMPARISON_ATOL = 1e-9
+PILOT_GEOMETRY_COMPARISON_ATOL = 1e-6
+GEOMETRY_COMPLETE_STATUSES = {"complete", "skipped_complete"}
+
+
+class GeometryEvidence(NamedTuple):
+    available: bool
+    source: str | None
+    ca_disagreement_median: float | None
+    ca_disagreement_p90: float | None
+    ca_disagreement_max: float | None
+    mapped_ca_count: int | None
+    validated_paths: tuple[str, ...]
+    identity_match: bool
+    error_reason: str | None
+    evidence_mismatch: bool = False
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -219,6 +240,279 @@ def _records_by_key(
             )
         records[key] = record
     return records
+
+
+def _empty_geometry_evidence(reason: str) -> GeometryEvidence:
+    return GeometryEvidence(
+        available=False,
+        source=None,
+        ca_disagreement_median=None,
+        ca_disagreement_p90=None,
+        ca_disagreement_max=None,
+        mapped_ca_count=None,
+        validated_paths=(),
+        identity_match=False,
+        error_reason=reason,
+    )
+
+
+def _geometry_failure(
+    *,
+    strict: bool,
+    error: OSError | TypeError | ValueError,
+) -> GeometryEvidence:
+    if strict:
+        raise error
+    return _empty_geometry_evidence(f"{type(error).__name__}:{error}")
+
+
+def _geometry_statistics(values: np.ndarray) -> dict[str, float]:
+    return {
+        "ca_disagreement_median": float(np.median(values)),
+        "ca_disagreement_p90": float(
+            np.quantile(values, 0.90, method="linear")
+        ),
+        "ca_disagreement_max": float(np.max(values)),
+    }
+
+
+def load_pair_geometry_evidence(
+    *,
+    project_root: Path,
+    candidate_identity: Mapping[str, Any],
+    geometry_status: str | None,
+    pilot_mechanism: Mapping[str, Any],
+    strict: bool,
+) -> GeometryEvidence:
+    if geometry_status not in GEOMETRY_COMPLETE_STATUSES:
+        return _empty_geometry_evidence("geometry_not_complete")
+
+    try:
+        canonical_pair_name = _pair_name(candidate_identity)
+        supplied_pair_name = _clean_text(candidate_identity.get("pair_name"))
+        if supplied_pair_name != canonical_pair_name:
+            raise ValueError(
+                "geometry identity mismatch: "
+                f"pair_name={supplied_pair_name!r}, expected={canonical_pair_name!r}"
+            )
+        pair_dir = (
+            project_root / "data/processed/pairs" / canonical_pair_name
+        )
+        qc_path = pair_dir / "pair_geometry_qc.json"
+        residue_path = pair_dir / "residue_geometry.parquet"
+        missing_paths = [
+            str(path)
+            for path in (qc_path, residue_path)
+            if not path.exists()
+        ]
+        if missing_paths:
+            if not strict and len(missing_paths) == 2:
+                pilot_values = {
+                    field: _optional_float(pilot_mechanism.get(field))
+                    for field in GEOMETRY_STATISTIC_FIELDS
+                }
+                finite_pilot = {
+                    field: value
+                    for field, value in pilot_values.items()
+                    if value is not None and value >= 0.0
+                }
+                if finite_pilot:
+                    return GeometryEvidence(
+                        available=True,
+                        source="legacy_pilot_only",
+                        ca_disagreement_median=finite_pilot.get(
+                            "ca_disagreement_median"
+                        ),
+                        ca_disagreement_p90=finite_pilot.get(
+                            "ca_disagreement_p90"
+                        ),
+                        ca_disagreement_max=finite_pilot.get(
+                            "ca_disagreement_max"
+                        ),
+                        mapped_ca_count=_optional_int(
+                            pilot_mechanism.get("mapped_ca_count")
+                        ),
+                        validated_paths=(),
+                        identity_match=False,
+                        error_reason=(
+                            "canonical_geometry_artifacts_absent:"
+                            + ",".join(missing_paths)
+                        ),
+                    )
+            raise FileNotFoundError(
+                "missing canonical geometry artifact: "
+                + ",".join(missing_paths)
+            )
+
+        qc = json.loads(qc_path.read_text(encoding="utf-8"))
+        if not isinstance(qc, dict):
+            raise TypeError("geometry QC must be a JSON object")
+        _, pdb_id, chain_id, uniprot_id = _candidate_key(
+            candidate_identity
+        )
+        expected_identity = {
+            "pdb_id": pdb_id,
+            "chain_id": chain_id,
+            "uniprot_id": uniprot_id,
+        }
+        observed_identity = {
+            "pdb_id": _clean_text(qc.get("pdb_id"), lower=True),
+            "chain_id": _clean_text(qc.get("chain_id")),
+            "uniprot_id": _clean_text(qc.get("uniprot_id")),
+        }
+        conflicts = {
+            field: (observed_identity[field], expected)
+            for field, expected in expected_identity.items()
+            if observed_identity[field] != expected
+        }
+        if conflicts:
+            raise ValueError(
+                "geometry identity mismatch: "
+                + ",".join(
+                    f"{field}={observed!r},expected={expected!r}"
+                    for field, (observed, expected) in conflicts.items()
+                )
+            )
+
+        residues = pd.read_parquet(residue_path)
+        if "uniprot_residue_number" not in residues:
+            raise ValueError(
+                "residue geometry missing uniprot_residue_number"
+            )
+        positions = pd.to_numeric(
+            residues["uniprot_residue_number"],
+            errors="coerce",
+        )
+        invalid_positions = (
+            positions.isna()
+            | positions.mod(1).ne(0)
+            | positions.le(0)
+        )
+        if invalid_positions.any():
+            raise ValueError(
+                "residue geometry contains invalid UniProt positions"
+            )
+        if positions.astype(int).duplicated().any():
+            raise ValueError(
+                "residue geometry contains duplicate UniProt positions"
+            )
+
+        distance_columns = [
+            field
+            for field in ("aligned_ca_distance", "ca_disagreement")
+            if field in residues
+        ]
+        if not distance_columns:
+            raise ValueError(
+                "residue geometry missing CA disagreement field"
+            )
+        values = pd.to_numeric(
+            residues[distance_columns[0]],
+            errors="coerce",
+        ).to_numpy(dtype=float)
+        if (
+            not np.isfinite(values).all()
+            or (values < 0.0).any()
+            or values.size == 0
+        ):
+            raise ValueError(
+                "CA disagreement values must be finite, non-negative, "
+                "and non-empty"
+            )
+        if len(distance_columns) == 2:
+            alias_values = pd.to_numeric(
+                residues[distance_columns[1]],
+                errors="coerce",
+            ).to_numpy(dtype=float)
+            if (
+                alias_values.shape != values.shape
+                or not np.isfinite(alias_values).all()
+                or not np.allclose(
+                    values,
+                    alias_values,
+                    rtol=0.0,
+                    atol=GEOMETRY_COMPARISON_ATOL,
+                )
+            ):
+                raise ValueError(
+                    "CA disagreement aliases conflict"
+                )
+
+        mapped_ca_count = _optional_int(qc.get("mapped_ca_count"))
+        if mapped_ca_count != len(residues):
+            raise ValueError(
+                "geometry mapped_ca_count mismatch: "
+                f"qc={mapped_ca_count}, residues={len(residues)}"
+            )
+        computed = _geometry_statistics(values)
+        canonical: dict[str, float] = {}
+        qc_fields_present = True
+        for output_field, qc_field in GEOMETRY_STATISTIC_FIELDS.items():
+            if qc_field not in qc:
+                qc_fields_present = False
+                canonical[output_field] = computed[output_field]
+                continue
+            qc_value = _optional_float(qc[qc_field])
+            if qc_value is None:
+                raise ValueError(
+                    "invalid geometry QC statistic: "
+                    f"{qc_field}={qc[qc_field]!r}"
+                )
+            if qc_value < 0.0 or not np.isclose(
+                qc_value,
+                computed[output_field],
+                rtol=0.0,
+                atol=GEOMETRY_COMPARISON_ATOL,
+            ):
+                raise ValueError(
+                    "geometry QC/residue statistic conflict: "
+                    f"{qc_field}={qc_value}, "
+                    f"computed={computed[output_field]}"
+                )
+            canonical[output_field] = qc_value
+
+        pilot_conflicts: list[str] = []
+        for field, canonical_value in canonical.items():
+            pilot_value = _optional_float(pilot_mechanism.get(field))
+            if pilot_value is None:
+                continue
+            if not np.isclose(
+                pilot_value,
+                canonical_value,
+                rtol=0.0,
+                atol=PILOT_GEOMETRY_COMPARISON_ATOL,
+            ):
+                pilot_conflicts.append(
+                    f"{field}={pilot_value},canonical={canonical_value}"
+                )
+        if pilot_conflicts and strict:
+            raise ValueError(
+                "pilot geometry conflict: " + ";".join(pilot_conflicts)
+            )
+        return GeometryEvidence(
+            available=True,
+            source=(
+                "pair_geometry_qc+residue_geometry"
+                if qc_fields_present
+                else "residue_geometry"
+            ),
+            ca_disagreement_median=canonical[
+                "ca_disagreement_median"
+            ],
+            ca_disagreement_p90=canonical["ca_disagreement_p90"],
+            ca_disagreement_max=canonical["ca_disagreement_max"],
+            mapped_ca_count=mapped_ca_count,
+            validated_paths=(str(qc_path), str(residue_path)),
+            identity_match=True,
+            error_reason=(
+                None
+                if not pilot_conflicts
+                else "pilot_geometry_conflict:" + ";".join(pilot_conflicts)
+            ),
+            evidence_mismatch=bool(pilot_conflicts),
+        )
+    except (OSError, TypeError, ValueError) as exc:
+        return _geometry_failure(strict=strict, error=exc)
 
 
 def enrich_pilot_mechanism_identity(
@@ -791,6 +1085,7 @@ def _assemble_candidate(
     pilot: Mapping[str, Any],
     mechanism: Mapping[str, Any],
     mapped_confidence: Mapping[str, Any],
+    strict: bool = False,
 ) -> dict[str, Any]:
     key = _candidate_key(candidate)
     index, pdb_id, chain_id, uniprot_id = key
@@ -812,9 +1107,36 @@ def _assemble_candidate(
     pair_status = _clean_text(
         _first_value((mechanism, lifecycle), "pair_status")
     )
-    geometry_status = _clean_text(
-        _first_value((mechanism, lifecycle), "geometry_status")
+    lifecycle_geometry_status = _clean_text(lifecycle.get("geometry_status"))
+    pilot_geometry_status = _clean_text(mechanism.get("geometry_status"))
+    geometry_status = (
+        lifecycle_geometry_status
+        if lifecycle_record_available
+        else pilot_geometry_status
     )
+    comparable_lifecycle_geometry_status = (
+        "complete"
+        if lifecycle_geometry_status in GEOMETRY_COMPLETE_STATUSES
+        else lifecycle_geometry_status
+    )
+    comparable_pilot_geometry_status = (
+        "complete"
+        if pilot_geometry_status in GEOMETRY_COMPLETE_STATUSES
+        else pilot_geometry_status
+    )
+    if (
+        strict
+        and lifecycle_record_available
+        and comparable_lifecycle_geometry_status is not None
+        and comparable_pilot_geometry_status is not None
+        and comparable_lifecycle_geometry_status
+        != comparable_pilot_geometry_status
+    ):
+        raise ValueError(
+            "geometry status conflict: "
+            f"lifecycle={lifecycle_geometry_status},"
+            f"pilot={pilot_geometry_status}"
+        )
     robust_status = _clean_text(
         _first_value((mechanism, lifecycle), "robust_status")
     )
@@ -841,6 +1163,13 @@ def _assemble_candidate(
         model_match = False
 
     pair_dir = root / "data/processed/pairs" / pair_name
+    geometry = load_pair_geometry_evidence(
+        project_root=root,
+        candidate_identity=candidate,
+        geometry_status=geometry_status,
+        pilot_mechanism=mechanism,
+        strict=strict,
+    )
     mapped = _mapped_confidence_from_report(mapped_confidence)
     if mapped is None and pair_dir.exists():
         mapped = _mapped_confidence_from_pair(pair_dir)
@@ -926,9 +1255,7 @@ def _assemble_candidate(
         ),
         pae_strata=pae_strata,
         pae_evidence_available=pae_available,
-        ca_disagreement_p90=_optional_float(
-            mechanism.get("ca_disagreement_p90")
-        ),
+        ca_disagreement_p90=geometry.ca_disagreement_p90,
         disagreement_segments=segments,
         state_disagreement_evidence_available=state_available,
         pilot_role=pilot_role,
@@ -974,15 +1301,9 @@ def _assemble_candidate(
             "longest_internal_below_80_length"
         ],
         "terminal_only_below_80": mapped["terminal_only_below_80"],
-        "ca_disagreement_median": _optional_float(
-            mechanism.get("ca_disagreement_median")
-        ),
-        "ca_disagreement_p90": _optional_float(
-            mechanism.get("ca_disagreement_p90")
-        ),
-        "ca_disagreement_max": _optional_float(
-            mechanism.get("ca_disagreement_max")
-        ),
+        "ca_disagreement_median": geometry.ca_disagreement_median,
+        "ca_disagreement_p90": geometry.ca_disagreement_p90,
+        "ca_disagreement_max": geometry.ca_disagreement_max,
         "largest_high_conf_disagreement_segment": (
             0 if best_segment is None else best_segment.residue_count
         ),
@@ -995,8 +1316,14 @@ def _assemble_candidate(
         **_pae_output(pae_strata),
         **_classification_fields(result),
         "evidence_assembly_status": "success",
-        "evidence_assembly_reason": "assembled",
-        "model_evidence_mismatch": model_match is False,
+        "evidence_assembly_reason": (
+            "assembled"
+            if geometry.error_reason is None
+            else f"assembled;{geometry.error_reason}"
+        ),
+        "model_evidence_mismatch": (
+            model_match is False or geometry.evidence_mismatch
+        ),
     }
     return base
 
@@ -1199,6 +1526,7 @@ def main() -> None:
                         sources["mapped_confidence"],
                         key,
                     ),
+                    strict=args.strict,
                 )
             )
         except Exception as exc:

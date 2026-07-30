@@ -6,6 +6,8 @@ from typing import Any
 
 import pandas as pd
 
+from .screening_runner import SEGMENT_CONTEXT, reduce_status_history
+
 TERMINAL_SEGMENT_STATUSES = {"complete", "successful_no_segments"}
 
 
@@ -48,7 +50,11 @@ def _segment_status(
     robust_status: str,
     legacy_status: str,
     preflight_status: str,
+    explicit_status: str | None = None,
 ) -> str:
+    if explicit_status is not None:
+        return explicit_status
+
     json_path = pair_dir / "segment_context.json"
     csv_path = pair_dir / "segment_context.csv"
     if json_path.exists():
@@ -81,6 +87,41 @@ def _counts(table: pd.DataFrame, column: str) -> dict[str, int]:
         str(key): int(value)
         for key, value in table[column].fillna("missing").value_counts().sort_index().items()
     }
+
+
+def _normalize_explicit_segment_status(value: object) -> str:
+    status = str(value)
+    return "complete" if status == "skipped_complete" else status
+
+
+def _explicit_segment_statuses(status: pd.DataFrame) -> dict[int, str]:
+    lookup: dict[int, str] = {}
+    if status.empty or "screening_index" not in status:
+        return lookup
+
+    if "segment_context_status" in status:
+        latest = status.copy()
+        latest["screening_index"] = latest["screening_index"].astype(int)
+        latest = latest.drop_duplicates("screening_index", keep="last")
+        for row in latest.itertuples(index=False):
+            value = row.segment_context_status
+            if pd.notna(value) and str(value).strip():
+                lookup[int(row.screening_index)] = (
+                    _normalize_explicit_segment_status(value)
+                )
+
+    required_history = {"stage", "attempt", "status"}
+    if required_history.issubset(status.columns):
+        reduced = reduce_status_history(status.to_dict("records"))
+        for (index, stage), state in reduced.items():
+            if stage != SEGMENT_CONTEXT or index in lookup:
+                continue
+            lookup[index] = (
+                "in_progress"
+                if state.interrupted
+                else _normalize_explicit_segment_status(state.status)
+            )
+    return lookup
 
 
 def build_candidate_lifecycle(
@@ -123,6 +164,7 @@ def build_candidate_lifecycle(
         latest["screening_index"] = latest["screening_index"].astype(int)
         latest = latest.drop_duplicates("screening_index", keep="last")
         status_lookup = dict(zip(latest["screening_index"], latest["status"].astype(str)))
+    segment_status_lookup = _explicit_segment_statuses(status)
 
     summary_lookup: dict[str, dict[str, Any]] = {}
     if candidate_summary is not None and not candidate_summary.empty:
@@ -165,6 +207,7 @@ def build_candidate_lifecycle(
             robust_status=robust_status,
             legacy_status=legacy_status,
             preflight_status=preflight_status,
+            explicit_status=segment_status_lookup.get(index),
         )
 
         pair_qc = _read_json(pair_dir / "pair_qc.json")

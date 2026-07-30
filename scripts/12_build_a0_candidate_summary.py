@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, NamedTuple
+from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
@@ -21,6 +23,7 @@ from dual_uq.a0_classification import (
     classify_candidate,
     compute_pae_strata,
 )
+from dual_uq.confidence import load_plddt
 from dual_uq.mapped_confidence import summarize_mapped_confidence
 
 CANDIDATE_KEY = (
@@ -117,6 +120,21 @@ class GeometryEvidence(NamedTuple):
     identity_match: bool
     error_reason: str | None
     evidence_mismatch: bool = False
+
+
+class ConfidenceEvidence(NamedTuple):
+    available: bool
+    confidence_model_match: bool | None
+    selected_model_entity_id: str | None
+    selected_version: int | None
+    fragment_start: int | None
+    fragment_end: int | None
+    plddt_model_entity_id: str | None
+    plddt_model_version: int | None
+    pae_model_entity_id: str | None
+    pae_model_version: int | None
+    source: str | None
+    error_reason: str | None
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -770,7 +788,181 @@ def _first_value(
     return None
 
 
-def _legacy_auth_fields(mapping: pd.DataFrame) -> pd.DataFrame:
+def _empty_confidence_evidence(reason: str) -> ConfidenceEvidence:
+    return ConfidenceEvidence(
+        available=False,
+        confidence_model_match=None,
+        selected_model_entity_id=None,
+        selected_version=None,
+        fragment_start=None,
+        fragment_end=None,
+        plddt_model_entity_id=None,
+        plddt_model_version=None,
+        pae_model_entity_id=None,
+        pae_model_version=None,
+        source=None,
+        error_reason=reason,
+    )
+
+
+def _load_json_mapping(path: Path, description: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid {description}: {path}") from exc
+    if not isinstance(value, dict):
+        raise TypeError(f"invalid {description}: {path}")
+    return value
+
+
+def _artifact_identity(
+    url: Any,
+    *,
+    kind: str,
+) -> tuple[str, int]:
+    text = _clean_text(url)
+    if text is None:
+        raise ValueError(f"missing {kind} metadata URL")
+    name = Path(urlparse(text).path).name
+    suffix = {
+        "model": "model",
+        "plddt": "confidence",
+        "pae": "predicted_aligned_error",
+    }[kind]
+    match = re.fullmatch(
+        rf"(.+)-{suffix}_v([1-9][0-9]*)\.(?:cif|json)",
+        name,
+    )
+    if match is None:
+        raise ValueError(f"invalid {kind} metadata URL: {name}")
+    return match.group(1), int(match.group(2))
+
+
+def load_pair_confidence_evidence(
+    *,
+    pair_dir: Path,
+    candidate_identity: Mapping[str, Any],
+    geometry_status: str | None,
+    strict: bool,
+) -> ConfidenceEvidence:
+    if geometry_status not in GEOMETRY_COMPLETE_STATUSES:
+        return _empty_confidence_evidence("geometry_not_complete")
+    qc_path = pair_dir / "pair_qc.json"
+    if not qc_path.exists():
+        if strict:
+            raise FileNotFoundError(f"missing canonical pair QC: {qc_path}")
+        return _empty_confidence_evidence("missing_pair_qc")
+    qc = _load_json_mapping(qc_path, "pair QC")
+    expected_identity = {
+        "pdb_id": _clean_text(candidate_identity.get("pdb_id"), lower=True),
+        "chain_id": _clean_text(candidate_identity.get("chain_id")),
+        "uniprot_id": _clean_text(candidate_identity.get("uniprot_id")),
+    }
+    actual_identity = {
+        "pdb_id": _clean_text(qc.get("pdb_id"), lower=True),
+        "chain_id": _clean_text(qc.get("chain_id")),
+        "uniprot_id": _clean_text(qc.get("uniprot_id")),
+    }
+    if actual_identity != expected_identity:
+        raise ValueError("canonical pair QC candidate identity mismatch")
+
+    selected = _clean_text(qc.get("afdb_model_entity_id"))
+    version = _optional_int(qc.get("afdb_version"))
+    fragment_start = _optional_int(qc.get("afdb_fragment_start"))
+    fragment_end = _optional_int(qc.get("afdb_fragment_end"))
+    if selected is None or version is None:
+        raise ValueError("invalid selected AFDB model identity or version")
+
+    paths: dict[str, Path] = {}
+    for field, kind in (
+        ("afdb_model_path", "model"),
+        ("plddt_path", "pLDDT"),
+        ("pae_path", "PAE"),
+    ):
+        text = _clean_text(qc.get(field))
+        if text is None:
+            raise ValueError(f"missing canonical {kind} path")
+        path = Path(text)
+        if not path.exists():
+            raise FileNotFoundError(f"missing canonical {kind} artifact: {path}")
+        paths[field] = path
+
+    artifact_parents = {path.parent for path in paths.values()}
+    if len(artifact_parents) != 1:
+        raise ValueError("canonical AFDB artifacts use inconsistent directories")
+    artifact_parent = next(iter(artifact_parents))
+    current_layout = artifact_parent.name == selected
+    metadata_path = paths["afdb_model_path"].parent / "metadata.json"
+    if not metadata_path.exists():
+        raise FileNotFoundError(
+            f"missing canonical AFDB metadata: {metadata_path}"
+        )
+    metadata = _load_json_mapping(metadata_path, "AFDB metadata")
+    metadata_model = _clean_text(
+        metadata.get("modelEntityId") or metadata.get("entryId")
+    )
+    metadata_version = _optional_int(metadata.get("latestVersion"))
+    metadata_start = _optional_int(
+        metadata.get("uniprotStart", metadata.get("sequenceStart"))
+    )
+    metadata_end = _optional_int(
+        metadata.get("uniprotEnd", metadata.get("sequenceEnd"))
+    )
+    if metadata_model != selected:
+        raise ValueError("AFDB model identity conflicts with selected model")
+    if metadata_version != version:
+        raise ValueError("AFDB model version conflicts with selected version")
+    if fragment_start is None and fragment_end is None and not current_layout:
+        fragment_start, fragment_end = metadata_start, metadata_end
+    if (
+        fragment_start is None
+        or fragment_end is None
+        or fragment_start < 1
+        or fragment_end < fragment_start
+    ):
+        raise ValueError("invalid selected AFDB fragment interval")
+    if (metadata_start, metadata_end) != (fragment_start, fragment_end):
+        raise ValueError("AFDB fragment interval conflicts with selected interval")
+
+    model_id, model_version = _artifact_identity(
+        metadata.get("cifUrl"),
+        kind="model",
+    )
+    plddt_id, plddt_version = _artifact_identity(
+        metadata.get("plddtDocUrl"),
+        kind="plddt",
+    )
+    pae_id, pae_version = _artifact_identity(
+        metadata.get("paeDocUrl"),
+        kind="pae",
+    )
+    if model_id != selected or model_version != version:
+        raise ValueError("model identity/version conflicts with selected model")
+    if plddt_id != selected or plddt_version != version:
+        raise ValueError("pLDDT model identity/version conflicts with selected model")
+    if pae_id != selected or pae_version != version:
+        raise ValueError("PAE model identity/version conflicts with selected model")
+    return ConfidenceEvidence(
+        available=True,
+        confidence_model_match=True,
+        selected_model_entity_id=selected,
+        selected_version=version,
+        fragment_start=fragment_start,
+        fragment_end=fragment_end,
+        plddt_model_entity_id=plddt_id,
+        plddt_model_version=plddt_version,
+        pae_model_entity_id=pae_id,
+        pae_model_version=pae_version,
+        source="pair_qc+afdb_metadata",
+        error_reason=None,
+    )
+
+
+def _legacy_auth_fields(
+    mapping: pd.DataFrame,
+    *,
+    allow_unmapped: bool = False,
+) -> pd.DataFrame:
     number_column = (
         "pdb_residue_number_norm"
         if "pdb_residue_number_norm" in mapping
@@ -778,25 +970,124 @@ def _legacy_auth_fields(mapping: pd.DataFrame) -> pd.DataFrame:
     )
     residue_numbers = mapping[number_column].astype(str).str.strip()
     parsed = residue_numbers.str.extract(r"^(-?\d+)([A-Za-z]?)$")
-    if parsed[0].isna().any():
+    if parsed[0].isna().any() and not allow_unmapped:
         raise ValueError("unparseable legacy PDB residue number")
+    auth_sequence = pd.to_numeric(parsed[0], errors="coerce").astype("Int64")
+    auth_chain = mapping["pdb_chain_id"].astype(str)
+    if allow_unmapped:
+        auth_chain = auth_chain.where(auth_sequence.notna(), "")
     return pd.DataFrame(
         {
-            "auth_asym_id": mapping["pdb_chain_id"].astype(str),
-            "auth_seq_id": parsed[0].astype(int),
+            "auth_asym_id": auth_chain,
+            "auth_seq_id": auth_sequence,
             "insertion_code": parsed[1].fillna(""),
         },
         index=mapping.index,
     )
 
 
-def _mapped_confidence_from_pair(pair_dir: Path) -> dict[str, Any] | None:
+def _mapped_confidence_from_pair(
+    pair_dir: Path,
+    confidence: ConfidenceEvidence | None = None,
+) -> dict[str, Any] | None:
     mapping_path = pair_dir / "residue_mapping.parquet"
     residue_path = pair_dir / "residue_geometry.parquet"
     if not mapping_path.exists() or not residue_path.exists():
         return None
     mapping = pd.read_parquet(mapping_path).copy()
     residues = pd.read_parquet(residue_path)
+    if confidence is not None and confidence.available:
+        if confidence.fragment_start is None or confidence.fragment_end is None:
+            raise ValueError("missing canonical AFDB fragment interval")
+        qc = _load_json_mapping(pair_dir / "pair_qc.json", "pair QC")
+        plddt_path = Path(str(qc["plddt_path"]))
+        expected_length = (
+            confidence.fragment_end - confidence.fragment_start + 1
+        )
+        plddt = load_plddt(plddt_path, expected_length=expected_length)
+        if (
+            not np.isfinite(plddt).all()
+            or ((plddt < 0.0) | (plddt > 100.0)).any()
+        ):
+            raise ValueError("invalid canonical pLDDT")
+        required = {
+            "uniprot_residue_number",
+            "auth_asym_id",
+            "auth_seq_id",
+            "insertion_code",
+        }
+        missing_mapping = sorted(required - set(mapping.columns))
+        missing_residues = sorted(required - set(residues.columns))
+        if missing_mapping:
+            legacy = _legacy_auth_fields(mapping, allow_unmapped=True)
+            mapping = mapping.assign(**legacy.to_dict(orient="series"))
+        if missing_residues:
+            legacy = _legacy_auth_fields(residues)
+            residues = residues.assign(**legacy.to_dict(orient="series"))
+        mapping["insertion_code"] = mapping["insertion_code"].fillna("")
+        residues["insertion_code"] = residues["insertion_code"].fillna("")
+        auth_key = ["auth_asym_id", "auth_seq_id", "insertion_code"]
+        observed_keys = residues[auth_key].drop_duplicates()
+        if observed_keys.duplicated(auth_key).any():
+            raise ValueError("duplicate observed auth residue key")
+        table = mapping.copy()
+        table["_mapped_row"] = np.arange(len(table))
+        observed = observed_keys.assign(observed_ca=True)
+        table = table.merge(
+            observed,
+            on=auth_key,
+            how="left",
+            validate="many_to_one",
+        ).sort_values("_mapped_row", kind="mergesort")
+        table["observed_ca"] = (
+            table["observed_ca"].fillna(False).astype(bool)
+        )
+        positions = pd.to_numeric(
+            table["uniprot_residue_number"],
+            errors="coerce",
+        )
+        if (
+            positions.isna().any()
+            or positions.mod(1).ne(0).any()
+            or positions.duplicated().any()
+        ):
+            raise ValueError("invalid mapped UniProt positions")
+        positions = positions.astype(int)
+        covered = positions.between(
+            confidence.fragment_start,
+            confidence.fragment_end,
+            inclusive="both",
+        )
+        if not covered.all():
+            raise ValueError("mapped position outside selected AFDB fragment")
+        local_indices = positions.to_numpy() - confidence.fragment_start
+        table["uniprot_residue_number"] = positions
+        table["mapped"] = (
+            table["auth_asym_id"].astype(str).str.strip().ne("")
+            & pd.to_numeric(table["auth_seq_id"], errors="coerce").notna()
+        )
+        table["fragment_covered"] = covered
+        table["plddt"] = plddt[local_indices]
+        summary = summarize_mapped_confidence(table)
+        return {
+            "mapped_plddt_min": summary.mapped_plddt_min,
+            "mapped_plddt_q10": summary.mapped_plddt_q10,
+            "mapped_plddt_median": summary.mapped_plddt_median,
+            "longest_internal_below_70_length": (
+                summary.longest_internal_below_70_length
+            ),
+            "longest_internal_below_80_length": (
+                summary.longest_internal_below_80_length
+            ),
+            "terminal_only_below_80": bool(
+                summary.longest_below_80_length >= 5
+                and summary.longest_internal_below_80_length < 5
+            ),
+            "is_low_conf_local": summary.is_low_conf_local,
+            "low_conf_evidence_available": True,
+            "mapped_confidence_source": "canonical_pair_artifacts",
+        }
+
     mapped_positions = pd.to_numeric(
         mapping["uniprot_residue_number"],
         errors="raise",
@@ -843,7 +1134,9 @@ def _mapped_confidence_from_pair(pair_dir: Path) -> dict[str, Any] | None:
             summary.longest_below_80_length > 0
             and summary.longest_internal_below_80_length == 0
         ),
+        "is_low_conf_local": summary.is_low_conf_local,
         "low_conf_evidence_available": True,
+        "mapped_confidence_source": "legacy_pair_geometry",
     }
 
 
@@ -876,21 +1169,80 @@ def _mapped_confidence_from_report(
         "terminal_only_below_80": _optional_bool(
             record.get("terminal_only_below_80")
         ),
+        "is_low_conf_local": _optional_bool(
+            record.get("is_low_conf_local")
+        ),
         "low_conf_evidence_available": success,
+        "mapped_confidence_source": "mapped_confidence_report",
     }
+
+
+def _cross_check_mapped_confidence(
+    canonical: Mapping[str, Any],
+    report: Mapping[str, Any] | None,
+) -> None:
+    if report is None or not bool(report.get("low_conf_evidence_available")):
+        return
+    numeric_fields = (
+        "mapped_plddt_min",
+        "mapped_plddt_q10",
+        "mapped_plddt_median",
+        "longest_internal_below_70_length",
+        "longest_internal_below_80_length",
+    )
+    conflicts = []
+    for field in numeric_fields:
+        canonical_value = _optional_float(canonical.get(field))
+        report_value = _optional_float(report.get(field))
+        if (
+            canonical_value is None
+            or report_value is None
+            or not np.isclose(
+                canonical_value,
+                report_value,
+                rtol=0.0,
+                atol=1e-6,
+            )
+        ):
+            conflicts.append(field)
+    for field in ("terminal_only_below_80",):
+        if _optional_bool(canonical.get(field)) != _optional_bool(
+            report.get(field)
+        ):
+            conflicts.append(field)
+    if conflicts:
+        raise ValueError(
+            "mapped confidence report conflicts with canonical artifacts: "
+            + ",".join(conflicts)
+        )
 
 
 def _pae_from_pair(
     pair_dir: Path,
     *,
     model_match: bool,
+    required: bool = False,
 ) -> tuple[dict[str, PaeStratumStats] | None, bool]:
     pairwise_path = pair_dir / "pairwise_geometry.npz"
-    if not model_match or not pairwise_path.exists():
+    if not model_match:
+        return None, False
+    if not pairwise_path.exists():
+        if required:
+            raise FileNotFoundError(
+                f"missing canonical pairwise artifact: {pairwise_path}"
+            )
         return None, False
     with np.load(pairwise_path) as data:
+        required_arrays = {"uniprot_positions", "symmetric_pae"}
+        missing = sorted(required_arrays - set(data.files))
+        if missing:
+            raise ValueError(
+                "pairwise artifact missing arrays: " + ",".join(missing)
+            )
         positions = np.asarray(data["uniprot_positions"])
         pae = np.asarray(data["symmetric_pae"])
+    if not np.isfinite(pae).all():
+        raise ValueError("canonical symmetric PAE contains NaN or infinity")
     return compute_pae_strata(positions, pae), True
 
 
@@ -992,14 +1344,23 @@ def _pae_output(
     for name in LONG_RANGE_PAE_BINS:
         stats = strata.get(name) if strata is not None else None
         prefix = f"long_range_{name}"
+        output[f"{prefix}_pae_q50"] = (
+            None if stats is None else stats.pae_q50
+        )
         output[f"{prefix}_pae_q90"] = (
             None if stats is None else stats.pae_q90
+        )
+        output[f"{prefix}_pae_mean"] = (
+            None if stats is None else stats.pae_mean
         )
         output[f"{prefix}_above_10_fraction"] = (
             None if stats is None else stats.above_10_fraction
         )
         output[f"{prefix}_above_15_fraction"] = (
             None if stats is None else stats.above_15_fraction
+        )
+        output[f"{prefix}_pair_count"] = (
+            None if stats is None else stats.pair_count
         )
     return output
 
@@ -1153,16 +1514,59 @@ def _assemble_candidate(
         robust_status = robust_status or default_status
         segment_status = segment_status or default_status
 
-    model_match = _mechanism_model_match(mechanism)
     report_model_match = _optional_bool(
         mapped_confidence.get("confidence_model_match")
     )
-    if model_match is None:
-        model_match = report_model_match
-    elif report_model_match is False:
-        model_match = False
+    mechanism_model_match = _mechanism_model_match(mechanism)
 
     pair_dir = root / "data/processed/pairs" / pair_name
+    pair_qc_exists = (pair_dir / "pair_qc.json").exists()
+    canonical_confidence = (
+        load_pair_confidence_evidence(
+            pair_dir=pair_dir,
+            candidate_identity=candidate,
+            geometry_status=geometry_status,
+            strict=strict,
+        )
+        if pair_qc_exists
+        else _empty_confidence_evidence("missing_pair_qc")
+    )
+    model_match = canonical_confidence.confidence_model_match
+    if canonical_confidence.available:
+        for record_name, record, stated_match in (
+            ("mechanism", mechanism, mechanism_model_match),
+            ("mapped confidence", mapped_confidence, report_model_match),
+        ):
+            if stated_match is False:
+                raise ValueError(
+                    f"{record_name} model identity conflicts with canonical artifacts"
+                )
+            stated_model = _clean_text(
+                record.get("selected_afdb_model_entity_id")
+            )
+            stated_version = _optional_int(
+                record.get("selected_afdb_version")
+            )
+            if (
+                stated_model is not None
+                and stated_model
+                != canonical_confidence.selected_model_entity_id
+            ):
+                raise ValueError(
+                    f"{record_name} selected model conflicts with canonical artifacts"
+                )
+            if (
+                stated_version is not None
+                and stated_version != canonical_confidence.selected_version
+            ):
+                raise ValueError(
+                    f"{record_name} selected version conflicts with canonical artifacts"
+                )
+    else:
+        model_match = mechanism_model_match
+        if model_match is None:
+            model_match = report_model_match
+
     geometry = load_pair_geometry_evidence(
         project_root=root,
         candidate_identity=candidate,
@@ -1170,9 +1574,26 @@ def _assemble_candidate(
         pilot_mechanism=mechanism,
         strict=strict,
     )
-    mapped = _mapped_confidence_from_report(mapped_confidence)
-    if mapped is None and pair_dir.exists():
-        mapped = _mapped_confidence_from_pair(pair_dir)
+    report_mapped = _mapped_confidence_from_report(mapped_confidence)
+    mapped = None
+    if (
+        geometry_status in GEOMETRY_COMPLETE_STATUSES
+        and canonical_confidence.available
+    ):
+        mapped = _mapped_confidence_from_pair(
+            pair_dir,
+            canonical_confidence,
+        )
+        if strict and mapped is not None:
+            _cross_check_mapped_confidence(mapped, report_mapped)
+    else:
+        mapped = report_mapped
+        if (
+            mapped is None
+            and geometry_status in GEOMETRY_COMPLETE_STATUSES
+            and pair_dir.exists()
+        ):
+            mapped = _mapped_confidence_from_pair(pair_dir)
     mapped = mapped or {
         "mapped_plddt_min": None,
         "mapped_plddt_q10": None,
@@ -1180,13 +1601,19 @@ def _assemble_candidate(
         "longest_internal_below_70_length": None,
         "longest_internal_below_80_length": None,
         "terminal_only_below_80": None,
+        "is_low_conf_local": None,
         "low_conf_evidence_available": False,
+        "mapped_confidence_source": None,
     }
 
-    pae_strata, pae_available = _pae_from_pair(
-        pair_dir,
-        model_match=model_match is True,
-    )
+    if geometry_status in GEOMETRY_COMPLETE_STATUSES:
+        pae_strata, pae_available = _pae_from_pair(
+            pair_dir,
+            model_match=model_match is True,
+            required=canonical_confidence.available,
+        )
+    else:
+        pae_strata, pae_available = None, False
     segments, state_available = _segments_from_pair(
         pair_dir,
         segment_context_status=segment_status,
@@ -1291,6 +1718,19 @@ def _assemble_candidate(
         "robust_status": robust_status,
         "segment_context_status": segment_status,
         "confidence_model_match": model_match,
+        "selected_afdb_model_entity_id": (
+            canonical_confidence.selected_model_entity_id
+        ),
+        "selected_afdb_version": canonical_confidence.selected_version,
+        "afdb_fragment_start": canonical_confidence.fragment_start,
+        "afdb_fragment_end": canonical_confidence.fragment_end,
+        "plddt_model_entity_id": (
+            canonical_confidence.plddt_model_entity_id
+        ),
+        "plddt_model_version": canonical_confidence.plddt_model_version,
+        "pae_model_entity_id": canonical_confidence.pae_model_entity_id,
+        "pae_model_version": canonical_confidence.pae_model_version,
+        "confidence_evidence_source": canonical_confidence.source,
         "mapped_plddt_min": mapped["mapped_plddt_min"],
         "mapped_plddt_q10": mapped["mapped_plddt_q10"],
         "mapped_plddt_median": mapped["mapped_plddt_median"],
@@ -1301,6 +1741,7 @@ def _assemble_candidate(
             "longest_internal_below_80_length"
         ],
         "terminal_only_below_80": mapped["terminal_only_below_80"],
+        "mapped_confidence_source": mapped["mapped_confidence_source"],
         "ca_disagreement_median": geometry.ca_disagreement_median,
         "ca_disagreement_p90": geometry.ca_disagreement_p90,
         "ca_disagreement_max": geometry.ca_disagreement_max,

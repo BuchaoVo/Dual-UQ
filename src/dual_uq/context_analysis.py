@@ -17,10 +17,6 @@ class SegmentClassification:
     explanation: str
 
 
-def _normalise_residue_number(value: Any) -> str:
-    return str(value).strip()
-
-
 def _ca_coordinates(table: pd.DataFrame, prefix: str) -> np.ndarray:
     return table[[f"{prefix}_x", f"{prefix}_y", f"{prefix}_z"]].to_numpy(dtype=float)
 
@@ -40,13 +36,12 @@ def residue_sasa_table(cif_path: str | Path, chain_id: str) -> pd.DataFrame:
         if "CA" not in residue:
             continue
         _, seqnum, insertion_code = residue.id
-        residue_number = str(seqnum)
         insertion = str(insertion_code).strip()
-        if insertion:
-            residue_number += insertion
         rows.append(
             {
-                "pdb_residue_number_norm": residue_number,
+                "auth_asym_id": str(chain_id),
+                "auth_seq_id": int(seqnum),
+                "insertion_code": insertion.upper(),
                 "pdb_residue_sasa": float(getattr(residue, "sasa", np.nan)),
             }
         )
@@ -56,7 +51,7 @@ def residue_sasa_table(cif_path: str | Path, chain_id: str) -> pd.DataFrame:
 def nearest_nonwater_hetero(
     cif_path: str | Path,
     chain_id: str,
-    segment_residue_numbers: set[str],
+    segment_residue_keys: set[tuple[str, int, str]],
 ) -> dict[str, Any]:
     path = Path(cif_path)
     parser = MMCIFParser(QUIET=True)
@@ -74,8 +69,13 @@ def nearest_nonwater_hetero(
             insertion = str(insertion_code).strip()
             if insertion:
                 residue_number += insertion
+            author_key = (
+                str(chain.id),
+                int(seqnum),
+                insertion.upper(),
+            )
 
-            if chain.id == chain_id and residue_number in segment_residue_numbers:
+            if chain.id == chain_id and author_key in segment_residue_keys:
                 segment_atoms.extend(list(residue.get_atoms()))
 
             is_hetero = str(hetero_flag).strip() not in ("", "W")
@@ -233,7 +233,7 @@ def characterize_segment(
     return {
         "start_position": int(start_position),
         "end_position": int(end_position),
-        "residue_count": int(len(segment_indices)),
+        "residue_count": len(segment_indices),
         "median_plddt": float(np.median(plddt)),
         "min_plddt": float(np.min(plddt)),
         "median_global_disagreement": float(np.median(global_disagreement)),

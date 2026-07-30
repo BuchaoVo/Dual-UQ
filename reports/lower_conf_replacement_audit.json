@@ -1,0 +1,55 @@
+{
+  "above_global_plddt_max_count": 0,
+  "audit_pass": false,
+  "blocked_reasons": [
+    "selected_shortlist_below_15",
+    "fewer_than_5_full_length_passes"
+  ],
+  "diversity_eligible_count": 0,
+  "duplicate_with_original_pool_count": 0,
+  "excluded_existing_pool_count": 76,
+  "exclusion_reason_counts": {},
+  "fail_preflight_count": 0,
+  "failed_indices": [],
+  "failed_runtime_count": 0,
+  "global_plddt_eligible_count": 0,
+  "global_plddt_role": "discovery_filter_and_ranking_prior_only",
+  "inputs": {
+    "current_pool": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/manifests/screening_pool.tsv",
+    "current_preflight_read_only": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/manifests/screening_pool_preflight.tsv",
+    "discovered_candidates": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/processed/discovery/discovered_candidates.parquet"
+  },
+  "length_proxy_eligible_count": 101,
+  "mapped_region_confidence_implemented": false,
+  "organism_counts": {},
+  "outputs": {
+    "canonical_length_cache": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/processed/replacements/afdb_canonical_length_cache.parquet",
+    "checkpoint": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/processed/replacements/lower_conf_replacement_preflight.checkpoint.parquet",
+    "replacement_pool": "/mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ/data/manifests/lower_conf_replacement_pool.tsv"
+  },
+  "pass_full_length_count": 0,
+  "pass_indices": [],
+  "pass_quality_failure_uniprots": [],
+  "preflight_attempted_count": 0,
+  "requested_replacement_count": 20,
+  "seed": 20260730,
+  "selected_shortlist_count": 0,
+  "sequence_cluster_count": 0,
+  "shortfall_count": 20,
+  "source_eligible_count": 213,
+  "thresholds": {
+    "afdb_global_plddt_max": 85.0,
+    "max_pdb_to_uniprot_length_ratio": 1.1,
+    "min_entity_mapping_coverage": 0.9,
+    "min_full_length_mapping_coverage": 0.9,
+    "min_observed_ca_fraction": 0.9,
+    "min_pdb_to_uniprot_length_ratio": 0.9,
+    "min_sequence_identity": 0.95
+  },
+  "thresholds_unchanged": true,
+  "unique_uniprot_count": 0,
+  "unsupported_afdb_fragment_count": 0,
+  "unsupported_indices": [],
+  "warn_construct_difference_count": 0,
+  "warning_indices": []
+}

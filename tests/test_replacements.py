@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
+import yaml
 
 from dual_uq.replacements import (
     build_replacement_audit,
@@ -11,7 +14,6 @@ from dual_uq.replacements import (
 )
 
 THRESHOLDS = {
-    "afdb_global_plddt_max": 85.0,
     "min_pdb_to_uniprot_length_ratio": 0.90,
     "max_pdb_to_uniprot_length_ratio": 1.10,
     "min_full_length_mapping_coverage": 0.90,
@@ -19,6 +21,12 @@ THRESHOLDS = {
     "min_sequence_identity": 0.95,
     "min_observed_ca_fraction": 0.90,
 }
+CONFIDENCE_RANKING = {
+    "enabled": True,
+    "direction": "ascending",
+    "hard_max": None,
+}
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _quality_row(**overrides: object) -> dict[str, object]:
@@ -172,8 +180,18 @@ def test_existing_pool_and_internal_uniprot_duplicates_are_excluded() -> None:
     discovered = pd.DataFrame(
         [
             _candidate(1, uniprot_id="EXISTING"),
-            _candidate(2, uniprot_id="DUPLICATE", resolution=1.5),
-            _candidate(3, uniprot_id="DUPLICATE", resolution=1.0),
+            _candidate(
+                2,
+                uniprot_id="DUPLICATE",
+                afdb_global_plddt=60.0,
+                resolution=1.5,
+            ),
+            _candidate(
+                3,
+                uniprot_id="DUPLICATE",
+                afdb_global_plddt=60.0,
+                resolution=1.0,
+            ),
             *[_candidate(i) for i in range(4, 25)],
         ]
     )
@@ -191,7 +209,7 @@ def test_existing_pool_and_internal_uniprot_duplicates_are_excluded() -> None:
         discovered,
         current,
         target_count=15,
-        global_plddt_max=85.0,
+        confidence_ranking=CONFIDENCE_RANKING,
         diversity_config={
             "unique_uniprot": True,
             "unique_sequence_cluster": True,
@@ -212,6 +230,7 @@ def test_duplicate_priority_uses_mapping_and_observed_ca_before_resolution() -> 
             _candidate(
                 1,
                 uniprot_id="DUP",
+                afdb_global_plddt=60.0,
                 full_length_mapping_coverage=0.91,
                 observed_ca_fraction_of_mapped=0.99,
                 resolution=0.5,
@@ -219,6 +238,7 @@ def test_duplicate_priority_uses_mapping_and_observed_ca_before_resolution() -> 
             _candidate(
                 2,
                 uniprot_id="DUP",
+                afdb_global_plddt=60.0,
                 full_length_mapping_coverage=0.99,
                 observed_ca_fraction_of_mapped=0.91,
                 resolution=2.0,
@@ -231,7 +251,7 @@ def test_duplicate_priority_uses_mapping_and_observed_ca_before_resolution() -> 
         discovered,
         pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
         target_count=15,
-        global_plddt_max=85.0,
+        confidence_ranking=CONFIDENCE_RANKING,
         diversity_config={"unique_uniprot": True},
         seed=20260730,
     )
@@ -240,7 +260,7 @@ def test_duplicate_priority_uses_mapping_and_observed_ca_before_resolution() -> 
     assert duplicate["pdb_id"] == "0002"
 
 
-def test_global_plddt_filter_reports_shortfall_without_local_confidence_label() -> None:
+def test_global_plddt_is_a_ranking_prior_not_a_hard_qualification_gate() -> None:
     discovered = pd.DataFrame(
         [
             *[_candidate(i, afdb_global_plddt=80 + i / 100) for i in range(1, 6)],
@@ -252,14 +272,15 @@ def test_global_plddt_filter_reports_shortfall_without_local_confidence_label() 
         discovered,
         pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
         target_count=15,
-        global_plddt_max=85.0,
+        confidence_ranking=CONFIDENCE_RANKING,
         diversity_config={"unique_uniprot": True},
         seed=20260730,
     )
 
-    assert len(result) == 5
-    assert (result["afdb_global_plddt"] <= 85).all()
-    assert result.attrs["selection_audit"]["shortfall_count"] == 10
+    assert len(result) == 15
+    assert result["afdb_global_plddt"].is_monotonic_increasing
+    assert (result["afdb_global_plddt"] > 85).any()
+    assert result.attrs["selection_audit"]["shortfall_count"] == 0
     assert "is_low_conf_local" not in result.columns
     assert "primary_category" not in result.columns
 
@@ -271,7 +292,7 @@ def test_target_count_must_be_between_15_and_20(target_count: int) -> None:
             pd.DataFrame([_candidate(i) for i in range(1, 22)]),
             pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
             target_count=target_count,
-            global_plddt_max=85.0,
+            confidence_ranking=CONFIDENCE_RANKING,
             diversity_config={},
             seed=20260730,
         )
@@ -282,7 +303,7 @@ def test_shortfall_is_reported_without_duplication_or_threshold_relaxation() -> 
         pd.DataFrame([_candidate(i) for i in range(1, 4)]),
         pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
         target_count=15,
-        global_plddt_max=85.0,
+        confidence_ranking=CONFIDENCE_RANKING,
         diversity_config={},
         seed=20260730,
     )
@@ -308,7 +329,7 @@ def test_diversity_constraints_and_unknown_values_are_stable() -> None:
         discovered,
         pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
         target_count=15,
-        global_plddt_max=85.0,
+        confidence_ranking=CONFIDENCE_RANKING,
         diversity_config={
             "unique_uniprot": True,
             "unique_sequence_cluster": True,
@@ -468,7 +489,7 @@ def test_shortlist_order_is_reproducible_for_same_seed() -> None:
     current = pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"])
     kwargs = {
         "target_count": 15,
-        "global_plddt_max": 85.0,
+        "confidence_ranking": CONFIDENCE_RANKING,
         "diversity_config": {"unique_uniprot": True},
         "seed": 20260730,
     }
@@ -477,6 +498,21 @@ def test_shortlist_order_is_reproducible_for_same_seed() -> None:
     second = build_replacement_shortlist(discovered, current, **kwargs)
 
     assert first["uniprot_id"].tolist() == second["uniprot_id"].tolist()
+
+
+def test_confidence_ranking_rejects_nonascending_direction() -> None:
+    with pytest.raises(ValueError, match="direction must be ascending"):
+        build_replacement_shortlist(
+            pd.DataFrame([_candidate(i) for i in range(1, 22)]),
+            pd.DataFrame(columns=["pdb_id", "chain_id", "uniprot_id"]),
+            target_count=15,
+            confidence_ranking={
+                **CONFIDENCE_RANKING,
+                "direction": "descending",
+            },
+            diversity_config={"unique_uniprot": True},
+            seed=20260730,
+        )
 
 
 def test_audit_reports_real_shortfall_and_structured_status_counts() -> None:
@@ -513,11 +549,12 @@ def test_audit_reports_real_shortfall_and_structured_status_counts() -> None:
         seed=20260730,
         source_counts={
             "source_eligible_count": 20,
-            "excluded_existing_pool_count": 2,
+            "existing_pool_exclusions": 2,
             "length_proxy_eligible_count": 10,
-            "global_plddt_eligible_count": 4,
+            "confidence_ranked_count": 4,
             "diversity_eligible_count": 6,
         },
+        ranking_config=CONFIDENCE_RANKING,
     )
 
     assert audit["selected_shortlist_count"] == 6
@@ -527,13 +564,17 @@ def test_audit_reports_real_shortfall_and_structured_status_counts() -> None:
     assert audit["fail_preflight_count"] == 1
     assert audit["unsupported_afdb_fragment_count"] == 1
     assert audit["failed_runtime_count"] == 1
+    assert audit["warn_count"] == 1
+    assert audit["fail_count"] == 1
+    assert audit["unsupported_count"] == 1
+    assert audit["runtime_failure_count"] == 1
     assert audit["unsupported_indices"] == [105]
     assert not audit["audit_pass"]
     assert "selected_shortlist_below_15" in audit["blocked_reasons"]
     assert "fewer_than_5_full_length_passes" in audit["blocked_reasons"]
 
 
-def test_audit_blocks_candidates_above_discovery_plddt_maximum() -> None:
+def test_audit_accepts_high_global_plddt_when_hard_quality_gates_pass() -> None:
     candidates = pd.DataFrame(
         [
             {
@@ -553,20 +594,26 @@ def test_audit_blocks_candidates_above_discovery_plddt_maximum() -> None:
         requested_count=15,
         thresholds=THRESHOLDS,
         seed=20260730,
+        ranking_config=CONFIDENCE_RANKING,
     )
 
-    assert not audit["audit_pass"]
-    assert audit["above_global_plddt_max_count"] == 15
-    assert "selected_above_global_plddt_max" in audit["blocked_reasons"]
+    assert audit["audit_pass"]
+    assert audit["global_plddt_min"] == 90.0
+    assert audit["global_plddt_q25"] == 90.0
+    assert audit["global_plddt_median"] == 90.0
+    assert audit["global_plddt_q75"] == 90.0
+    assert audit["global_plddt_max"] == 90.0
+    assert audit["hard_thresholds"] == THRESHOLDS
+    assert audit["ranking_features"][0] == "afdb_global_plddt:ascending"
+    assert audit["blocked_reasons"] == []
 
 
-def test_audit_rejects_relaxed_global_plddt_configuration() -> None:
-    relaxed = {**THRESHOLDS, "afdb_global_plddt_max": 90.0}
+def test_audit_rejects_nonascending_confidence_ranking() -> None:
     candidates = pd.DataFrame(
         [
             {
-                **_candidate(i, afdb_global_plddt=90.0),
-                **_quality_row(afdb_global_plddt=90.0),
+                **_candidate(i),
+                **_quality_row(),
                 "screening_index": 100 + i,
                 "uniprot_id": f"P{i:05d}",
                 "preflight_status": "pass_full_length",
@@ -579,10 +626,61 @@ def test_audit_rejects_relaxed_global_plddt_configuration() -> None:
     audit = build_replacement_audit(
         candidates,
         requested_count=15,
-        thresholds=relaxed,
+        thresholds=THRESHOLDS,
         seed=20260730,
+        ranking_config={
+            **CONFIDENCE_RANKING,
+            "direction": "descending",
+        },
     )
 
-    assert not audit["thresholds_unchanged"]
     assert not audit["audit_pass"]
-    assert "quality_thresholds_lowered" in audit["blocked_reasons"]
+    assert (
+        "invalid_confidence_ranking_configuration"
+        in audit["blocked_reasons"]
+    )
+
+
+def test_audit_rejects_output_that_is_not_confidence_ranked() -> None:
+    candidates = pd.DataFrame(
+        [
+            {
+                **_candidate(i),
+                **_quality_row(afdb_global_plddt=100.0 - i),
+                "screening_index": 100 + i,
+                "uniprot_id": f"P{i:05d}",
+                "preflight_status": "pass_full_length",
+                "exclusion_reasons": "",
+            }
+            for i in range(1, 16)
+        ]
+    )
+
+    audit = build_replacement_audit(
+        candidates,
+        requested_count=15,
+        thresholds=THRESHOLDS,
+        seed=20260730,
+        ranking_config=CONFIDENCE_RANKING,
+    )
+
+    assert not audit["audit_pass"]
+    assert "confidence_ranking_order_violation" in audit["blocked_reasons"]
+
+
+def test_config_declares_global_plddt_as_nonbinding_ranking_prior() -> None:
+    config = yaml.safe_load(
+        (ROOT / "configs" / "lower_conf_replacement.yaml").read_text()
+    )
+
+    assert {
+        name: config["selection"][name] for name in THRESHOLDS
+    } == THRESHOLDS
+    assert "afdb_global_plddt_max" not in config["selection"]
+    assert config["confidence_ranking"]["enabled"] is True
+    assert config["confidence_ranking"]["direction"] == "ascending"
+    assert config["confidence_ranking"]["hard_max"] is None
+    assert (
+        config["confidence_ranking"]["historical_nonbinding_reference_max"]
+        == 85.0
+    )

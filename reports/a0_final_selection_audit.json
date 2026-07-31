@@ -1,0 +1,32 @@
+{
+  "audit_pass": false,
+  "blocked_reasons": [
+    "fewer_than_24_complete_quality_pass_diagnostics",
+    "insufficient_low_confidence_local_candidates",
+    "insufficient_high_pae_long_range_candidates"
+  ],
+  "category_gate_pass": false,
+  "complete_classifications_excluding_reference": 24,
+  "complete_quality_pass_diagnostics": 23,
+  "diagnostic_gate_pass": false,
+  "eligible_primary_category_counts": {
+    "easy_control": 15,
+    "high_confidence_state_disagreement": 4,
+    "high_pae_long_range": 2,
+    "low_confidence_local": 1
+  },
+  "minimum_complete_quality_pass_diagnostics": 24,
+  "multi_label_quota_rule": "primary_category_only",
+  "ordinary_complete_count": 1,
+  "reference_rows_excluded": 1,
+  "required_primary_category_counts": {
+    "easy_control": 3,
+    "high_confidence_state_disagreement": 3,
+    "high_pae_long_range": 3,
+    "low_confidence_local": 3
+  },
+  "selected_panel_rows": 0,
+  "selection_method": "primary_category_order_then_screening_index_then_pair_name",
+  "summary_rows": 57,
+  "target_panel_rows": 12
+}

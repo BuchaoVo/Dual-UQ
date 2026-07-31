@@ -11,7 +11,6 @@ import pandas as pd
 
 MIN_TARGET_COUNT = 15
 MAX_TARGET_COUNT = 20
-REQUIRED_GLOBAL_PLDDT_MAX = 85.0
 
 HARD_QUALITY_THRESHOLDS = {
     "min_pdb_to_uniprot_length_ratio": 0.90,
@@ -127,7 +126,6 @@ def evaluate_full_length_proxy(
     elif preflight_status == "failed_runtime":
         reasons.append("failed_runtime")
 
-    global_threshold = float(thresholds.get("afdb_global_plddt_max", np.inf))
     metrics: dict[str, float | bool | None] = {
         "canonical_uniprot_length": canonical_length,
         "pdb_entity_length": pdb_length,
@@ -137,11 +135,7 @@ def evaluate_full_length_proxy(
         "sequence_identity": sequence_identity,
         "observed_ca_fraction_of_mapped": observed_fraction,
         "afdb_global_plddt": global_plddt,
-        "global_plddt_preferred": (
-            global_plddt <= global_threshold
-            if global_plddt is not None
-            else False
-        ),
+        "global_plddt_available": global_plddt is not None,
     }
     return ReplacementEligibility(
         eligible=not reasons,
@@ -174,10 +168,20 @@ def _seeded_rank(seed: int, row: pd.Series) -> str:
 def _sort_candidates(
     candidates: pd.DataFrame,
     *,
-    global_plddt_max: float,
+    confidence_ranking: Mapping[str, Any],
     seed: int,
 ) -> pd.DataFrame:
     ranked = candidates.copy()
+    if not bool(confidence_ranking.get("enabled", False)):
+        raise ValueError("confidence_ranking.enabled must be true")
+    direction = str(confidence_ranking.get("direction", "")).lower()
+    if direction != "ascending":
+        raise ValueError("confidence_ranking.direction must be ascending")
+    if confidence_ranking.get("hard_max") is not None:
+        raise ValueError(
+            "confidence_ranking.hard_max must be null; global pLDDT is "
+            "a ranking prior only"
+        )
 
     def numeric_series(column: str, *, default: float) -> pd.Series:
         values = (
@@ -187,10 +191,6 @@ def _sort_candidates(
         )
         return pd.to_numeric(values, errors="coerce").fillna(default)
 
-    ranked["_global_preferred"] = (
-        pd.to_numeric(ranked["afdb_global_plddt"], errors="coerce")
-        <= float(global_plddt_max)
-    )
     ranked["_ratio_distance"] = (
         pd.to_numeric(ranked["pdb_to_uniprot_length_ratio"], errors="coerce") - 1.0
     ).abs()
@@ -213,23 +213,21 @@ def _sort_candidates(
     )
     return ranked.sort_values(
         [
-            "_global_preferred",
+            "_global_plddt",
             "_ratio_distance",
             "_full_coverage",
             "_observed_fraction",
             "_resolution",
-            "_global_plddt",
             "_seeded_rank",
             "pdb_id",
             "chain_id",
             "uniprot_id",
         ],
         ascending=[
-            False,
+            True,
             True,
             False,
             False,
-            True,
             True,
             True,
             True,
@@ -245,7 +243,7 @@ def build_replacement_shortlist(
     current_pool: pd.DataFrame,
     *,
     target_count: int,
-    global_plddt_max: float,
+    confidence_ranking: Mapping[str, Any],
     diversity_config: Mapping[str, Any],
     seed: int,
 ) -> pd.DataFrame:
@@ -327,7 +325,7 @@ def build_replacement_shortlist(
     global_plddt = pd.to_numeric(source["afdb_global_plddt"], errors="coerce")
     source["pdb_entity_length"] = pdb_length
     source["pdb_to_uniprot_length_ratio"] = pdb_length / canonical_length
-    discovery_eligible = (
+    length_proxy_eligible = (
         pdb_length.between(length_min, length_max, inclusive="both")
         & canonical_length.gt(0)
         & source["pdb_to_uniprot_length_ratio"].between(
@@ -335,20 +333,11 @@ def build_replacement_shortlist(
             max_ratio,
             inclusive="both",
         )
-        & global_plddt.notna()
     )
-    source = source.loc[discovery_eligible].copy()
+    source = source.loc[length_proxy_eligible].copy()
     length_proxy_eligible_count = len(source)
-    global_plddt_eligible_count = int(
-        pd.to_numeric(source["afdb_global_plddt"], errors="coerce")
-        .le(float(global_plddt_max))
-        .sum()
-    )
-    source = source.loc[
-        pd.to_numeric(source["afdb_global_plddt"], errors="coerce").le(
-            float(global_plddt_max)
-        )
-    ].copy()
+    source = source.loc[global_plddt.loc[source.index].notna()].copy()
+    confidence_ranked_count = len(source)
 
     source["organism"] = source.get(
         "organism",
@@ -371,7 +360,7 @@ def build_replacement_shortlist(
 
     source = _sort_candidates(
         source,
-        global_plddt_max=global_plddt_max,
+        confidence_ranking=confidence_ranking,
         seed=seed,
     )
     source = source.drop_duplicates(
@@ -404,11 +393,7 @@ def build_replacement_shortlist(
     selected = source.loc[selected_indices].head(int(target_count)).copy()
     selected = selected.reset_index(drop=True)
     selected["discovery_rank"] = np.arange(1, len(selected) + 1)
-    selected["selection_reason"] = np.where(
-        selected["_global_preferred"],
-        "full_length_proxy;global_plddt_preferred",
-        "full_length_proxy;ranked_fill",
-    )
+    selected["selection_reason"] = "full_length_proxy;confidence_ranked"
     selected["exclusion_reasons"] = ""
     selected["provisional_stratum"] = "lower_global_confidence_replacement"
     selected["selection_stage"] = "full_length_proxy_preflight"
@@ -419,9 +404,10 @@ def build_replacement_shortlist(
     )
     selected.attrs["selection_audit"] = {
         "source_eligible_count": int(source_eligible_count),
+        "existing_pool_exclusions": excluded_existing_pool_count,
         "excluded_existing_pool_count": excluded_existing_pool_count,
         "length_proxy_eligible_count": int(length_proxy_eligible_count),
-        "global_plddt_eligible_count": global_plddt_eligible_count,
+        "confidence_ranked_count": int(confidence_ranked_count),
         "diversity_eligible_count": int(diversity_eligible_count),
         "requested_replacement_count": int(target_count),
         "selected_shortlist_count": len(selected),
@@ -506,9 +492,6 @@ def _indices_for_status(
 
 def _thresholds_are_not_lowered(thresholds: Mapping[str, float]) -> bool:
     return (
-        float(thresholds["afdb_global_plddt_max"])
-        <= REQUIRED_GLOBAL_PLDDT_MAX
-        and
         float(thresholds["min_pdb_to_uniprot_length_ratio"])
         >= HARD_QUALITY_THRESHOLDS["min_pdb_to_uniprot_length_ratio"]
         and float(thresholds["max_pdb_to_uniprot_length_ratio"])
@@ -529,8 +512,10 @@ def build_replacement_audit(
     thresholds: Mapping[str, float],
     seed: int,
     source_counts: Mapping[str, int] | None = None,
+    ranking_config: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_counts = dict(source_counts or {})
+    ranking_config = dict(ranking_config or {})
     status = candidates.get(
         "preflight_status",
         pd.Series(index=candidates.index, dtype=object),
@@ -562,6 +547,11 @@ def build_replacement_audit(
         .sum()
     )
     thresholds_unchanged = _thresholds_are_not_lowered(thresholds)
+    ranking_configuration_valid = (
+        bool(ranking_config.get("enabled", False))
+        and str(ranking_config.get("direction", "")).lower() == "ascending"
+        and ranking_config.get("hard_max") is None
+    )
     global_plddt = pd.to_numeric(
         candidates.get(
             "afdb_global_plddt",
@@ -569,8 +559,31 @@ def build_replacement_audit(
         ),
         errors="coerce",
     )
-    above_global_plddt_max_count = int(
-        global_plddt.gt(float(thresholds["afdb_global_plddt_max"])).sum()
+    finite_global_plddt = global_plddt.dropna()
+    ranking_order = candidates
+    if "discovery_rank" in candidates:
+        ranking_order = candidates.sort_values(
+            "discovery_rank",
+            kind="mergesort",
+        )
+    elif "screening_index" in candidates:
+        ranking_order = candidates.sort_values(
+            "screening_index",
+            kind="mergesort",
+        )
+    ranked_global_plddt = pd.to_numeric(
+        ranking_order.get(
+            "afdb_global_plddt",
+            pd.Series(index=ranking_order.index, dtype=float),
+        ),
+        errors="coerce",
+    )
+    ranking_order_valid = (
+        candidates.empty
+        or (
+            ranked_global_plddt.notna().all()
+            and ranked_global_plddt.is_monotonic_increasing
+        )
     )
     prohibited_columns = sorted(
         {"is_low_conf_local", "primary_category"} & set(candidates.columns)
@@ -589,8 +602,10 @@ def build_replacement_audit(
         blocked_reasons.append("duplicates_original_screening_pool")
     if not thresholds_unchanged:
         blocked_reasons.append("quality_thresholds_lowered")
-    if above_global_plddt_max_count:
-        blocked_reasons.append("selected_above_global_plddt_max")
+    if not ranking_configuration_valid:
+        blocked_reasons.append("invalid_confidence_ranking_configuration")
+    if not ranking_order_valid:
+        blocked_reasons.append("confidence_ranking_order_violation")
     if prohibited_columns:
         blocked_reasons.append("mapped_confidence_or_primary_category_present")
 
@@ -609,16 +624,45 @@ def build_replacement_audit(
         "sequence_cluster",
         pd.Series(index=candidates.index, dtype=object),
     )
+    warn_count = int(status.eq("warn_construct_difference").sum())
+    fail_count = int(status.eq("fail_preflight").sum())
+    unsupported_count = int(status.eq("unsupported_afdb_fragment").sum())
+    runtime_failure_count = int(status.eq("failed_runtime").sum())
+    direction = str(ranking_config.get("direction", "ascending")).lower()
+    global_stats: dict[str, float | None] = {
+        "global_plddt_min": None,
+        "global_plddt_q25": None,
+        "global_plddt_median": None,
+        "global_plddt_q75": None,
+        "global_plddt_max": None,
+    }
+    if not finite_global_plddt.empty:
+        global_stats = {
+            "global_plddt_min": float(finite_global_plddt.min()),
+            "global_plddt_q25": float(finite_global_plddt.quantile(0.25)),
+            "global_plddt_median": float(finite_global_plddt.median()),
+            "global_plddt_q75": float(finite_global_plddt.quantile(0.75)),
+            "global_plddt_max": float(finite_global_plddt.max()),
+        }
     audit: dict[str, Any] = {
         "source_eligible_count": int(source_counts.get("source_eligible_count", 0)),
+        "existing_pool_exclusions": int(
+            source_counts.get(
+                "existing_pool_exclusions",
+                source_counts.get("excluded_existing_pool_count", 0),
+            )
+        ),
         "excluded_existing_pool_count": int(
-            source_counts.get("excluded_existing_pool_count", 0)
+            source_counts.get(
+                "excluded_existing_pool_count",
+                source_counts.get("existing_pool_exclusions", 0),
+            )
         ),
         "length_proxy_eligible_count": int(
             source_counts.get("length_proxy_eligible_count", 0)
         ),
-        "global_plddt_eligible_count": int(
-            source_counts.get("global_plddt_eligible_count", 0)
+        "confidence_ranked_count": int(
+            source_counts.get("confidence_ranked_count", 0)
         ),
         "diversity_eligible_count": int(
             source_counts.get("diversity_eligible_count", len(candidates))
@@ -628,14 +672,14 @@ def build_replacement_audit(
         "shortfall_count": max(int(requested_count) - len(candidates), 0),
         "preflight_attempted_count": int(attempted_mask.sum()),
         "pass_full_length_count": int(pass_mask.sum()),
-        "warn_construct_difference_count": int(
-            status.eq("warn_construct_difference").sum()
-        ),
-        "fail_preflight_count": int(status.eq("fail_preflight").sum()),
-        "unsupported_afdb_fragment_count": int(
-            status.eq("unsupported_afdb_fragment").sum()
-        ),
-        "failed_runtime_count": int(status.eq("failed_runtime").sum()),
+        "warn_count": warn_count,
+        "fail_count": fail_count,
+        "unsupported_count": unsupported_count,
+        "runtime_failure_count": runtime_failure_count,
+        "warn_construct_difference_count": warn_count,
+        "fail_preflight_count": fail_count,
+        "unsupported_afdb_fragment_count": unsupported_count,
+        "failed_runtime_count": runtime_failure_count,
         "pass_indices": _indices_for_status(candidates, {"pass_full_length"}),
         "warning_indices": _indices_for_status(
             candidates,
@@ -657,19 +701,32 @@ def build_replacement_audit(
         "sequence_cluster_count": int(clusters.nunique(dropna=False)),
         "unique_uniprot_count": unique_uniprot_count,
         "duplicate_with_original_pool_count": duplicate_with_original_pool_count,
-        "above_global_plddt_max_count": above_global_plddt_max_count,
         "pass_quality_failure_uniprots": pass_quality_failures,
+        "hard_thresholds": {
+            key: float(value)
+            for key, value in thresholds.items()
+            if key in HARD_QUALITY_THRESHOLDS
+        },
         "thresholds": {
             key: float(value)
             for key, value in thresholds.items()
             if key in HARD_QUALITY_THRESHOLDS
-            or key == "afdb_global_plddt_max"
         },
         "thresholds_unchanged": thresholds_unchanged,
-        "global_plddt_role": "discovery_filter_and_ranking_prior_only",
+        "confidence_ranking_order_valid": ranking_order_valid,
+        "ranking_features": [
+            f"afdb_global_plddt:{direction}",
+            "pdb_to_uniprot_length_ratio_distance:ascending",
+            "full_length_mapping_coverage:descending",
+            "observed_ca_fraction_of_mapped:descending",
+            "resolution:ascending",
+            "stable_sha256_tiebreak",
+        ],
+        "global_plddt_role": "ranking_prior_only",
         "mapped_region_confidence_implemented": False,
         "seed": int(seed),
         "audit_pass": not blocked_reasons,
         "blocked_reasons": blocked_reasons,
+        **global_stats,
     }
     return audit

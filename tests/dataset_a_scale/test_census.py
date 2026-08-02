@@ -317,12 +317,17 @@ def _write_mmcif(path: Path, entry_id: str, residues: list[tuple[int, str]], *, 
     )
 
 
-def _build_real_fixture(root: Path, *, pdb_sequence: str) -> dict[str, object]:
+def _build_real_fixture(
+    root: Path, *, pdb_sequence: str, omit_pdb_output_positions: frozenset[int] = frozenset()
+) -> dict[str, object]:
     """Build one real, valid-except-for-pdb_sequence P0-ready pair fixture.
 
     mapping canonical sequence is fixed at 'MAG'; pdb_sequence controls what
     residue identities are actually written into the PDB mmCIF, so callers can
     induce zero, one, or several isolated amino-acid mismatches.
+    `omit_pdb_output_positions` drops the named 1-indexed output positions from
+    the PDB mmCIF entirely, simulating a real missing-density coverage gap
+    (P1's `residue_count_mismatch`) distinct from an amino-acid mismatch.
     """
     pair_id = "1abc_A__P12345"
     model_id = "AF-P12345-F1"
@@ -356,7 +361,11 @@ def _build_real_fixture(root: Path, *, pdb_sequence: str) -> dict[str, object]:
     mapping.to_csv(mapping_path, sep="\t", index=False, lineterminator="\n")
 
     pdb_residues = [
-        (auth_seq, _ONE_TO_THREE[aa]) for auth_seq, aa in zip(auth_positions, pdb_sequence, strict=True)
+        (auth_seq, _ONE_TO_THREE[aa])
+        for output_position, (auth_seq, aa) in enumerate(
+            zip(auth_positions, pdb_sequence, strict=True), start=1
+        )
+        if output_position not in omit_pdb_output_positions
     ]
     afdb_residues = [(index + 1, _ONE_TO_THREE[aa]) for index, aa in enumerate(mapping_seq)]
     _write_mmcif(pdb_path, "1ABC", pdb_residues, offset=0.0)
@@ -477,6 +486,38 @@ def test_count_all_sequence_mismatches_is_zero_for_matching_sequence(tmp_path: P
     )
 
     assert count == 0
+
+
+def test_count_all_sequence_mismatches_excludes_missing_pdb_coverage_gap(tmp_path: Path) -> None:
+    """A mapped position with zero PDB atom coverage is P1's `residue_count_mismatch`,
+    not an amino-acid identity mismatch, and must never be folded into the count.
+
+    Mirrors a real round-1 case (1i1w_A__P23360, screening_index 111): one mapped
+    position has no PDB atoms at all *and* the protein separately has genuine AA
+    mismatches elsewhere. Manually cross-checking that real protein's frozen mapping
+    against its PDB structure confirmed count_all_sequence_mismatches reports 6, not
+    7 -- i.e. it already excludes the coverage gap. This test locks that behavior in
+    with a synthetic, controlled fixture instead of relying on ad hoc real-data checks.
+    """
+    fixture = _build_real_fixture(
+        tmp_path, pdb_sequence="GAG", omit_pdb_output_positions=frozenset({3})
+    )
+    stage_dir = tmp_path / "census" / "index6" / P0_STAGE_NAME
+    result = run_p0(
+        manifest_row=fixture["row"],
+        project_root=tmp_path,
+        stage_dir=stage_dir,
+        config=CENSUS_CONFIG,
+        pipeline_version="dataset-a.v1",
+        run_id="census-test",
+    )
+    assert result.validation.validation_pass is True
+
+    count = count_all_sequence_mismatches(
+        pdb_path=fixture["pdb_path"], p0_stage_dir=stage_dir, pair_id=fixture["pair_id"]
+    )
+
+    assert count == 1  # only the genuine mismatch at position 1; position 3 is a coverage gap
 
 
 # ---------------------------------------------------------------------------

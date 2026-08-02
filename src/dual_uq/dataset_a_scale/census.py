@@ -6,6 +6,13 @@ already have real inputs on local disk, resolves each through P0/P1, and
 tallies the failure_code distribution needed to freeze the D1/D2 protocol
 decisions. It does not decide D1-D5, does not download anything, and does not
 alter any A1-A8 stage contract.
+
+TASK-A extension (docs/Dataset-A_后续任务规格包_v0.1.md): adds per-protein
+stage_reached / mapped_length / uniprot_full_length, and for the
+pdb_amino_acid_mismatch cohort, a full non-fail-fast replay
+(analyze_sequence_mismatches) producing the site table and shape statistics
+PDR-01 §1.2 needs. This is a read-only diagnostic layered on top of the
+frozen P0/P1 stages; it does not modify them.
 """
 
 from __future__ import annotations
@@ -13,12 +20,19 @@ from __future__ import annotations
 import json
 from collections import Counter
 from dataclasses import asdict, dataclass, field
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from dual_uq.dataset_a_scale.stages.p0 import P0_INPUT_PATH_FIELDS, P0_STAGE_NAME, run_p0
+from dual_uq.dataset_a_scale.stages.p0 import (
+    P0_INPUT_PATH_FIELDS,
+    P0_STAGE_NAME,
+    P0ValidationError,
+    resolve_p0_inputs,
+    run_p0,
+)
 from dual_uq.dataset_a_scale.stages.p1 import (
     P1ValidationError,
     _index_records,
@@ -26,7 +40,11 @@ from dual_uq.dataset_a_scale.stages.p1 import (
     _load_mapping,
     resolve_p1_inputs,
 )
-from dual_uq.dataset_a_scale.structures import ResidueKey, select_backbone_atoms
+from dual_uq.dataset_a_scale.structures import (
+    ResidueKey,
+    group_residue_records,
+    select_backbone_atoms,
+)
 
 CENSUS_RUN_ID = "dataset_a_census_round1"
 CENSUS_CONFIG = {
@@ -42,6 +60,20 @@ _PAIR_QC_KEYS = {
     "afdb_plddt_path": "plddt_path",
     "afdb_pae_path": "pae_path",
 }
+
+_STAGE_ORDER = ("manifest_built", "p0_resolved", "p0_frozen", "p1_resolved")
+
+_CENSORING_NOTE = (
+    "Each failure_code count is a first-failure lower bound, not a prevalence: the "
+    "pipeline is staged and checks are fail-fast, so a protein with multiple "
+    "independent problems is reported under whichever check triggers first. "
+    "Confirmed case: 1i1w_A__P23360 (screening_index 111) has both a genuine "
+    "pdb_amino_acid_mismatch and a separate missing_pdb coverage gap; the coverage "
+    "gap's own failure code (residue_count_mismatch, raised only after P1's full "
+    "per-row loop completes -- see p1.py:729-734) is masked because the AA mismatch "
+    "is hit first within the same loop. stage_not_reached_counts is derived from "
+    "stage_reached and is the same censoring at stage granularity, not per check."
+)
 
 
 @dataclass(frozen=True)
@@ -65,15 +97,46 @@ class CensusSkip:
 
 
 @dataclass(frozen=True)
+class MismatchSite:
+    output_position: int
+    uniprot_position: int
+    mapping_aa: str
+    pdb_aa: str
+
+
+@dataclass(frozen=True)
+class SequenceMismatchAnalysis:
+    mismatch_count: int
+    missing_pdb_count: int
+    missing_afdb_count: int
+    mapped_length: int
+    sequence_identity_mapped: float
+    sequence_identity_paired: float | None
+    max_consecutive_run: int
+    min_pairwise_spacing: int | None
+    mismatches: tuple[MismatchSite, ...]
+
+
+@dataclass(frozen=True)
 class ProteinCensusRecord:
     pair_id: str
     protein_id: str | None
     screening_index: int | None
     mechanism_label_prior: str | None
     outcome: str
+    stage_reached: str | None = None
     failure_code: str | None = None
     failure_details: dict[str, Any] = field(default_factory=dict)
+    mapped_length: int | None = None
+    uniprot_full_length: int | None = None
     mismatch_count: int | None = None
+    missing_pdb_count: int | None = None
+    missing_afdb_count: int | None = None
+    sequence_identity_mapped: float | None = None
+    sequence_identity_paired: float | None = None
+    max_consecutive_run: int | None = None
+    min_pairwise_spacing: int | None = None
+    mismatches: tuple[MismatchSite, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -166,6 +229,7 @@ def build_manifest_row(
         "mechanism_label": identity.mechanism_label_prior,
         "tier": 1,
         "pair_qc_path": str(pair_qc_path),
+        "uniprot_full_length": pair_qc.get("uniprot_length"),
     }
     for manifest_field, pair_qc_key in _PAIR_QC_KEYS.items():
         row[manifest_field] = str(pair_qc[pair_qc_key])
@@ -183,32 +247,110 @@ def build_manifest_row(
     return row
 
 
-def count_all_sequence_mismatches(*, pdb_path: Path, p0_stage_dir: Path, pair_id: str) -> int:
-    """Count every mapped position where the PDB residue disagrees with the mapping AA.
+def _max_consecutive_run(positions: list[int]) -> int:
+    if not positions:
+        return 0
+    ordered = sorted(positions)
+    longest = current = 1
+    for previous, current_position in pairwise(ordered):
+        if current_position == previous + 1:
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 1
+    return longest
 
-    P1's own `pdb_amino_acid_mismatch` check (stages/p1.py) is fail-fast by
-    frozen contract: it raises on the first mismatch and never trims or
-    continues. That contract is correct for P1 and must not change. D1
-    (docs/Dual-UQ_Dataset-A_实验设计方案_v0.1.md §3) needs the *total* mismatch
-    count per protein to tell an isolated variant from a broken mapping, so
-    this walks the same frozen P0 output mapping and the same PDB parsing/
-    selection primitives P1 uses, without stopping at the first hit.
+
+def _min_pairwise_spacing(positions: list[int]) -> int | None:
+    if len(positions) < 2:
+        return None
+    ordered = sorted(positions)
+    return min(b - a for a, b in pairwise(ordered))
+
+
+def analyze_sequence_mismatches(
+    *,
+    pdb_path: Path,
+    afdb_path: Path,
+    p0_stage_dir: Path,
+    pair_id: str,
+    fragment_start: int,
+    model_length: int,
+) -> SequenceMismatchAnalysis:
+    """Full, non-fail-fast replay of P1's AA-identity and coverage checks.
+
+    P1's own checks (stages/p1.py) are fail-fast by frozen contract and must
+    stay that way. PDR-01 D1 needs the complete per-protein picture -- total
+    mismatch count, site list, and shape statistics -- to classify a protein
+    as variant-like vs mapping-error-like, so this reuses the same frozen-
+    mapping/atom-parsing/backbone-selection primitives P1 uses
+    (`p1._load_mapping`, `p1._load_atom_records`, `p1._index_records`,
+    `structures.select_backbone_atoms`, `structures.group_residue_records`)
+    and walks every mapped position instead of stopping at the first failure.
+    A missing PDB residue or missing AFDB residue at a position is a coverage
+    problem (P1's `residue_count_mismatch`), not an amino-acid mismatch, and
+    is counted separately, never folded into mismatch_count.
     """
     mapping = _load_mapping(p0_stage_dir / "outputs" / "residue_mapping.tsv")
     pdb_index = _index_records(_load_atom_records(pdb_path, pair_id))
-    mismatches = 0
+    afdb_local_positions: dict[int, tuple] = {}
+    for group in group_residue_records(_load_atom_records(afdb_path, pair_id)):
+        key = group.residue.key
+        if key.insertion_code or key.auth_seq_id in afdb_local_positions:
+            continue
+        afdb_local_positions[key.auth_seq_id] = group.atoms
+
+    missing_pdb_count = 0
+    missing_afdb_count = 0
+    mismatches: list[MismatchSite] = []
     for row in mapping.itertuples(index=False):
+        output_position = int(row.output_position)
+        uniprot_position = int(row.uniprot_residue_number)
+        mapping_aa = str(row.canonical_aa)
+
         key = ResidueKey(pair_id, str(row.auth_asym_id), int(row.auth_seq_id), str(row.insertion_code))
-        atoms = pdb_index.get(key)
-        if atoms is None:
-            continue
-        try:
-            selection = select_backbone_atoms(atoms)
-        except ValueError:
-            continue
-        if selection.residue.canonical_aa != str(row.canonical_aa):
-            mismatches += 1
-    return mismatches
+        pdb_atoms = pdb_index.get(key)
+        if pdb_atoms is None:
+            missing_pdb_count += 1
+        else:
+            try:
+                selection = select_backbone_atoms(pdb_atoms)
+            except ValueError:
+                selection = None
+            if selection is not None and selection.residue.canonical_aa != mapping_aa:
+                mismatches.append(
+                    MismatchSite(
+                        output_position=output_position,
+                        uniprot_position=uniprot_position,
+                        mapping_aa=mapping_aa,
+                        pdb_aa=selection.residue.canonical_aa,
+                    )
+                )
+
+        model_position = uniprot_position - fragment_start + 1
+        if not (1 <= model_position <= model_length) or model_position not in afdb_local_positions:
+            missing_afdb_count += 1
+
+    mapped_length = len(mapping)
+    mismatch_count = len(mismatches)
+    sequence_identity_mapped = 1.0 - mismatch_count / mapped_length
+    paired_length = mapped_length - missing_pdb_count
+    sequence_identity_paired = (
+        1.0 - mismatch_count / paired_length if paired_length > 0 else None
+    )
+    mismatch_positions = [site.output_position for site in mismatches]
+
+    return SequenceMismatchAnalysis(
+        mismatch_count=mismatch_count,
+        missing_pdb_count=missing_pdb_count,
+        missing_afdb_count=missing_afdb_count,
+        mapped_length=mapped_length,
+        sequence_identity_mapped=sequence_identity_mapped,
+        sequence_identity_paired=sequence_identity_paired,
+        max_consecutive_run=_max_consecutive_run(mismatch_positions),
+        min_pairwise_spacing=_min_pairwise_spacing(mismatch_positions),
+        mismatches=tuple(mismatches),
+    )
 
 
 def evaluate_protein(
@@ -218,15 +360,38 @@ def evaluate_protein(
     census_stage_root: Path,
     config: dict[str, Any],
     pipeline_version: str = "dataset-a.v1",
+    run_id: str = CENSUS_RUN_ID,
 ) -> ProteinCensusRecord:
-    """Resolve one manifest row through P0 (write, to a census scratch dir) then P1 (read-only)."""
+    """Resolve one manifest row through P0 (write, to a census scratch dir) then P1 (read-only).
+
+    Calls `resolve_p0_inputs` (pure in-memory) before `run_p0` (write) purely
+    to distinguish `p0_resolved` (scientific validation passed) from
+    `p0_frozen` (outputs actually written) in `stage_reached` -- both stages
+    are only reachable together in practice, but the distinction matters if a
+    write-time failure ever diverges from a resolve-time one.
+    """
     pair_id = row["pair_id"]
     identity_fields = {
         "pair_id": pair_id,
         "protein_id": row["protein_id"],
         "screening_index": row["screening_index"],
         "mechanism_label_prior": row["mechanism_label"],
+        "uniprot_full_length": row.get("uniprot_full_length"),
     }
+
+    try:
+        resolution = resolve_p0_inputs(
+            row, project_root=project_root, config=config, pipeline_version=pipeline_version
+        )
+    except P0ValidationError as exc:
+        return ProteinCensusRecord(
+            **identity_fields,
+            outcome="p0_failure",
+            stage_reached="manifest_built",
+            failure_code=exc.code,
+            failure_details={"message": str(exc), **exc.details},
+        )
+    mapped_length = len(resolution.mapping)
 
     p0_stage_dir = census_stage_root / row["protein_id"] / P0_STAGE_NAME
     p0_result = run_p0(
@@ -235,12 +400,14 @@ def evaluate_protein(
         stage_dir=p0_stage_dir,
         config=config,
         pipeline_version=pipeline_version,
-        run_id=CENSUS_RUN_ID,
+        run_id=run_id,
     )
     if not p0_result.validation.validation_pass:
         return ProteinCensusRecord(
             **identity_fields,
             outcome="p0_failure",
+            stage_reached="p0_resolved",
+            mapped_length=mapped_length,
             failure_code=p0_result.failure_code,
             failure_details=dict(p0_result.validation.details),
         )
@@ -253,32 +420,78 @@ def evaluate_protein(
             pipeline_version=pipeline_version,
         )
     except P1ValidationError as exc:
-        mismatch_count = None
+        analysis_fields: dict[str, Any] = {}
         if exc.code == "pdb_amino_acid_mismatch":
-            mismatch_count = count_all_sequence_mismatches(
-                pdb_path=Path(row["pdb_structure_path"]), p0_stage_dir=p0_stage_dir, pair_id=pair_id
+            analysis = analyze_sequence_mismatches(
+                pdb_path=Path(row["pdb_structure_path"]),
+                afdb_path=Path(row["afdb_model_path"]),
+                p0_stage_dir=p0_stage_dir,
+                pair_id=pair_id,
+                fragment_start=resolution.fragment.uniprot_start,
+                model_length=resolution.fragment.model_residue_count,
             )
+            analysis_fields = {
+                "mismatch_count": analysis.mismatch_count,
+                "missing_pdb_count": analysis.missing_pdb_count,
+                "missing_afdb_count": analysis.missing_afdb_count,
+                "sequence_identity_mapped": analysis.sequence_identity_mapped,
+                "sequence_identity_paired": analysis.sequence_identity_paired,
+                "max_consecutive_run": analysis.max_consecutive_run,
+                "min_pairwise_spacing": analysis.min_pairwise_spacing,
+                "mismatches": analysis.mismatches,
+            }
         return ProteinCensusRecord(
             **identity_fields,
             outcome="p1_failure",
+            stage_reached="p0_frozen",
+            mapped_length=mapped_length,
             failure_code=exc.code,
             failure_details={"message": str(exc), **exc.details},
-            mismatch_count=mismatch_count,
+            **analysis_fields,
         )
 
-    return ProteinCensusRecord(**identity_fields, outcome="p1_pairing_ok")
+    return ProteinCensusRecord(
+        **identity_fields,
+        outcome="p1_pairing_ok",
+        stage_reached="p1_resolved",
+        mapped_length=mapped_length,
+    )
 
 
 def _summarize(records: list[ProteinCensusRecord], *, total_local_pairs: int) -> dict[str, Any]:
+    evaluated = [record for record in records if record.outcome != "skipped"]
+    p0_failures = [record for record in records if record.outcome == "p0_failure"]
+    p1_failures = [record for record in records if record.outcome == "p1_failure"]
     mismatch_hits = [record for record in records if record.failure_code == "pdb_amino_acid_mismatch"]
+    stage_reached_counts = dict(
+        Counter(record.stage_reached for record in evaluated if record.stage_reached)
+    )
+    stage_not_reached_counts = {
+        stage: sum(
+            1
+            for record in evaluated
+            if record.stage_reached is not None
+            and _STAGE_ORDER.index(record.stage_reached) < _STAGE_ORDER.index(stage)
+        )
+        for stage in _STAGE_ORDER
+    }
     return {
         "total_local_pairs": total_local_pairs,
         "outcome_counts": dict(Counter(record.outcome for record in records)),
         "failure_code_counts": dict(
             Counter(record.failure_code for record in records if record.failure_code)
         ),
+        "p0_failure_code_counts": dict(
+            Counter(record.failure_code for record in p0_failures if record.failure_code)
+        ),
+        "p1_failure_code_counts": dict(
+            Counter(record.failure_code for record in p1_failures if record.failure_code)
+        ),
+        "stage_reached_counts": stage_reached_counts,
+        "stage_not_reached_counts": stage_not_reached_counts,
         "pdb_amino_acid_mismatch_hit_count": len(mismatch_hits),
         "pdb_amino_acid_mismatch_counts": [record.mismatch_count for record in mismatch_hits],
+        "censoring_note": _CENSORING_NOTE,
     }
 
 
@@ -291,6 +504,7 @@ def run_round1_census(
     census_stage_root: Path,
     config: dict[str, Any] = CENSUS_CONFIG,
     pipeline_version: str = "dataset-a.v1",
+    run_id: str = CENSUS_RUN_ID,
 ) -> Round1Report:
     identity_sources = load_identity_sources(candidate_lifecycle_path, replacement_lifecycle_path)
     pair_ids = discover_local_pairs(pairs_root)
@@ -321,6 +535,7 @@ def run_round1_census(
                 census_stage_root=census_stage_root,
                 config=config,
                 pipeline_version=pipeline_version,
+                run_id=run_id,
             )
         )
 

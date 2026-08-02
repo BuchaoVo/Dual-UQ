@@ -5,6 +5,11 @@ docs/DATASET_A_PIPELINE_HANDOFF_A8.md. This only touches proteins that
 already have real inputs on local disk (no AFDB/PDB download), and it does
 not decide the pending D1/D2 protocol questions -- it only measures the
 failure_code distribution those decisions need.
+
+TASK-A (docs/Dataset-A_后续任务规格包_v0.1.md) rerun: uses a new run_id and a
+new census_stage_root so this rerun's P0 scratch outputs do not collide with
+or overwrite the first round-1 run's `round1_stage_outputs/`. The report
+deliverable itself (round1_report.json) is intentionally replaced.
 """
 
 from __future__ import annotations
@@ -14,11 +19,13 @@ from pathlib import Path
 
 from dual_uq.dataset_a_scale.census import CENSUS_CONFIG, run_round1_census, write_round1_report
 
+RUN_ID = "dataset_a_census_round1_v2"
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PAIRS_ROOT = PROJECT_ROOT / "data/processed/pairs"
 CANDIDATE_LIFECYCLE_PATH = PROJECT_ROOT / "reports/candidate_lifecycle.csv"
 REPLACEMENT_LIFECYCLE_PATH = PROJECT_ROOT / "reports/replacement_candidate_lifecycle.csv"
-CENSUS_STAGE_ROOT = PROJECT_ROOT / "reports/dataset_a_census/round1_stage_outputs"
+CENSUS_STAGE_ROOT = PROJECT_ROOT / "reports/dataset_a_census/round1_stage_outputs_v2"
 REPORT_PATH = PROJECT_ROOT / "reports/dataset_a_census/round1_report.json"
 
 
@@ -30,6 +37,7 @@ def main() -> None:
         project_root=PROJECT_ROOT,
         census_stage_root=CENSUS_STAGE_ROOT,
         config=CENSUS_CONFIG,
+        run_id=RUN_ID,
     )
     write_round1_report(report, REPORT_PATH)
     print(f"Wrote {REPORT_PATH}")

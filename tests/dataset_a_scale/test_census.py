@@ -4,14 +4,16 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from dual_uq.dataset_a_scale.census import (
     CENSUS_CONFIG,
     CensusSkip,
     IdentityRecord,
     IdentitySources,
+    MismatchSite,
+    analyze_sequence_mismatches,
     build_manifest_row,
-    count_all_sequence_mismatches,
     discover_local_pairs,
     evaluate_protein,
     load_identity_sources,
@@ -141,6 +143,7 @@ def _write_local_pair(
                 "chain_id": "A",
                 "uniprot_id": uniprot_id,
                 "quality_flag": "pass",
+                "uniprot_length": 500,
                 "pdb_path": str(pdb_path),
                 "mapping_path": str(mapping_path),
                 "afdb_model_path": str(model_path),
@@ -188,6 +191,7 @@ def test_build_manifest_row_success(tmp_path: Path) -> None:
     assert result["pair_qc_path"] == str(paths["pair_qc_path"])
     assert result["residue_mapping_path"] == str(paths["mapping_path"])
     assert result["afdb_metadata_path"] == str(paths["metadata_path"])
+    assert result["uniprot_full_length"] == 500
 
 
 def test_build_manifest_row_skips_when_no_identity_source(tmp_path: Path) -> None:
@@ -318,21 +322,28 @@ def _write_mmcif(path: Path, entry_id: str, residues: list[tuple[int, str]], *, 
 
 
 def _build_real_fixture(
-    root: Path, *, pdb_sequence: str, omit_pdb_output_positions: frozenset[int] = frozenset()
+    root: Path,
+    *,
+    pdb_sequence: str,
+    mapping_sequence: str = "MAG",
+    omit_pdb_output_positions: frozenset[int] = frozenset(),
+    uniprot_full_length: int = 500,
 ) -> dict[str, object]:
     """Build one real, valid-except-for-pdb_sequence P0-ready pair fixture.
 
-    mapping canonical sequence is fixed at 'MAG'; pdb_sequence controls what
+    mapping canonical sequence defaults to 'MAG'; pdb_sequence controls what
     residue identities are actually written into the PDB mmCIF, so callers can
-    induce zero, one, or several isolated amino-acid mismatches.
+    induce zero, one, or several isolated amino-acid mismatches. Both must be
+    the same length; pass a longer `mapping_sequence` to test shape statistics
+    (max_consecutive_run / min_pairwise_spacing) that need more than 3 sites.
     `omit_pdb_output_positions` drops the named 1-indexed output positions from
     the PDB mmCIF entirely, simulating a real missing-density coverage gap
     (P1's `residue_count_mismatch`) distinct from an amino-acid mismatch.
     """
+    assert len(pdb_sequence) == len(mapping_sequence)
+    n = len(mapping_sequence)
     pair_id = "1abc_A__P12345"
     model_id = "AF-P12345-F1"
-    mapping_seq = "MAG"
-    assert len(pdb_sequence) == len(mapping_seq)
 
     pair_dir = root / "data/processed/pairs" / pair_id
     afdb_dir = root / "data/raw/afdb/P12345" / model_id
@@ -341,19 +352,20 @@ def _build_real_fixture(
     afdb_dir.mkdir(parents=True)
     pdb_path.parent.mkdir(parents=True)
 
-    auth_positions = [42, 43, 44]
-    uniprot_positions = [100, 101, 102]
+    auth_positions = list(range(42, 42 + n))
+    uniprot_positions = list(range(100, 100 + n))
+    uniprot_end = 99 + n
     mapping = pd.DataFrame(
         {
-            "output_position": [1, 2, 3],
-            "uniprot_id": ["P12345"] * 3,
+            "output_position": list(range(1, n + 1)),
+            "uniprot_id": ["P12345"] * n,
             "uniprot_residue_number": uniprot_positions,
-            "uniprot_residue_name": list(mapping_seq),
-            "pdb_residue_name": [_ONE_TO_THREE[aa] for aa in mapping_seq],
-            "auth_asym_id": ["A"] * 3,
+            "uniprot_residue_name": list(mapping_sequence),
+            "pdb_residue_name": [_ONE_TO_THREE[aa] for aa in mapping_sequence],
+            "auth_asym_id": ["A"] * n,
             "auth_seq_id": auth_positions,
-            "insertion_code": [""] * 3,
-            "label_asym_id": ["A"] * 3,
+            "insertion_code": [""] * n,
+            "label_asym_id": ["A"] * n,
             "label_seq_id": auth_positions,
         }
     )
@@ -367,7 +379,7 @@ def _build_real_fixture(
         )
         if output_position not in omit_pdb_output_positions
     ]
-    afdb_residues = [(index + 1, _ONE_TO_THREE[aa]) for index, aa in enumerate(mapping_seq)]
+    afdb_residues = [(index + 1, _ONE_TO_THREE[aa]) for index, aa in enumerate(mapping_sequence)]
     _write_mmcif(pdb_path, "1ABC", pdb_residues, offset=0.0)
     model_path = afdb_dir / "model.cif"
     _write_mmcif(model_path, model_id, afdb_residues, offset=100.0)
@@ -382,9 +394,9 @@ def _build_real_fixture(
                 "entryId": model_id,
                 "latestVersion": 6,
                 "uniprotStart": 100,
-                "uniprotEnd": 102,
+                "uniprotEnd": uniprot_end,
                 "sequenceStart": 100,
-                "sequenceEnd": 102,
+                "sequenceEnd": uniprot_end,
                 "cifUrl": f"https://example.test/{model_id}-model_v6.cif",
                 "plddtDocUrl": f"https://example.test/{model_id}-confidence_v6.json",
                 "paeDocUrl": f"https://example.test/{model_id}-predicted_aligned_error_v6.json",
@@ -393,12 +405,14 @@ def _build_real_fixture(
         encoding="utf-8",
     )
     plddt_path.write_text(
-        json.dumps({"residueNumber": [1, 2, 3], "confidenceScore": [95.0, 96.0, 97.0]}),
+        json.dumps(
+            {"residueNumber": list(range(1, n + 1)), "confidenceScore": [95.0] * n}
+        ),
         encoding="utf-8",
     )
     pae_path.write_text(
         json.dumps(
-            [{"predicted_aligned_error": [[0.0] * 3 for _ in range(3)], "max_predicted_aligned_error": 31.75}]
+            [{"predicted_aligned_error": [[0.0] * n for _ in range(n)], "max_predicted_aligned_error": 31.75}]
         ),
         encoding="utf-8",
     )
@@ -410,9 +424,10 @@ def _build_real_fixture(
                 "chain_id": "A",
                 "uniprot_id": "P12345",
                 "quality_flag": "pass",
-                "mapped_residue_count": 3,
+                "uniprot_length": uniprot_full_length,
+                "mapped_residue_count": n,
                 "mapped_uniprot_start": 100,
-                "mapped_uniprot_end": 102,
+                "mapped_uniprot_end": uniprot_end,
                 "pdb_path": str(pdb_path),
                 "mapping_path": str(mapping_path),
                 "afdb_model_path": str(model_path),
@@ -421,8 +436,8 @@ def _build_real_fixture(
                 "afdb_model_entity_id": model_id,
                 "afdb_version": 6,
                 "afdb_fragment_start": 100,
-                "afdb_fragment_end": 102,
-                "afdb_fragment_length": 3,
+                "afdb_fragment_end": uniprot_end,
+                "afdb_fragment_length": n,
             }
         ),
         encoding="utf-8",
@@ -440,17 +455,24 @@ def _build_real_fixture(
         "afdb_model_path": str(model_path),
         "afdb_plddt_path": str(plddt_path),
         "afdb_pae_path": str(pae_path),
+        "uniprot_full_length": uniprot_full_length,
     }
-    return {"row": row, "pair_id": pair_id, "pdb_path": pdb_path}
+    return {
+        "row": row,
+        "pair_id": pair_id,
+        "pdb_path": pdb_path,
+        "afdb_path": model_path,
+        "fragment_start": 100,
+        "model_length": n,
+    }
 
 
 # ---------------------------------------------------------------------------
-# count_all_sequence_mismatches
+# analyze_sequence_mismatches
 # ---------------------------------------------------------------------------
 
 
-def test_count_all_sequence_mismatches_counts_every_position_not_just_first(tmp_path: Path) -> None:
-    fixture = _build_real_fixture(tmp_path, pdb_sequence="GAS")  # mismatches at position 1 and 3
+def _run_p0_for_fixture(tmp_path: Path, fixture: dict[str, object]) -> Path:
     stage_dir = tmp_path / "census" / "index6" / P0_STAGE_NAME
     result = run_p0(
         manifest_row=fixture["row"],
@@ -461,63 +483,186 @@ def test_count_all_sequence_mismatches_counts_every_position_not_just_first(tmp_
         run_id="census-test",
     )
     assert result.validation.validation_pass is True
+    return stage_dir
 
-    count = count_all_sequence_mismatches(
-        pdb_path=fixture["pdb_path"], p0_stage_dir=stage_dir, pair_id=fixture["pair_id"]
+
+def test_analyze_sequence_mismatches_counts_every_position_not_just_first(tmp_path: Path) -> None:
+    fixture = _build_real_fixture(tmp_path, pdb_sequence="GAS")  # mismatches at position 1 and 3
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
     )
 
-    assert count == 2
+    assert analysis.mismatch_count == 2
+    assert analysis.missing_pdb_count == 0
+    assert analysis.missing_afdb_count == 0
+    assert analysis.mapped_length == 3
 
 
-def test_count_all_sequence_mismatches_is_zero_for_matching_sequence(tmp_path: Path) -> None:
+def test_analyze_sequence_mismatches_is_zero_for_matching_sequence(tmp_path: Path) -> None:
     fixture = _build_real_fixture(tmp_path, pdb_sequence="MAG")
-    stage_dir = tmp_path / "census" / "index6" / P0_STAGE_NAME
-    run_p0(
-        manifest_row=fixture["row"],
-        project_root=tmp_path,
-        stage_dir=stage_dir,
-        config=CENSUS_CONFIG,
-        pipeline_version="dataset-a.v1",
-        run_id="census-test",
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
     )
 
-    count = count_all_sequence_mismatches(
-        pdb_path=fixture["pdb_path"], p0_stage_dir=stage_dir, pair_id=fixture["pair_id"]
-    )
+    assert analysis.mismatch_count == 0
+    assert analysis.sequence_identity_mapped == 1.0
+    assert analysis.sequence_identity_paired == 1.0
+    assert analysis.max_consecutive_run == 0
+    assert analysis.min_pairwise_spacing is None
+    assert analysis.mismatches == ()
 
-    assert count == 0
 
-
-def test_count_all_sequence_mismatches_excludes_missing_pdb_coverage_gap(tmp_path: Path) -> None:
+def test_analyze_sequence_mismatches_excludes_missing_pdb_coverage_gap(tmp_path: Path) -> None:
     """A mapped position with zero PDB atom coverage is P1's `residue_count_mismatch`,
     not an amino-acid identity mismatch, and must never be folded into the count.
 
     Mirrors a real round-1 case (1i1w_A__P23360, screening_index 111): one mapped
     position has no PDB atoms at all *and* the protein separately has genuine AA
     mismatches elsewhere. Manually cross-checking that real protein's frozen mapping
-    against its PDB structure confirmed count_all_sequence_mismatches reports 6, not
-    7 -- i.e. it already excludes the coverage gap. This test locks that behavior in
-    with a synthetic, controlled fixture instead of relying on ad hoc real-data checks.
+    against its PDB structure confirmed the mismatch count reports 6, not 7 -- i.e.
+    it already excludes the coverage gap. This test locks that behavior in with a
+    synthetic, controlled fixture instead of relying on ad hoc real-data checks.
     """
     fixture = _build_real_fixture(
         tmp_path, pdb_sequence="GAG", omit_pdb_output_positions=frozenset({3})
     )
-    stage_dir = tmp_path / "census" / "index6" / P0_STAGE_NAME
-    result = run_p0(
-        manifest_row=fixture["row"],
-        project_root=tmp_path,
-        stage_dir=stage_dir,
-        config=CENSUS_CONFIG,
-        pipeline_version="dataset-a.v1",
-        run_id="census-test",
-    )
-    assert result.validation.validation_pass is True
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
 
-    count = count_all_sequence_mismatches(
-        pdb_path=fixture["pdb_path"], p0_stage_dir=stage_dir, pair_id=fixture["pair_id"]
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
     )
 
-    assert count == 1  # only the genuine mismatch at position 1; position 3 is a coverage gap
+    assert analysis.mismatch_count == 1  # only the genuine mismatch at position 1
+    assert analysis.missing_pdb_count == 1  # position 3 is a coverage gap, not a mismatch
+    assert analysis.mapped_length == 3
+    assert analysis.sequence_identity_mapped == pytest.approx(1 - 1 / 3)
+    assert analysis.sequence_identity_paired == pytest.approx(1 - 1 / 2)
+
+
+def test_analyze_sequence_mismatches_reports_mismatch_site_details(tmp_path: Path) -> None:
+    fixture = _build_real_fixture(tmp_path, pdb_sequence="GAS")  # mismatches at position 1 and 3
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
+    )
+
+    assert analysis.mismatches == (
+        MismatchSite(output_position=1, uniprot_position=100, mapping_aa="M", pdb_aa="G"),
+        MismatchSite(output_position=3, uniprot_position=102, mapping_aa="G", pdb_aa="S"),
+    )
+
+
+def test_analyze_sequence_mismatches_computes_shape_statistics(tmp_path: Path) -> None:
+    # mismatches at output_position 1, 2 (consecutive) and 7 (isolated)
+    fixture = _build_real_fixture(
+        tmp_path, mapping_sequence="MAGSMAGSM", pdb_sequence="AGGSMAMSM"
+    )
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
+    )
+
+    assert analysis.mismatch_count == 3
+    assert [site.output_position for site in analysis.mismatches] == [1, 2, 7]
+    assert analysis.max_consecutive_run == 2  # positions 1,2
+    assert analysis.min_pairwise_spacing == 1  # positions 1,2 are 1 apart
+
+
+def test_analyze_sequence_mismatches_min_pairwise_spacing_is_null_not_sentinel_for_single_mismatch(
+    tmp_path: Path,
+) -> None:
+    fixture = _build_real_fixture(tmp_path, pdb_sequence="GAG")  # single isolated mismatch
+    stage_dir = _run_p0_for_fixture(tmp_path, fixture)
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=fixture["pdb_path"],
+        afdb_path=fixture["afdb_path"],
+        p0_stage_dir=stage_dir,
+        pair_id=fixture["pair_id"],
+        fragment_start=fixture["fragment_start"],
+        model_length=fixture["model_length"],
+    )
+
+    assert analysis.mismatch_count == 1
+    assert analysis.min_pairwise_spacing is None
+    assert analysis.max_consecutive_run == 1
+
+
+def test_analyze_sequence_mismatches_flags_missing_afdb_coverage(tmp_path: Path) -> None:
+    """missing_afdb_count is expected to always be 0 in practice (AFDB models are
+
+    contiguous by construction), but this must still be verified rather than
+    assumed. Writes P0's frozen mapping output directly rather than going
+    through run_p0, since P0's own AFDB completeness checks are out of scope
+    for this diagnostic.
+    """
+    pair_id = "1abc_A__P12345"
+    p0_stage_dir = tmp_path / "stage"
+    (p0_stage_dir / "outputs").mkdir(parents=True)
+    mapping = pd.DataFrame(
+        {
+            "output_position": [1, 2, 3],
+            "uniprot_id": ["P12345"] * 3,
+            "uniprot_residue_number": [100, 101, 102],
+            "uniprot_residue_name": list("MAG"),
+            "pdb_residue_name": ["MET", "ALA", "GLY"],
+            "auth_asym_id": ["A"] * 3,
+            "auth_seq_id": [42, 43, 44],
+            "insertion_code": [""] * 3,
+            "label_asym_id": ["A"] * 3,
+            "label_seq_id": [42, 43, 44],
+        }
+    )
+    mapping.to_csv(
+        p0_stage_dir / "outputs" / "residue_mapping.tsv", sep="\t", index=False, lineterminator="\n"
+    )
+    pdb_path = tmp_path / "pdb.cif"
+    _write_mmcif(pdb_path, "1ABC", [(42, "MET"), (43, "ALA"), (44, "GLY")], offset=0.0)
+    afdb_path = tmp_path / "afdb.cif"
+    _write_mmcif(afdb_path, "MODEL", [(1, "MET"), (3, "GLY")], offset=100.0)  # position 2 omitted
+
+    analysis = analyze_sequence_mismatches(
+        pdb_path=pdb_path,
+        afdb_path=afdb_path,
+        p0_stage_dir=p0_stage_dir,
+        pair_id=pair_id,
+        fragment_start=100,
+        model_length=3,
+    )
+
+    assert analysis.missing_afdb_count == 1
+    assert analysis.mismatch_count == 0
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +682,9 @@ def test_evaluate_protein_reports_ok_outcome_for_valid_pair(tmp_path: Path) -> N
 
     assert record.outcome == "p1_pairing_ok"
     assert record.failure_code is None
+    assert record.stage_reached == "p1_resolved"
+    assert record.mapped_length == 3
+    assert record.uniprot_full_length == 500
 
 
 def test_evaluate_protein_reports_p1_failure_with_mismatch_count(tmp_path: Path) -> None:
@@ -551,7 +699,16 @@ def test_evaluate_protein_reports_p1_failure_with_mismatch_count(tmp_path: Path)
 
     assert record.outcome == "p1_failure"
     assert record.failure_code == "pdb_amino_acid_mismatch"
+    assert record.stage_reached == "p0_frozen"
     assert record.mismatch_count == 1
+    assert record.missing_pdb_count == 0
+    assert record.missing_afdb_count == 0
+    assert record.sequence_identity_paired == pytest.approx(1 - 1 / 3)
+    assert record.max_consecutive_run == 1
+    assert record.min_pairwise_spacing is None
+    assert record.mismatches == (
+        MismatchSite(output_position=1, uniprot_position=100, mapping_aa="M", pdb_aa="G"),
+    )
 
 
 def test_evaluate_protein_reports_p0_failure_without_writing_stage(tmp_path: Path) -> None:
@@ -567,6 +724,8 @@ def test_evaluate_protein_reports_p0_failure_without_writing_stage(tmp_path: Pat
 
     assert record.outcome == "p0_failure"
     assert record.failure_code == "missing_required_file"
+    assert record.stage_reached == "manifest_built"
+    assert record.mapped_length is None
     assert not (tmp_path / "census").exists()
 
 
@@ -587,15 +746,25 @@ def test_run_round1_census_end_to_end_produces_report_with_summary(tmp_path: Pat
         project_root=project_root,
         census_stage_root=project_root / "census",
         config=CENSUS_CONFIG,
+        run_id="dataset_a_census_round1_test",
     )
 
     assert len(report.records) == 1
-    assert report.records[0].outcome == "p1_pairing_ok"
+    record = report.records[0]
+    assert record.outcome == "p1_pairing_ok"
+    assert record.stage_reached == "p1_resolved"
+    assert record.mapped_length == 3
+    assert record.uniprot_full_length == 500
     assert report.summary["total_local_pairs"] == 1
     assert report.summary["outcome_counts"] == {"p1_pairing_ok": 1}
+    assert report.summary["p0_failure_code_counts"] == {}
+    assert report.summary["p1_failure_code_counts"] == {}
+    assert report.summary["stage_reached_counts"] == {"p1_resolved": 1}
+    assert "1i1w" in report.summary["censoring_note"]
 
     out_path = project_root / "reports/dataset_a_census/round1_report.json"
     write_round1_report(report, out_path)
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     assert payload["summary"]["outcome_counts"] == {"p1_pairing_ok": 1}
     assert payload["records"][0]["pair_id"] == ok_fixture["pair_id"]
+    assert payload["records"][0]["stage_reached"] == "p1_resolved"

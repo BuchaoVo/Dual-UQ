@@ -1,0 +1,417 @@
+{
+  "records": [
+    {
+      "failure_code": "no_identity_source",
+      "failure_details": {},
+      "mechanism_label_prior": null,
+      "mismatch_count": null,
+      "outcome": "skipped",
+      "pair_id": "1ake_A__P69441",
+      "protein_id": null,
+      "screening_index": null
+    },
+    {
+      "failure_code": "missing_mapping_column",
+      "failure_details": {
+        "message": "Residue mapping lacks required provenance columns",
+        "missing_columns": [
+          "auth_asym_id",
+          "auth_seq_id",
+          "insertion_code",
+          "label_asym_id",
+          "label_seq_id"
+        ]
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "1gci_A__P29600",
+      "protein_id": "index6",
+      "screening_index": 6
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "D",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 39,
+        "pdb_aa": "N"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": 6,
+      "outcome": "p1_failure",
+      "pair_id": "1i1w_A__P23360",
+      "protein_id": "index111",
+      "screening_index": 111
+    },
+    {
+      "failure_code": "no_identity_source",
+      "failure_details": {},
+      "mechanism_label_prior": null,
+      "mismatch_count": null,
+      "outcome": "skipped",
+      "pair_id": "1lyz_A__P00698",
+      "protein_id": null,
+      "screening_index": null
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "T",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 175,
+        "pdb_aa": "I"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": 1,
+      "outcome": "p1_failure",
+      "pair_id": "1muw_A__P15587",
+      "protein_id": "index28",
+      "screening_index": 28
+    },
+    {
+      "failure_code": "invalid_atom_record",
+      "failure_details": {
+        "atom_row": 402,
+        "message": "Structure atom failed A4 validation"
+      },
+      "mechanism_label_prior": "high_confidence_state_disagreement",
+      "mismatch_count": null,
+      "outcome": "p1_failure",
+      "pair_id": "1n9b_A__P30896",
+      "protein_id": "index110",
+      "screening_index": 110
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "high_pae_long_range",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "1nwz_A__P16113",
+      "protein_id": "index115",
+      "screening_index": 115
+    },
+    {
+      "failure_code": "invalid_atom_residue_identity",
+      "failure_details": {
+        "atom_row": 3209,
+        "message": "Protein atom lacks explicit, consistent auth/label identity"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_failure",
+      "pair_id": "1pq7_A__P35049",
+      "protein_id": "index105",
+      "screening_index": 105
+    },
+    {
+      "failure_code": "pair_qc_not_acceptable",
+      "failure_details": {
+        "message": "Pair QC quality_flag must be pass"
+      },
+      "mechanism_label_prior": "construct_difference_control",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "1x8p_A__Q94734",
+      "protein_id": "index35",
+      "screening_index": 35
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "high_confidence_state_disagreement",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "2jfr_A__A0QTQ6",
+      "protein_id": "index109",
+      "screening_index": 109
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "low_confidence_local",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "3ip0_A__P26281",
+      "protein_id": "index113",
+      "screening_index": 113
+    },
+    {
+      "failure_code": "missing_mapping_column",
+      "failure_details": {
+        "message": "Residue mapping lacks required provenance columns",
+        "missing_columns": [
+          "auth_asym_id",
+          "auth_seq_id",
+          "insertion_code",
+          "label_asym_id",
+          "label_seq_id"
+        ]
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "3o4p_A__Q7SIG4",
+      "protein_id": "index24",
+      "screening_index": 24
+    },
+    {
+      "failure_code": "missing_mapping_column",
+      "failure_details": {
+        "message": "Residue mapping lacks required provenance columns",
+        "missing_columns": [
+          "auth_asym_id",
+          "auth_seq_id",
+          "insertion_code",
+          "label_asym_id",
+          "label_seq_id"
+        ]
+      },
+      "mechanism_label_prior": "ordinary_or_unclassified",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "3w5h_A__P83686",
+      "protein_id": "index8",
+      "screening_index": 8
+    },
+    {
+      "failure_code": "missing_mapping_column",
+      "failure_details": {
+        "message": "Residue mapping lacks required provenance columns",
+        "missing_columns": [
+          "auth_asym_id",
+          "auth_seq_id",
+          "insertion_code",
+          "label_asym_id",
+          "label_seq_id"
+        ]
+      },
+      "mechanism_label_prior": "high_pae_long_range",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "3zoj_A__F2QVG4",
+      "protein_id": "index36",
+      "screening_index": 36
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "4f1v_A__C3K8K1",
+      "protein_id": "index112",
+      "screening_index": 112
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "4i8h_A__P00760",
+      "protein_id": "index2",
+      "screening_index": 2
+    },
+    {
+      "failure_code": "missing_backbone_atom",
+      "failure_details": {
+        "message": "pdb residue lacks required backbone atoms",
+        "missing_atoms": [
+          "CA",
+          "C",
+          "O"
+        ],
+        "output_position": 499,
+        "source": "pdb"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_failure",
+      "pair_id": "4rek_A__P12676",
+      "protein_id": "index21",
+      "screening_index": 21
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "D",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 66,
+        "pdb_aa": "N"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": 1,
+      "outcome": "p1_failure",
+      "pair_id": "5avd_A__P00772",
+      "protein_id": "index103",
+      "screening_index": 103
+    },
+    {
+      "failure_code": "ambiguous_auth_residue_mapping",
+      "failure_details": {
+        "message": "Author residue keys must be unique"
+      },
+      "mechanism_label_prior": "insufficient_evidence",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "6l27_A__P42212",
+      "protein_id": "index4",
+      "screening_index": 4
+    },
+    {
+      "failure_code": "residue_count_mismatch",
+      "failure_details": {
+        "message": "PDB source lacks mapped residues; intersection trimming is forbidden",
+        "missing_pdb_output_positions": [
+          118,
+          125
+        ]
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_failure",
+      "pair_id": "6s2m_A__P02689",
+      "protein_id": "index5",
+      "screening_index": 5
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "6zm8_A__A0A7S6K8E4",
+      "protein_id": "index10",
+      "screening_index": 10
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "D",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 59,
+        "pdb_aa": "G"
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": 1,
+      "outcome": "p1_failure",
+      "pair_id": "7af2_AAA__P29768",
+      "protein_id": "index22",
+      "screening_index": 22
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "K",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 8,
+        "pdb_aa": "A"
+      },
+      "mechanism_label_prior": "high_confidence_state_disagreement",
+      "mismatch_count": 1,
+      "outcome": "p1_failure",
+      "pair_id": "7bbx_A__Q5F6E9",
+      "protein_id": "index25",
+      "screening_index": 25
+    },
+    {
+      "failure_code": "unsupported_afdb_fragment",
+      "failure_details": {
+        "mapped_interval": [
+          1024,
+          1192
+        ],
+        "message": "Selected AFDB fragment AF-0000000365840311 interval 1368-1493 does not fully cover target UniProt interval 1024-1192",
+        "selected_model_entity_id": "AF-0000000365840311"
+      },
+      "mechanism_label_prior": "unsupported_afdb_fragment",
+      "mismatch_count": null,
+      "outcome": "p0_failure",
+      "pair_id": "7kr0_A__P0DTD1",
+      "protein_id": "index9",
+      "screening_index": 9
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "8c3x_A__A0A7I9C8Z1",
+      "protein_id": "index107",
+      "screening_index": 107
+    },
+    {
+      "failure_code": "pdb_amino_acid_mismatch",
+      "failure_details": {
+        "mapping_aa": "R",
+        "message": "PDB residue does not match mapping canonical amino acid",
+        "output_position": 102,
+        "pdb_aa": "K"
+      },
+      "mechanism_label_prior": "high_confidence_state_disagreement",
+      "mismatch_count": 1,
+      "outcome": "p1_failure",
+      "pair_id": "8pb5_A__P0DPA9",
+      "protein_id": "index101",
+      "screening_index": 101
+    },
+    {
+      "failure_code": null,
+      "failure_details": {},
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_pairing_ok",
+      "pair_id": "8rma_A__W1DN50",
+      "protein_id": "index106",
+      "screening_index": 106
+    },
+    {
+      "failure_code": "residue_count_mismatch",
+      "failure_details": {
+        "message": "PDB source lacks mapped residues; intersection trimming is forbidden",
+        "missing_pdb_output_positions": [
+          152
+        ]
+      },
+      "mechanism_label_prior": "easy_control",
+      "mismatch_count": null,
+      "outcome": "p1_failure",
+      "pair_id": "9pwm_A__P0ABQ4",
+      "protein_id": "index117",
+      "screening_index": 117
+    }
+  ],
+  "summary": {
+    "failure_code_counts": {
+      "ambiguous_auth_residue_mapping": 1,
+      "invalid_atom_record": 1,
+      "invalid_atom_residue_identity": 1,
+      "missing_backbone_atom": 1,
+      "missing_mapping_column": 4,
+      "no_identity_source": 2,
+      "pair_qc_not_acceptable": 1,
+      "pdb_amino_acid_mismatch": 6,
+      "residue_count_mismatch": 2,
+      "unsupported_afdb_fragment": 1
+    },
+    "outcome_counts": {
+      "p0_failure": 7,
+      "p1_failure": 11,
+      "p1_pairing_ok": 8,
+      "skipped": 2
+    },
+    "pdb_amino_acid_mismatch_counts": [
+      6,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "pdb_amino_acid_mismatch_hit_count": 6,
+    "total_local_pairs": 28
+  }
+}

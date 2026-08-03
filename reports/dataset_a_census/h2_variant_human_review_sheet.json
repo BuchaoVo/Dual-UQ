@@ -1,0 +1,710 @@
+{
+  "schema_version": "dataset-a.h2-human-review-sheet.v1",
+  "sheet_status": "HUMAN_DECISION_FIELDS_EMPTY",
+  "source_head": "e6d5c2ab68558e2b4cb768329dc6e7c4f7e0051a",
+  "evidence_policy": {
+    "network_used": false,
+    "downloads_performed": false,
+    "local_evidence_only": true,
+    "authorization_performed": false
+  },
+  "summary": {
+    "candidate_count": 4,
+    "ready_for_human_decision": {
+      "count": 2,
+      "candidates": [
+        103,
+        22
+      ]
+    },
+    "needs_additional_local_evidence": {
+      "count": 1,
+      "candidates": [
+        28
+      ]
+    },
+    "blocked_by_local_conflict": {
+      "count": 1,
+      "candidates": [
+        25
+      ]
+    },
+    "human_decision_fields_all_null": true
+  },
+  "invariance_checks": {
+    "v3_mismatch_values_unchanged": true,
+    "afdb_equals_mapping_for_all_four": true,
+    "v4_bucket_counts": {
+      "recovered": 4,
+      "blocked_downstream_missing_pdb": 1,
+      "blocked_downstream_other": 1,
+      "still_mismatching": 0
+    }
+  },
+  "closure_findings": {
+    "index28": "numbering_relation_explicit_but_annotation_cause_unresolved",
+    "index25": {
+      "explicit_accession_cross_reference": "not_found_in_local_files",
+      "isoform_or_secondary_accession_relation": "not_found_in_local_files",
+      "local_relation_status": "no_explicit_local_relation",
+      "accession_evidence_status": "true_accession_conflict",
+      "outcome": "blocked_by_local_conflict"
+    }
+  },
+  "candidates": [
+    {
+      "index": 28,
+      "pair_id": "1muw_A__P15587",
+      "mismatch": "T176I",
+      "mapping_aa": "T",
+      "pdb_aa": "I",
+      "afdb_aa": "T",
+      "position_provenance": {
+        "output_position": 175,
+        "pdb_auth_position": {
+          "chain": "A",
+          "seq_id": 175,
+          "insertion_code": ""
+        },
+        "pdb_label_position": {
+          "chain": "A",
+          "seq_id": 175
+        },
+        "uniprot_position": 176,
+        "mapping_source": {
+          "source_file": "data/processed/pairs/1muw_A__P15587/residue_mapping.parquet",
+          "source_field_or_record_key": "row[uniprot_id=P15587,uniprot_residue_number=176,auth_asym_id=A,auth_seq_id=175,insertion_code='']"
+        },
+        "atom_source": {
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_asym_id=A,auth_seq_id=175,pdbx_PDB_ins_code=?,model=1]"
+        },
+        "sifts_position": {
+          "pdb_auth_position": 175,
+          "uniprot_position": 176,
+          "source_file": "data/raw/mappings/1muw.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 1muw chain A auth 175 / UniProt P15587 position 176"
+        },
+        "mmcif_annotation_position": {
+          "label_seq_id": 175,
+          "auth_seq_id": 175,
+          "reported_unp_position": 175,
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif row pdbx_ordinal=1"
+        },
+        "numbering_closure": "numbering_relation_explicit_but_annotation_cause_unresolved"
+      },
+      "accession_provenance": {
+        "pair_accession": "P15587",
+        "sifts_accession": "P15587",
+        "p0_mapping_accession": "P15587",
+        "afdb_accession": "P15587",
+        "mmcif_reported_accession": "P15587",
+        "explicit_accession_relation": "same accession in local sources"
+      },
+      "explicit_local_annotations": [
+        {
+          "source_file": "data/raw/mappings/1muw.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 1muw chain A auth 175 / UniProt P15587 position 176",
+          "exact_value": "PDB ILE; UniProt T; residueDetail Annotation='See remark 999'"
+        },
+        {
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "exact_value": "chain A auth 175 ILE vs UNP P15587 THR; pdbx_seq_db_seq_num=175; details='SEE REMARK 999'"
+        },
+        {
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_pdbx_database_remark.id=999 / _pdbx_database_remark.text",
+          "exact_value": "Sequence remark says SEQRES was not deposited and cites a corrected-sequence dissertation whose title includes 'Mutante'; it does not explicitly assign a cause to T176I."
+        },
+        {
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_struct.title",
+          "exact_value": "The 0.86 Angstrom Structure of Xylose Isomerase"
+        },
+        {
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_entity.pdbx_mutation for polymer entity",
+          "exact_value": "? (missing)"
+        },
+        {
+          "source_file": "data/raw/afdb/P15587/AF-P15587-F1/metadata.json",
+          "source_field_or_record_key": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "exact_value": {
+            "uniprotAccession": "P15587",
+            "uniprotId": "XYLA_STROL",
+            "uniprotDescription": "Xylose isomerase",
+            "sequenceStart": 1,
+            "sequenceEnd": 387
+          }
+        },
+        {
+          "statement": "PDB label/auth numbering at the target.",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_pdbx_poly_seq_scheme row asym_id=A,seq_id=175",
+          "exact_value": "label seq 175; auth seq 175; ILE"
+        },
+        {
+          "statement": "mmCIF reference sequence begins with S rather than canonical MS.",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_struct_ref.pdbx_seq_one_letter_code / _struct_ref_seq align_id=1",
+          "exact_value": "local reference sequence length 386 begins SYQ...; declared db_align_beg=1 and accession P15587"
+        },
+        {
+          "statement": "SIFTS neighborhood establishes a +1 UniProt offset around the target.",
+          "source_file": "data/raw/mappings/1muw.xml.gz",
+          "source_field_or_record_key": "SIFTS residues PDB A:172-178",
+          "exact_value": "PDB 172-178 map to UniProt P15587 positions 173-179"
+        },
+        {
+          "statement": "REMARK 999 local text.",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_pdbx_database_remark.id=999 / _pdbx_database_remark.text",
+          "exact_value": "Author states SEQRES was not deposited and cites a corrected-sequence dissertation; no target-specific cause is stated."
+        }
+      ],
+      "supporting_evidence": [
+        {
+          "statement": "Round1 V3 mismatch is reproduced by the frozen mapping and PDB atom record.",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_key": "records[screening_index=28].mismatches[0]",
+          "exact_value": {
+            "output_position": 175,
+            "uniprot_position": 176,
+            "mapping_aa": "T",
+            "pdb_aa": "I",
+            "afdb_aa": "T",
+            "source_file": "reports/dataset_a_census/round1_report.json",
+            "source_field_or_record_identifier": "records[screening_index=28].mismatches[0]"
+          }
+        },
+        {
+          "statement": "AFDB residue identity equals mapping AA.",
+          "source_file": "data/raw/afdb/P15587/AF-P15587-F1/model.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_seq_id=176,model=1]",
+          "exact_value": {
+            "afdb_aa": "T",
+            "mapping_aa": "T"
+          }
+        },
+        {
+          "statement": "V4 assumed-declaration probe reached recovered bucket.",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_key": "results[protein_id=index28]",
+          "exact_value": "recovered"
+        },
+        {
+          "statement": "SIFTS and frozen mapping agree that PDB auth 175 corresponds to UniProt 176.",
+          "source_file": "data/raw/mappings/1muw.xml.gz",
+          "source_field_or_record_key": "PDB 1muw A:175 / UniProt P15587:176",
+          "exact_value": "PDB ILE; UniProt THR"
+        }
+      ],
+      "contradictory_evidence": [
+        {
+          "statement": "The mmCIF difference row labels its UNP comparison as position 175, while SIFTS/frozen mapping use UniProt 176.",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif.pdbx_ordinal=1",
+          "exact_value": "pdbx_auth_seq_num=175; pdbx_seq_db_seq_num=175; mon_id=ILE; db_mon_id=THR"
+        }
+      ],
+      "missing_evidence": [
+        {
+          "statement": "No explicit target-specific cause for T176I is present in REMARK 999.",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_key": "_pdbx_database_remark.id=999 / _entity.pdbx_mutation",
+          "exact_value": "REMARK 999 discusses sequence deposition/corrected sequence; polymer mutation field is '?'"
+        }
+      ],
+      "source_locations": [
+        {"source_file": "reports/dataset_a_census/round1_report.json", "source_field_or_record_key": "records[screening_index=28].mismatches[0]"},
+        {"source_file": "data/processed/pairs/1muw_A__P15587/residue_mapping.parquet", "source_field_or_record_key": "row[uniprot_id=P15587,uniprot_residue_number=176,auth_asym_id=A,auth_seq_id=175,insertion_code='']"},
+        {"source_file": "data/raw/pdb/1muw.cif", "source_field_or_record_key": "_atom_site/_pdbx_poly_seq_scheme auth A:175; _struct_ref_seq_dif.pdbx_ordinal=1; _pdbx_database_remark.id=999"},
+        {"source_file": "data/raw/mappings/1muw.xml.gz", "source_field_or_record_key": "PDB A:175 / UniProt P15587:176 and PDB A:172-178 neighborhood"},
+        {"source_file": "data/raw/afdb/P15587/AF-P15587-F1/model.cif", "source_field_or_record_key": "_atom_site rows[auth_seq_id=176,model=1]"},
+        {"source_file": "data/raw/afdb/P15587/AF-P15587-F1/metadata.json", "source_field_or_record_key": "uniprotAccession/uniprotId/sequenceStart/sequenceEnd"},
+        {"source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index28/P0_resolve_and_freeze_inputs/outputs/input_lock.json", "source_field_or_record_key": "pair_id/selected_model_identity/selected_model_version"},
+        {"source_file": "reports/dataset_a_census/v4_recovery_probe.json", "source_field_or_record_key": "results[protein_id=index28]"}
+      ],
+      "review_readiness": "needs_additional_local_evidence",
+      "unresolved_questions": [
+        "Can a human reviewer reconcile the nominal mmCIF UNP position 175 with the SIFTS/canonical position 176 using an authoritative local or externally reviewed source?",
+        "What is the documented biological or construct cause of T176I?"
+      ],
+      "decision_fields": {
+        "human_decision": null,
+        "evidence_class": null,
+        "evidence_note": null,
+        "reviewer": null,
+        "review_date": null,
+        "authorize_variant": null
+      }
+    },
+    {
+      "index": 103,
+      "pair_id": "5avd_A__P00772",
+      "mismatch": "D92N",
+      "mapping_aa": "D",
+      "pdb_aa": "N",
+      "afdb_aa": "D",
+      "position_provenance": {
+        "output_position": 66,
+        "pdb_auth_position": {
+          "chain": "A",
+          "seq_id": 81,
+          "insertion_code": ""
+        },
+        "pdb_label_position": {
+          "chain": "A",
+          "seq_id": 66
+        },
+        "uniprot_position": 92,
+        "mapping_source": {
+          "source_file": "data/processed/pairs/5avd_A__P00772/residue_mapping.parquet",
+          "source_field_or_record_key": "row[uniprot_id=P00772,uniprot_residue_number=92,auth_asym_id=A,auth_seq_id=81,insertion_code='']"
+        },
+        "atom_source": {
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_asym_id=A,auth_seq_id=81,pdbx_PDB_ins_code=?,model=1]"
+        }
+      },
+      "accession_provenance": {
+        "pair_accession": "P00772",
+        "sifts_accession": "P00772",
+        "p0_mapping_accession": "P00772",
+        "afdb_accession": "P00772",
+        "mmcif_reported_accession": "P00772",
+        "explicit_accession_relation": "same accession in local sources"
+      },
+      "explicit_local_annotations": [
+        {
+          "source_file": "data/raw/mappings/5avd.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 5avd chain A auth 81 / UniProt P00772 position 92",
+          "exact_value": "PDB ASN; UniProt D; residueDetail Annotation='See sequence details'"
+        },
+        {
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "exact_value": "chain A auth 81 / label seq 66 ASN vs UNP P00772 position 92 ASP; details='see sequence details'"
+        },
+        {
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_pdbx_entry_details.sequence_details",
+          "exact_value": "THE SEQUENCE CONFLICT D92N IS BASED ON REFERENCE PUBMED IS 4578945 ACCORDING TO DATABASE P00772 (CELA1_PIG)"
+        },
+        {
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_struct.title",
+          "exact_value": "The 0.86 angstrom structure of elastase crystallized in high-strength agarose hydrogel"
+        },
+        {
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_entity.pdbx_mutation for polymer entity",
+          "exact_value": "? (missing)"
+        },
+        {
+          "source_file": "data/raw/afdb/P00772/AF-P00772-F1/metadata.json",
+          "source_field_or_record_key": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "exact_value": {
+            "uniprotAccession": "P00772",
+            "uniprotId": "CELA1_PIG",
+            "uniprotDescription": "Chymotrypsin-like elastase family member 1",
+            "sequenceStart": 1,
+            "sequenceEnd": 266
+          }
+        }
+      ],
+      "supporting_evidence": [
+        {
+          "statement": "Round1 V3 mismatch is reproduced by the frozen mapping and PDB atom record.",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_key": "records[screening_index=103].mismatches[0]",
+          "exact_value": {
+            "output_position": 66,
+            "uniprot_position": 92,
+            "mapping_aa": "D",
+            "pdb_aa": "N",
+            "afdb_aa": "D",
+            "source_file": "reports/dataset_a_census/round1_report.json",
+            "source_field_or_record_identifier": "records[screening_index=103].mismatches[0]"
+          }
+        },
+        {
+          "statement": "AFDB residue identity equals mapping AA.",
+          "source_file": "data/raw/afdb/P00772/AF-P00772-F1/model.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_seq_id=92,model=1]",
+          "exact_value": {
+            "afdb_aa": "D",
+            "mapping_aa": "D"
+          }
+        },
+        {
+          "statement": "V4 assumed-declaration probe reached recovered bucket.",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_key": "results[protein_id=index103]",
+          "exact_value": "recovered"
+        },
+        {
+          "statement": "Local mmCIF explicitly records D92N as a sequence conflict and names a supporting PubMed identifier.",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_pdbx_entry_details.sequence_details",
+          "exact_value": "THE SEQUENCE CONFLICT D92N IS BASED ON REFERENCE PUBMED IS 4578945 ACCORDING TO DATABASE P00772 (CELA1_PIG)"
+        }
+      ],
+      "contradictory_evidence": [],
+      "missing_evidence": [
+        {
+          "statement": "The cited publication content is not cached locally.",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_key": "_pdbx_entry_details.sequence_details",
+          "exact_value": "Only PubMed identifier 4578945 is present locally; no article text is present."
+        }
+      ],
+      "source_locations": [
+        {"source_file": "reports/dataset_a_census/round1_report.json", "source_field_or_record_key": "records[screening_index=103].mismatches[0]"},
+        {"source_file": "data/processed/pairs/5avd_A__P00772/residue_mapping.parquet", "source_field_or_record_key": "row[uniprot_id=P00772,uniprot_residue_number=92,auth_asym_id=A,auth_seq_id=81,insertion_code='']"},
+        {"source_file": "data/raw/pdb/5avd.cif", "source_field_or_record_key": "_atom_site auth A:81/label A:66; _struct_ref_seq_dif.pdbx_ordinal=1; _pdbx_entry_details.sequence_details"},
+        {"source_file": "data/raw/mappings/5avd.xml.gz", "source_field_or_record_key": "PDB A:81 / UniProt P00772:92"},
+        {"source_file": "data/raw/afdb/P00772/AF-P00772-F1/model.cif", "source_field_or_record_key": "_atom_site rows[auth_seq_id=92,model=1]"},
+        {"source_file": "data/raw/afdb/P00772/AF-P00772-F1/metadata.json", "source_field_or_record_key": "uniprotAccession/uniprotId/sequenceStart/sequenceEnd"},
+        {"source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index103/P0_resolve_and_freeze_inputs/outputs/input_lock.json", "source_field_or_record_key": "pair_id/selected_model_identity/selected_model_version"},
+        {"source_file": "reports/dataset_a_census/v4_recovery_probe.json", "source_field_or_record_key": "results[protein_id=index103]"}
+      ],
+      "review_readiness": "ready_for_human_decision",
+      "unresolved_questions": [
+        "Does human review of the cited source support one of the allowed evidence categories?"
+      ],
+      "decision_fields": {
+        "human_decision": null,
+        "evidence_class": null,
+        "evidence_note": null,
+        "reviewer": null,
+        "review_date": null,
+        "authorize_variant": null
+      }
+    },
+    {
+      "index": 22,
+      "pair_id": "7af2_AAA__P29768",
+      "mismatch": "D62G",
+      "mapping_aa": "D",
+      "pdb_aa": "G",
+      "afdb_aa": "D",
+      "position_provenance": {
+        "output_position": 59,
+        "pdb_auth_position": {
+          "chain": "AAA",
+          "seq_id": 62,
+          "insertion_code": ""
+        },
+        "pdb_label_position": {
+          "chain": "A",
+          "seq_id": 59
+        },
+        "uniprot_position": 62,
+        "mapping_source": {
+          "source_file": "data/processed/pairs/7af2_AAA__P29768/residue_mapping.parquet",
+          "source_field_or_record_key": "row[uniprot_id=P29768,uniprot_residue_number=62,auth_asym_id=AAA,auth_seq_id=62,insertion_code='']"
+        },
+        "atom_source": {
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_asym_id=AAA,auth_seq_id=62,pdbx_PDB_ins_code=?,model=1]"
+        }
+      },
+      "accession_provenance": {
+        "pair_accession": "P29768",
+        "sifts_accession": "P29768",
+        "p0_mapping_accession": "P29768",
+        "afdb_accession": "P29768",
+        "mmcif_reported_accession": "P29768",
+        "explicit_accession_relation": "same accession in local sources"
+      },
+      "explicit_local_annotations": [
+        {
+          "source_file": "data/raw/mappings/7af2.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 7af2 chain AAA auth 62 / UniProt P29768 position 62",
+          "exact_value": "PDB GLY; UniProt D; residueDetail Annotation='Engineered mutation'"
+        },
+        {
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "exact_value": "chain AAA auth 62 / label seq 59 GLY vs UNP P29768 position 62 ASP; details='engineered mutation'"
+        },
+        {
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_entity.pdbx_mutation for polymer entity",
+          "exact_value": "D62G"
+        },
+        {
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_struct.title",
+          "exact_value": "Salmonella typhimurium neuraminidase mutant (D62G)"
+        },
+        {
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_citation.title",
+          "exact_value": "Salmonella typhimurium neuraminidase mutant (D62G)"
+        },
+        {
+          "source_file": "data/raw/afdb/P29768/AF-P29768-F1/metadata.json",
+          "source_field_or_record_key": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "exact_value": {
+            "uniprotAccession": "P29768",
+            "uniprotId": "NANH_SALTY",
+            "uniprotDescription": "Sialidase",
+            "sequenceStart": 1,
+            "sequenceEnd": 382
+          }
+        }
+      ],
+      "supporting_evidence": [
+        {
+          "statement": "Round1 V3 mismatch is reproduced by the frozen mapping and PDB atom record.",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_key": "records[screening_index=22].mismatches[0]",
+          "exact_value": {
+            "output_position": 59,
+            "uniprot_position": 62,
+            "mapping_aa": "D",
+            "pdb_aa": "G",
+            "afdb_aa": "D",
+            "source_file": "reports/dataset_a_census/round1_report.json",
+            "source_field_or_record_identifier": "records[screening_index=22].mismatches[0]"
+          }
+        },
+        {
+          "statement": "AFDB residue identity equals mapping AA.",
+          "source_file": "data/raw/afdb/P29768/AF-P29768-F1/model.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_seq_id=62,model=1]",
+          "exact_value": {
+            "afdb_aa": "D",
+            "mapping_aa": "D"
+          }
+        },
+        {
+          "statement": "V4 assumed-declaration probe reached recovered bucket.",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_key": "results[protein_id=index22]",
+          "exact_value": "recovered"
+        },
+        {
+          "statement": "Multiple local mmCIF/SIFTS fields explicitly identify D62G and use the paired accession P29768.",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_entity.pdbx_mutation; _struct_ref_seq_dif.pdbx_ordinal=1; _struct.title",
+          "exact_value": "D62G; details='engineered mutation'; accession P29768"
+        }
+      ],
+      "contradictory_evidence": [],
+      "missing_evidence": [
+        {
+          "statement": "No supporting narrative beyond deposited mmCIF/SIFTS metadata is cached locally.",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_key": "_citation.title / _entity.pdbx_mutation",
+          "exact_value": "Mutation wording is explicit; underlying publication text is not part of the local packet."
+        }
+      ],
+      "source_locations": [
+        {"source_file": "reports/dataset_a_census/round1_report.json", "source_field_or_record_key": "records[screening_index=22].mismatches[0]"},
+        {"source_file": "data/processed/pairs/7af2_AAA__P29768/residue_mapping.parquet", "source_field_or_record_key": "row[uniprot_id=P29768,uniprot_residue_number=62,auth_asym_id=AAA,auth_seq_id=62,insertion_code='']"},
+        {"source_file": "data/raw/pdb/7af2.cif", "source_field_or_record_key": "_atom_site auth AAA:62/label A:59; _struct_ref_seq_dif.pdbx_ordinal=1; _entity.pdbx_mutation; _struct.title"},
+        {"source_file": "data/raw/mappings/7af2.xml.gz", "source_field_or_record_key": "PDB AAA:62 / UniProt P29768:62"},
+        {"source_file": "data/raw/afdb/P29768/AF-P29768-F1/model.cif", "source_field_or_record_key": "_atom_site rows[auth_seq_id=62,model=1]"},
+        {"source_file": "data/raw/afdb/P29768/AF-P29768-F1/metadata.json", "source_field_or_record_key": "uniprotAccession/uniprotId/sequenceStart/sequenceEnd"},
+        {"source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index22/P0_resolve_and_freeze_inputs/outputs/input_lock.json", "source_field_or_record_key": "pair_id/selected_model_identity/selected_model_version"},
+        {"source_file": "reports/dataset_a_census/v4_recovery_probe.json", "source_field_or_record_key": "results[protein_id=index22]"}
+      ],
+      "review_readiness": "ready_for_human_decision",
+      "unresolved_questions": [
+        "Does the deposited local annotation meet the human evidence standard for authorization?"
+      ],
+      "decision_fields": {
+        "human_decision": null,
+        "evidence_class": null,
+        "evidence_note": null,
+        "reviewer": null,
+        "review_date": null,
+        "authorize_variant": null
+      }
+    },
+    {
+      "index": 25,
+      "pair_id": "7bbx_A__Q5F6E9",
+      "mismatch": "K8A",
+      "mapping_aa": "K",
+      "pdb_aa": "A",
+      "afdb_aa": "K",
+      "position_provenance": {
+        "output_position": 8,
+        "pdb_auth_position": {
+          "chain": "A",
+          "seq_id": 8,
+          "insertion_code": ""
+        },
+        "pdb_label_position": {
+          "chain": "A",
+          "seq_id": 9
+        },
+        "uniprot_position": 8,
+        "mapping_source": {
+          "source_file": "data/processed/pairs/7bbx_A__Q5F6E9/residue_mapping.parquet",
+          "source_field_or_record_key": "row[uniprot_id=Q5F6E9,uniprot_residue_number=8,auth_asym_id=A,auth_seq_id=8,insertion_code='']"
+        },
+        "atom_source": {
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_asym_id=A,auth_seq_id=8,pdbx_PDB_ins_code=?,model=1]"
+        }
+      },
+      "accession_provenance": {
+        "pair_accession": "Q5F6E9",
+        "mmcif_reported_accession": "A0A1D3FXY0",
+        "sifts_accession": "Q5F6E9",
+        "p0_mapping_accession": "Q5F6E9",
+        "afdb_accession": "Q5F6E9",
+        "explicit_accession_cross_reference_found": false,
+        "explicit_isoform_or_secondary_accession_relation_found": false,
+        "explicit_accession_relation": "no explicit relation in local files"
+      },
+      "explicit_local_annotations": [
+        {
+          "source_file": "data/raw/mappings/7bbx.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 7bbx chain A auth 8 / UniProt Q5F6E9 position 8",
+          "exact_value": "PDB ALA; UniProt K; residueDetail Annotation='Engineered mutation'"
+        },
+        {
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_struct_ref_seq_dif row pdbx_ordinal=2",
+          "exact_value": "chain A auth 8 / label seq 9 ALA vs UNP A0A1D3FXY0 position 8 LYS; details='engineered mutation'"
+        },
+        {
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_struct.title",
+          "exact_value": "Neisseria gonorrhoeae transaldolase, variant K8A"
+        },
+        {
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_entity.pdbx_mutation for polymer entity",
+          "exact_value": "? (missing)"
+        },
+        {
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/metadata.json",
+          "source_field_or_record_key": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "exact_value": {
+            "uniprotAccession": "Q5F6E9",
+            "uniprotId": "TAL_NEIG1",
+            "uniprotDescription": "Transaldolase",
+            "sequenceStart": 1,
+            "sequenceEnd": 351
+          }
+        },
+        {
+          "statement": "mmCIF structure reference accession.",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_struct_ref.id=1 / _struct_ref_seq.align_id=1",
+          "exact_value": "UNP A0A1D3FXY0; db_code A0A1D3FXY0_NEIGO; db_isoform='?'"
+        },
+        {
+          "statement": "SIFTS target accession.",
+          "source_file": "data/raw/mappings/7bbx.xml.gz",
+          "source_field_or_record_key": "SIFTS residue: PDB 7bbx chain A auth 8 / UniProt Q5F6E9 position 8",
+          "exact_value": "UniProt Q5F6E9 K; Annotation='Engineered mutation'"
+        },
+        {
+          "statement": "P0/mapping target accession.",
+          "source_file": "data/processed/pairs/7bbx_A__Q5F6E9/residue_mapping.parquet",
+          "source_field_or_record_key": "row[uniprot_id=Q5F6E9,uniprot_residue_number=8,auth_asym_id=A,auth_seq_id=8,insertion_code='']",
+          "exact_value": "uniprot_id=Q5F6E9"
+        },
+        {
+          "statement": "Pair-QC accession.",
+          "source_file": "data/processed/pairs/7bbx_A__Q5F6E9/pair_qc.json",
+          "source_field_or_record_key": "uniprot_id",
+          "exact_value": "Q5F6E9"
+        },
+        {
+          "statement": "AFDB metadata accession.",
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/metadata.json",
+          "source_field_or_record_key": "uniprotAccession/uniprotId",
+          "exact_value": "Q5F6E9 / TAL_NEIG1"
+        }
+      ],
+      "supporting_evidence": [
+        {
+          "statement": "Round1 V3 mismatch is reproduced by the frozen mapping and PDB atom record.",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_key": "records[screening_index=25].mismatches[0]",
+          "exact_value": {
+            "output_position": 8,
+            "uniprot_position": 8,
+            "mapping_aa": "K",
+            "pdb_aa": "A",
+            "afdb_aa": "K",
+            "source_file": "reports/dataset_a_census/round1_report.json",
+            "source_field_or_record_identifier": "records[screening_index=25].mismatches[0]"
+          }
+        },
+        {
+          "statement": "AFDB residue identity equals mapping AA.",
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/model.cif",
+          "source_field_or_record_key": "_atom_site rows[auth_seq_id=8,model=1]",
+          "exact_value": {
+            "afdb_aa": "K",
+            "mapping_aa": "K"
+          }
+        },
+        {
+          "statement": "V4 assumed-declaration probe reached recovered bucket.",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_key": "results[protein_id=index25]",
+          "exact_value": "recovered"
+        },
+        {
+          "statement": "SIFTS, frozen mapping, pair QC, and AFDB metadata agree on Q5F6E9.",
+          "source_file": "data/raw/mappings/7bbx.xml.gz",
+          "source_field_or_record_key": "target SIFTS crossRefDb plus local P0/pair/AFDB sources",
+          "exact_value": "Q5F6E9"
+        }
+      ],
+      "contradictory_evidence": [
+        {
+          "statement": "The deposited mmCIF uses a different UNP accession for the same polymer alignment and K8A difference row.",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_struct_ref.pdbx_db_accession / _struct_ref_seq.pdbx_db_accession / _struct_ref_seq_dif.pdbx_ordinal=2",
+          "exact_value": "A0A1D3FXY0"
+        }
+      ],
+      "missing_evidence": [
+        {
+          "statement": "No explicit cross-reference, isoform relation, or secondary-accession relation between A0A1D3FXY0 and Q5F6E9 exists in the local sources inspected.",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_key": "_struct_ref.pdbx_db_isoform and all local accession-bearing categories",
+          "exact_value": "db_isoform='?'; no relation field present"
+        }
+      ],
+      "source_locations": [
+        {"source_file": "reports/dataset_a_census/round1_report.json", "source_field_or_record_key": "records[screening_index=25].mismatches[0]"},
+        {"source_file": "data/processed/pairs/7bbx_A__Q5F6E9/pair_qc.json", "source_field_or_record_key": "uniprot_id/afdb_model_entity_id"},
+        {"source_file": "data/processed/pairs/7bbx_A__Q5F6E9/residue_mapping.parquet", "source_field_or_record_key": "row[uniprot_id=Q5F6E9,uniprot_residue_number=8,auth_asym_id=A,auth_seq_id=8,insertion_code='']"},
+        {"source_file": "data/raw/pdb/7bbx.cif", "source_field_or_record_key": "_atom_site auth A:8/label A:9; _struct_ref.id=1; _struct_ref_seq.align_id=1; _struct_ref_seq_dif.pdbx_ordinal=2"},
+        {"source_file": "data/raw/mappings/7bbx.xml.gz", "source_field_or_record_key": "PDB A:8 / UniProt Q5F6E9:8"},
+        {"source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/model.cif", "source_field_or_record_key": "_atom_site rows[auth_seq_id=8,model=1]"},
+        {"source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/metadata.json", "source_field_or_record_key": "uniprotAccession/uniprotId/sequenceStart/sequenceEnd"},
+        {"source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index25/P0_resolve_and_freeze_inputs/outputs/input_lock.json", "source_field_or_record_key": "pair_id/selected_model_identity/selected_model_version"},
+        {"source_file": "reports/dataset_a_census/v4_recovery_probe.json", "source_field_or_record_key": "results[protein_id=index25]"}
+      ],
+      "review_readiness": "blocked_by_local_conflict",
+      "unresolved_questions": [
+        "Are A0A1D3FXY0 and Q5F6E9 related in a way acceptable to the H2 provenance policy?",
+        "Which accession should govern the human authorization record?"
+      ],
+      "decision_fields": {
+        "human_decision": null,
+        "evidence_class": null,
+        "evidence_note": null,
+        "reviewer": null,
+        "review_date": null,
+        "authorize_variant": null
+      }
+    }
+  ]
+}

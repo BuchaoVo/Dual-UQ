@@ -1,4 +1,4 @@
-"""Tests for scripts/dataset_a_scale/v4_variant_recovery_probe.py (TASK-B).
+"""Tests for scripts/dataset_a/census/v4_variant_recovery_probe.py (TASK-B).
 
 The probe is a standalone script (not a library module) per TASK-B's declared
 scope, so it is loaded directly from its file path rather than imported as a
@@ -20,7 +20,8 @@ from dual_uq.dataset_a_scale.stages.p0 import P0_STAGE_NAME, run_p0
 _MODULE_PATH = (
     Path(__file__).resolve().parents[2]
     / "scripts"
-    / "dataset_a_scale"
+    / "dataset_a"
+    / "census"
     / "v4_variant_recovery_probe.py"
 )
 _spec = importlib.util.spec_from_file_location("v4_variant_recovery_probe", _MODULE_PATH)

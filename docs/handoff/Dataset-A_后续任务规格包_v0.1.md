@@ -99,7 +99,7 @@ pytest tests/dataset_a_scale/test_census.py -q     # 先 RED
 pytest tests/dataset_a_scale -q                     # 362 不退化
 pytest -q                                           # 682 不退化
 ruff check src/dual_uq/dataset_a_scale/census.py tests/dataset_a_scale/test_census.py
-python scripts/dataset_a_scale/round1_census.py     # 新 run_id 实跑
+python scripts/dataset_a/census/round1_census.py     # 新 run_id 实跑
 ```
 
 交叉验证（全部必须成立）：
@@ -128,7 +128,7 @@ TASK-A 完成且位点表已产出。
 
 ### 范围
 ```text
-scripts/dataset_a_scale/v4_variant_recovery_probe.py   # 新增，只读
+scripts/dataset_a/census/v4_variant_recovery_probe.py   # 新增，只读
 tests/dataset_a_scale/test_v4_probe.py                 # 新增
 ```
 **不得修改 `census.py` 与任何冻结模块。**

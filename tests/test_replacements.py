@@ -670,7 +670,13 @@ def test_audit_rejects_output_that_is_not_confidence_ranked() -> None:
 
 def test_config_declares_global_plddt_as_nonbinding_ranking_prior() -> None:
     config = yaml.safe_load(
-        (ROOT / "configs" / "lower_conf_replacement.yaml").read_text()
+        (
+            ROOT
+            / "configs"
+            / "legacy"
+            / "a0_screening"
+            / "lower_conf_replacement.yaml"
+        ).read_text()
     )
 
     assert {

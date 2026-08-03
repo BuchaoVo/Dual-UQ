@@ -1,0 +1,881 @@
+{
+  "schema_version": "dataset-a.h2-variant-evidence-packet.v1",
+  "packet_status": "H2_PREP_ONLY_NO_AUTHORIZATION_DECISION",
+  "evidence_policy": {
+    "network_used": false,
+    "downloads_performed": false,
+    "local_evidence_only": true,
+    "classification_inference_performed": false
+  },
+  "source_head": "0cb971b6b3a4eb4fb94245c627e5a255a7638be5",
+  "summary": {
+    "candidate_count": 4,
+    "evidence_available_for_human_review": {
+      "count": 3,
+      "candidates": [
+        103,
+        22,
+        25
+      ]
+    },
+    "evidence_incomplete": {
+      "count": 1,
+      "candidates": [
+        28
+      ]
+    },
+    "no_local_evidence": {
+      "count": 0,
+      "candidates": []
+    },
+    "excluded_from_authorization_review": [
+      {
+        "index": 111,
+        "pair_id": "1i1w_A__P23360",
+        "reason": "H1 count and paired-identity gates fail"
+      },
+      {
+        "index": 101,
+        "pair_id": "8pb5_A__P0DPA9",
+        "reason": "AFDB-side amino-acid mismatch"
+      }
+    ]
+  },
+  "hard_checks": {
+    "requested_v3_substitutions_match": true,
+    "afdb_aa_equals_mapping_aa_for_all_four": true,
+    "v4_bucket_counts_unchanged": {
+      "recovered": 4,
+      "blocked_downstream_missing_pdb": 1,
+      "blocked_downstream_other": 1,
+      "still_mismatching": 0
+    },
+    "conflicts": []
+  },
+  "candidates": [
+    {
+      "index": 28,
+      "pair_id": "1muw_A__P15587",
+      "pdb_id": "1muw",
+      "chain_id": "A",
+      "uniprot_accession": "P15587",
+      "mismatch": {
+        "output_position": 175,
+        "uniprot_position": 176,
+        "mapping_aa": "T",
+        "pdb_aa": "I",
+        "afdb_aa": "T"
+      },
+      "review_readiness": "evidence_incomplete",
+      "observed_fact": {
+        "output_position": 175,
+        "uniprot_position": 176,
+        "mapping_aa": "T",
+        "pdb_aa": "I",
+        "afdb_aa": "T",
+        "source_file": "reports/dataset_a_census/round1_report.json",
+        "source_field_or_record_identifier": "records[screening_index=28].mismatches[0]"
+      },
+      "mapping_provenance": {
+        "pdb_residue_number": "175",
+        "pdb_residue_name": "ILE",
+        "auth_asym_id": "A",
+        "auth_seq_id": 175,
+        "insertion_code": "",
+        "label_asym_id": null,
+        "label_seq_id": null,
+        "provenance": "sifts_auth",
+        "source_file": "data/processed/pairs/1muw_A__P15587/residue_mapping.parquet",
+        "source_field_or_record_identifier": "row[uniprot_id=P15587,uniprot_residue_number=176,auth_asym_id=A,auth_seq_id=175,insertion_code='']"
+      },
+      "residue_provenance": {
+        "pdb": {
+          "auth_asym_id": "A",
+          "auth_seq_id": 175,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 175,
+          "raw_residue_name": "ILE",
+          "canonical_aa": "I",
+          "record_type": "ATOM",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=175,pdbx_PDB_ins_code=?,model=1]"
+        },
+        "afdb": {
+          "model_entity_id": "AF-P15587-F1",
+          "version": 6,
+          "model_position": 176,
+          "auth_asym_id": "A",
+          "auth_seq_id": 176,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 176,
+          "raw_residue_name": "THR",
+          "canonical_aa": "T",
+          "record_type": "ATOM",
+          "source_file": "data/raw/afdb/P15587/AF-P15587-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=176,model=1]"
+        }
+      },
+      "pair_qc_provenance": {
+        "mapped_residue_count": 386,
+        "mapped_uniprot_start": 2,
+        "mapped_uniprot_end": 387,
+        "mapping_coverage": 0.9974160206718347,
+        "sequence_identity": 0.9974093264248705,
+        "quality_flag": "pass",
+        "source_file": "data/processed/pairs/1muw_A__P15587/pair_qc.json",
+        "source_field_or_record_identifier": "pdb_id,chain_id,uniprot_id,quality_flag,mapping_path,sifts_path,afdb_model_entity_id,afdb_version,fragment interval,mapping metrics"
+      },
+      "p0_provenance": {
+        "run_id": "dataset_a_census_round1_v2",
+        "stage": "P0_resolve_and_freeze_inputs",
+        "status": "complete",
+        "validation_pass": true,
+        "pipeline_version": "dataset-a.v1",
+        "input_digest": "5b620a1a9ecf4b35ff2c3b733bce2ec47a8a08098b658bfc8de38fa410190b80",
+        "mapping_row_count": 386,
+        "mapping_provenance": "sifts_auth",
+        "source_records": [
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index28/P0_resolve_and_freeze_inputs/stage_manifest.json",
+            "source_field_or_record_identifier": "run_id,status,pipeline_version,validation_pass"
+          },
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index28/P0_resolve_and_freeze_inputs/outputs/input_lock.json",
+            "source_field_or_record_identifier": "input_digest,mapping_summary,selected_model_identity,selected_model_version"
+          }
+        ]
+      },
+      "p1_provenance": {
+        "strict_round1": {
+          "stage_reached": "p0_frozen",
+          "failure_code": "pdb_amino_acid_mismatch",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=28]"
+        },
+        "recovery_probe": {
+          "bucket": "recovered",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index28]"
+        },
+        "paired_backbone_output": null
+      },
+      "derived_consistency_checks": [
+        {
+          "check": "requested_mismatch_matches_round1_v3",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=28].mismatches[0]"
+        },
+        {
+          "check": "pdb_atom_canonical_aa_equals_round1_pdb_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=175,pdbx_PDB_ins_code=?,model=1]"
+        },
+        {
+          "check": "afdb_atom_canonical_aa_equals_mapping_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/afdb/P15587/AF-P15587-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=176,model=1]"
+        },
+        {
+          "check": "v4_bucket_is_recovered",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index28].bucket"
+        }
+      ],
+      "explicit_local_annotations": [
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/mappings/1muw.xml.gz",
+          "source_field_or_record_identifier": "SIFTS residue: PDB 1muw chain A auth 175 / UniProt P15587 position 176",
+          "value": "PDB ILE; UniProt T; residueDetail Annotation='See remark 999'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "value": "chain A auth 175 ILE vs UNP P15587 THR; pdbx_seq_db_seq_num=175; details='SEE REMARK 999'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_pdbx_database_remark.id=999 / _pdbx_database_remark.text",
+          "value": "Sequence remark says SEQRES was not deposited and cites a corrected-sequence dissertation whose title includes 'Mutante'; it does not explicitly assign a cause to T176I."
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_struct.title",
+          "value": "The 0.86 Angstrom Structure of Xylose Isomerase"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/1muw.cif",
+          "source_field_or_record_identifier": "_entity.pdbx_mutation for polymer entity",
+          "value": "? (missing)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/afdb/P15587/AF-P15587-F1/metadata.json",
+          "source_field_or_record_identifier": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "value": {
+            "uniprotAccession": "P15587",
+            "uniprotId": "XYLA_STROL",
+            "uniprotDescription": "Xylose isomerase",
+            "sequenceStart": 1,
+            "sequenceEnd": 387
+          }
+        }
+      ],
+      "evidence_gaps": [
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "Local mmCIF and SIFTS point to REMARK 999 but do not explicitly state the biological origin of T176I.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-1"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "mmCIF _struct_ref_seq_dif associates the THR comparison with UNP position 175, while local SIFTS and round1 mapping associate it with UniProt position 176; human reconciliation is required.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-2"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No local full UniProt feature/variant record beyond cached AFDB metadata and SIFTS residue cross-reference was found.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-3"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No P1 paired-backbone output exists because strict P1 stopped at pdb_amino_acid_mismatch.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-4"
+        }
+      ]
+    },
+    {
+      "index": 103,
+      "pair_id": "5avd_A__P00772",
+      "pdb_id": "5avd",
+      "chain_id": "A",
+      "uniprot_accession": "P00772",
+      "mismatch": {
+        "output_position": 66,
+        "uniprot_position": 92,
+        "mapping_aa": "D",
+        "pdb_aa": "N",
+        "afdb_aa": "D"
+      },
+      "review_readiness": "evidence_available_for_human_review",
+      "observed_fact": {
+        "output_position": 66,
+        "uniprot_position": 92,
+        "mapping_aa": "D",
+        "pdb_aa": "N",
+        "afdb_aa": "D",
+        "source_file": "reports/dataset_a_census/round1_report.json",
+        "source_field_or_record_identifier": "records[screening_index=103].mismatches[0]"
+      },
+      "mapping_provenance": {
+        "pdb_residue_number": "81",
+        "pdb_residue_name": "ASN",
+        "auth_asym_id": "A",
+        "auth_seq_id": 81,
+        "insertion_code": "",
+        "label_asym_id": null,
+        "label_seq_id": null,
+        "provenance": "sifts_auth",
+        "source_file": "data/processed/pairs/5avd_A__P00772/residue_mapping.parquet",
+        "source_field_or_record_identifier": "row[uniprot_id=P00772,uniprot_residue_number=92,auth_asym_id=A,auth_seq_id=81,insertion_code='']"
+      },
+      "residue_provenance": {
+        "pdb": {
+          "auth_asym_id": "A",
+          "auth_seq_id": 81,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 66,
+          "raw_residue_name": "ASN",
+          "canonical_aa": "N",
+          "record_type": "ATOM",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=81,pdbx_PDB_ins_code=?,model=1]"
+        },
+        "afdb": {
+          "model_entity_id": "AF-P00772-F1",
+          "version": 6,
+          "model_position": 92,
+          "auth_asym_id": "A",
+          "auth_seq_id": 92,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 92,
+          "raw_residue_name": "ASP",
+          "canonical_aa": "D",
+          "record_type": "ATOM",
+          "source_file": "data/raw/afdb/P00772/AF-P00772-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=92,model=1]"
+        }
+      },
+      "pair_qc_provenance": {
+        "mapped_residue_count": 240,
+        "mapped_uniprot_start": 27,
+        "mapped_uniprot_end": 266,
+        "mapping_coverage": 0.9022556390977443,
+        "sequence_identity": 0.9958333333333333,
+        "quality_flag": "pass",
+        "source_file": "data/processed/pairs/5avd_A__P00772/pair_qc.json",
+        "source_field_or_record_identifier": "pdb_id,chain_id,uniprot_id,quality_flag,mapping_path,sifts_path,afdb_model_entity_id,afdb_version,fragment interval,mapping metrics"
+      },
+      "p0_provenance": {
+        "run_id": "dataset_a_census_round1_v2",
+        "stage": "P0_resolve_and_freeze_inputs",
+        "status": "complete",
+        "validation_pass": true,
+        "pipeline_version": "dataset-a.v1",
+        "input_digest": "8498cdd92f61e28e882eadd0f4dc7b089405377d69f852e3ca3588bf3f908ee6",
+        "mapping_row_count": 240,
+        "mapping_provenance": "sifts_auth",
+        "source_records": [
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index103/P0_resolve_and_freeze_inputs/stage_manifest.json",
+            "source_field_or_record_identifier": "run_id,status,pipeline_version,validation_pass"
+          },
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index103/P0_resolve_and_freeze_inputs/outputs/input_lock.json",
+            "source_field_or_record_identifier": "input_digest,mapping_summary,selected_model_identity,selected_model_version"
+          }
+        ]
+      },
+      "p1_provenance": {
+        "strict_round1": {
+          "stage_reached": "p0_frozen",
+          "failure_code": "pdb_amino_acid_mismatch",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=103]"
+        },
+        "recovery_probe": {
+          "bucket": "recovered",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index103]"
+        },
+        "paired_backbone_output": null
+      },
+      "derived_consistency_checks": [
+        {
+          "check": "requested_mismatch_matches_round1_v3",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=103].mismatches[0]"
+        },
+        {
+          "check": "pdb_atom_canonical_aa_equals_round1_pdb_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=81,pdbx_PDB_ins_code=?,model=1]"
+        },
+        {
+          "check": "afdb_atom_canonical_aa_equals_mapping_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/afdb/P00772/AF-P00772-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=92,model=1]"
+        },
+        {
+          "check": "v4_bucket_is_recovered",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index103].bucket"
+        }
+      ],
+      "explicit_local_annotations": [
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/mappings/5avd.xml.gz",
+          "source_field_or_record_identifier": "SIFTS residue: PDB 5avd chain A auth 81 / UniProt P00772 position 92",
+          "value": "PDB ASN; UniProt D; residueDetail Annotation='See sequence details'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "value": "chain A auth 81 / label seq 66 ASN vs UNP P00772 position 92 ASP; details='see sequence details'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_pdbx_entry_details.sequence_details",
+          "value": "THE SEQUENCE CONFLICT D92N IS BASED ON REFERENCE PUBMED IS 4578945 ACCORDING TO DATABASE P00772 (CELA1_PIG)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_struct.title",
+          "value": "The 0.86 angstrom structure of elastase crystallized in high-strength agarose hydrogel"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/5avd.cif",
+          "source_field_or_record_identifier": "_entity.pdbx_mutation for polymer entity",
+          "value": "? (missing)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/afdb/P00772/AF-P00772-F1/metadata.json",
+          "source_field_or_record_identifier": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "value": {
+            "uniprotAccession": "P00772",
+            "uniprotId": "CELA1_PIG",
+            "uniprotDescription": "Chymotrypsin-like elastase family member 1",
+            "sequenceStart": 1,
+            "sequenceEnd": 266
+          }
+        }
+      ],
+      "evidence_gaps": [
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "The local mmCIF identifies a sequence conflict and cites PubMed 4578945, but the cited publication content is not cached locally and was not retrieved.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-1"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "The local annotation does not by itself establish an allowed evidence category; human source review remains necessary.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-2"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No local full UniProt feature/variant record beyond cached AFDB metadata and SIFTS residue cross-reference was found.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-3"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No P1 paired-backbone output exists because strict P1 stopped at pdb_amino_acid_mismatch.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-4"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "pair_id": "7af2_AAA__P29768",
+      "pdb_id": "7af2",
+      "chain_id": "AAA",
+      "uniprot_accession": "P29768",
+      "mismatch": {
+        "output_position": 59,
+        "uniprot_position": 62,
+        "mapping_aa": "D",
+        "pdb_aa": "G",
+        "afdb_aa": "D"
+      },
+      "review_readiness": "evidence_available_for_human_review",
+      "observed_fact": {
+        "output_position": 59,
+        "uniprot_position": 62,
+        "mapping_aa": "D",
+        "pdb_aa": "G",
+        "afdb_aa": "D",
+        "source_file": "reports/dataset_a_census/round1_report.json",
+        "source_field_or_record_identifier": "records[screening_index=22].mismatches[0]"
+      },
+      "mapping_provenance": {
+        "pdb_residue_number": "62",
+        "pdb_residue_name": "GLY",
+        "auth_asym_id": "AAA",
+        "auth_seq_id": 62,
+        "insertion_code": "",
+        "label_asym_id": null,
+        "label_seq_id": null,
+        "provenance": "sifts_auth",
+        "source_file": "data/processed/pairs/7af2_AAA__P29768/residue_mapping.parquet",
+        "source_field_or_record_identifier": "row[uniprot_id=P29768,uniprot_residue_number=62,auth_asym_id=AAA,auth_seq_id=62,insertion_code='']"
+      },
+      "residue_provenance": {
+        "pdb": {
+          "auth_asym_id": "AAA",
+          "auth_seq_id": 62,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 59,
+          "raw_residue_name": "GLY",
+          "canonical_aa": "G",
+          "record_type": "ATOM",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=AAA,auth_seq_id=62,pdbx_PDB_ins_code=?,model=1]"
+        },
+        "afdb": {
+          "model_entity_id": "AF-P29768-F1",
+          "version": 6,
+          "model_position": 62,
+          "auth_asym_id": "A",
+          "auth_seq_id": 62,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 62,
+          "raw_residue_name": "ASP",
+          "canonical_aa": "D",
+          "record_type": "ATOM",
+          "source_file": "data/raw/afdb/P29768/AF-P29768-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=62,model=1]"
+        }
+      },
+      "pair_qc_provenance": {
+        "mapped_residue_count": 379,
+        "mapped_uniprot_start": 4,
+        "mapped_uniprot_end": 382,
+        "mapping_coverage": 0.9921465968586387,
+        "sequence_identity": 0.9973614775725593,
+        "quality_flag": "pass",
+        "source_file": "data/processed/pairs/7af2_AAA__P29768/pair_qc.json",
+        "source_field_or_record_identifier": "pdb_id,chain_id,uniprot_id,quality_flag,mapping_path,sifts_path,afdb_model_entity_id,afdb_version,fragment interval,mapping metrics"
+      },
+      "p0_provenance": {
+        "run_id": "dataset_a_census_round1_v2",
+        "stage": "P0_resolve_and_freeze_inputs",
+        "status": "complete",
+        "validation_pass": true,
+        "pipeline_version": "dataset-a.v1",
+        "input_digest": "ff69ad390f80d51d85e0dd98fa2734225297a51bc39c5dd1157ade4ecd0a6282",
+        "mapping_row_count": 379,
+        "mapping_provenance": "sifts_auth",
+        "source_records": [
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index22/P0_resolve_and_freeze_inputs/stage_manifest.json",
+            "source_field_or_record_identifier": "run_id,status,pipeline_version,validation_pass"
+          },
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index22/P0_resolve_and_freeze_inputs/outputs/input_lock.json",
+            "source_field_or_record_identifier": "input_digest,mapping_summary,selected_model_identity,selected_model_version"
+          }
+        ]
+      },
+      "p1_provenance": {
+        "strict_round1": {
+          "stage_reached": "p0_frozen",
+          "failure_code": "pdb_amino_acid_mismatch",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=22]"
+        },
+        "recovery_probe": {
+          "bucket": "recovered",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index22]"
+        },
+        "paired_backbone_output": null
+      },
+      "derived_consistency_checks": [
+        {
+          "check": "requested_mismatch_matches_round1_v3",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=22].mismatches[0]"
+        },
+        {
+          "check": "pdb_atom_canonical_aa_equals_round1_pdb_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=AAA,auth_seq_id=62,pdbx_PDB_ins_code=?,model=1]"
+        },
+        {
+          "check": "afdb_atom_canonical_aa_equals_mapping_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/afdb/P29768/AF-P29768-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=62,model=1]"
+        },
+        {
+          "check": "v4_bucket_is_recovered",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index22].bucket"
+        }
+      ],
+      "explicit_local_annotations": [
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/mappings/7af2.xml.gz",
+          "source_field_or_record_identifier": "SIFTS residue: PDB 7af2 chain AAA auth 62 / UniProt P29768 position 62",
+          "value": "PDB GLY; UniProt D; residueDetail Annotation='Engineered mutation'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_struct_ref_seq_dif row pdbx_ordinal=1",
+          "value": "chain AAA auth 62 / label seq 59 GLY vs UNP P29768 position 62 ASP; details='engineered mutation'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_entity.pdbx_mutation for polymer entity",
+          "value": "D62G"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_struct.title",
+          "value": "Salmonella typhimurium neuraminidase mutant (D62G)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7af2.cif",
+          "source_field_or_record_identifier": "_citation.title",
+          "value": "Salmonella typhimurium neuraminidase mutant (D62G)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/afdb/P29768/AF-P29768-F1/metadata.json",
+          "source_field_or_record_identifier": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "value": {
+            "uniprotAccession": "P29768",
+            "uniprotId": "NANH_SALTY",
+            "uniprotDescription": "Sialidase",
+            "sequenceStart": 1,
+            "sequenceEnd": 382
+          }
+        }
+      ],
+      "evidence_gaps": [
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "The local packet contains explicit mutation annotations but no locally cached supporting experimental narrative beyond mmCIF/SIFTS metadata.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-1"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No local full UniProt feature/variant record beyond cached AFDB metadata and SIFTS residue cross-reference was found.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-2"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No P1 paired-backbone output exists because strict P1 stopped at pdb_amino_acid_mismatch.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-3"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "pair_id": "7bbx_A__Q5F6E9",
+      "pdb_id": "7bbx",
+      "chain_id": "A",
+      "uniprot_accession": "Q5F6E9",
+      "mismatch": {
+        "output_position": 8,
+        "uniprot_position": 8,
+        "mapping_aa": "K",
+        "pdb_aa": "A",
+        "afdb_aa": "K"
+      },
+      "review_readiness": "evidence_available_for_human_review",
+      "observed_fact": {
+        "output_position": 8,
+        "uniprot_position": 8,
+        "mapping_aa": "K",
+        "pdb_aa": "A",
+        "afdb_aa": "K",
+        "source_file": "reports/dataset_a_census/round1_report.json",
+        "source_field_or_record_identifier": "records[screening_index=25].mismatches[0]"
+      },
+      "mapping_provenance": {
+        "pdb_residue_number": "8",
+        "pdb_residue_name": "ALA",
+        "auth_asym_id": "A",
+        "auth_seq_id": 8,
+        "insertion_code": "",
+        "label_asym_id": null,
+        "label_seq_id": null,
+        "provenance": "sifts_auth",
+        "source_file": "data/processed/pairs/7bbx_A__Q5F6E9/residue_mapping.parquet",
+        "source_field_or_record_identifier": "row[uniprot_id=Q5F6E9,uniprot_residue_number=8,auth_asym_id=A,auth_seq_id=8,insertion_code='']"
+      },
+      "residue_provenance": {
+        "pdb": {
+          "auth_asym_id": "A",
+          "auth_seq_id": 8,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 9,
+          "raw_residue_name": "ALA",
+          "canonical_aa": "A",
+          "record_type": "ATOM",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=8,pdbx_PDB_ins_code=?,model=1]"
+        },
+        "afdb": {
+          "model_entity_id": "AF-Q5F6E9-F1",
+          "version": 6,
+          "model_position": 8,
+          "auth_asym_id": "A",
+          "auth_seq_id": 8,
+          "insertion_code": "",
+          "label_asym_id": "A",
+          "label_seq_id": 8,
+          "raw_residue_name": "LYS",
+          "canonical_aa": "K",
+          "record_type": "ATOM",
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=8,model=1]"
+        }
+      },
+      "pair_qc_provenance": {
+        "mapped_residue_count": 351,
+        "mapped_uniprot_start": 1,
+        "mapped_uniprot_end": 351,
+        "mapping_coverage": 1,
+        "sequence_identity": 0.9971509971509972,
+        "quality_flag": "pass",
+        "source_file": "data/processed/pairs/7bbx_A__Q5F6E9/pair_qc.json",
+        "source_field_or_record_identifier": "pdb_id,chain_id,uniprot_id,quality_flag,mapping_path,sifts_path,afdb_model_entity_id,afdb_version,fragment interval,mapping metrics"
+      },
+      "p0_provenance": {
+        "run_id": "dataset_a_census_round1_v2",
+        "stage": "P0_resolve_and_freeze_inputs",
+        "status": "complete",
+        "validation_pass": true,
+        "pipeline_version": "dataset-a.v1",
+        "input_digest": "6d0265db055423f1eb6eb740b1de51df39f87616b65858511d3e94c90c07fc7f",
+        "mapping_row_count": 351,
+        "mapping_provenance": "sifts_auth",
+        "source_records": [
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index25/P0_resolve_and_freeze_inputs/stage_manifest.json",
+            "source_field_or_record_identifier": "run_id,status,pipeline_version,validation_pass"
+          },
+          {
+            "source_file": "reports/dataset_a_census/round1_stage_outputs_v2/index25/P0_resolve_and_freeze_inputs/outputs/input_lock.json",
+            "source_field_or_record_identifier": "input_digest,mapping_summary,selected_model_identity,selected_model_version"
+          }
+        ]
+      },
+      "p1_provenance": {
+        "strict_round1": {
+          "stage_reached": "p0_frozen",
+          "failure_code": "pdb_amino_acid_mismatch",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=25]"
+        },
+        "recovery_probe": {
+          "bucket": "recovered",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index25]"
+        },
+        "paired_backbone_output": null
+      },
+      "derived_consistency_checks": [
+        {
+          "check": "requested_mismatch_matches_round1_v3",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/round1_report.json",
+          "source_field_or_record_identifier": "records[screening_index=25].mismatches[0]"
+        },
+        {
+          "check": "pdb_atom_canonical_aa_equals_round1_pdb_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_asym_id=A,auth_seq_id=8,pdbx_PDB_ins_code=?,model=1]"
+        },
+        {
+          "check": "afdb_atom_canonical_aa_equals_mapping_aa",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/model.cif",
+          "source_field_or_record_identifier": "_atom_site rows[auth_seq_id=8,model=1]"
+        },
+        {
+          "check": "v4_bucket_is_recovered",
+          "result": "pass",
+          "evidence_kind": "derived_consistency_check",
+          "source_file": "reports/dataset_a_census/v4_recovery_probe.json",
+          "source_field_or_record_identifier": "results[protein_id=index25].bucket"
+        }
+      ],
+      "explicit_local_annotations": [
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/mappings/7bbx.xml.gz",
+          "source_field_or_record_identifier": "SIFTS residue: PDB 7bbx chain A auth 8 / UniProt Q5F6E9 position 8",
+          "value": "PDB ALA; UniProt K; residueDetail Annotation='Engineered mutation'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_identifier": "_struct_ref_seq_dif row pdbx_ordinal=2",
+          "value": "chain A auth 8 / label seq 9 ALA vs UNP A0A1D3FXY0 position 8 LYS; details='engineered mutation'"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_identifier": "_struct.title",
+          "value": "Neisseria gonorrhoeae transaldolase, variant K8A"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/pdb/7bbx.cif",
+          "source_field_or_record_identifier": "_entity.pdbx_mutation for polymer entity",
+          "value": "? (missing)"
+        },
+        {
+          "evidence_kind": "explicit_local_annotation",
+          "source_file": "data/raw/afdb/Q5F6E9/AF-Q5F6E9-F1/metadata.json",
+          "source_field_or_record_identifier": "uniprotAccession/uniprotId/uniprotDescription/sequenceStart/sequenceEnd",
+          "value": {
+            "uniprotAccession": "Q5F6E9",
+            "uniprotId": "TAL_NEIG1",
+            "uniprotDescription": "Transaldolase",
+            "sequenceStart": 1,
+            "sequenceEnd": 351
+          }
+        }
+      ],
+      "evidence_gaps": [
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "The mmCIF _struct_ref_seq_dif row uses UniProt accession A0A1D3FXY0, whereas local SIFTS, pair QC, and AFDB metadata use Q5F6E9; human accession reconciliation is required.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-1"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "The polymer _entity.pdbx_mutation field is missing even though title, SIFTS, and _struct_ref_seq_dif explicitly identify K8A.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-2"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No local full UniProt feature/variant record beyond cached AFDB metadata and SIFTS residue cross-reference was found.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-3"
+        },
+        {
+          "evidence_kind": "missing_evidence",
+          "description": "No P1 paired-backbone output exists because strict P1 stopped at pdb_amino_acid_mismatch.",
+          "source_file": null,
+          "source_field_or_record_identifier": "gap-4"
+        }
+      ]
+    }
+  ]
+}

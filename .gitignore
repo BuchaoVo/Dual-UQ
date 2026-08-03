@@ -1,20 +1,72 @@
+# Local configuration
+configs/local/
+configs/paths.yaml
+*.local.yaml
+.env
+.env.*
+
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .venv/
-.env
-dist/
 build/
-*.egg-info/
+dist/
 wandb/
-checkpoints/*
-!checkpoints/.gitkeep
-data/raw/**/*
-!data/raw/**/.gitkeep
-data/processed/**/*
-!data/processed/**/.gitkeep
+
+# Runtime
+runs/
+*.log
+*.pid
+*.lock
+*.tmp
+
+# Raw and reproducible intermediate data
+data/raw/
+data/interim/
+
+# Large processed assets
+data/processed/**/*.pdb
+data/processed/**/*.cif
+data/processed/**/*.mmcif
+data/processed/**/*.npz
+data/processed/**/*.pt
+data/processed/**/*.pth
+
+# Existing generated tables and reports
 data/manifests/*.parquet
 data/manifests/*.csv
 reports/generated/
+
+# Checkpoints and third-party outputs
+artifacts/checkpoints/
+checkpoints/
+third_party/ProteinMPNN/outputs/
+third_party/ProteinMPNN/training/*/checkpoints/
+third_party/ProteinMPNN/training/*/logs/
+
+# Notebook/editor/OS
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Keep versioned scientific definitions and curated deliverables
+!data/manifests/
+!data/manifests/**
+!data/fixtures/
+!data/fixtures/**
+!tests/fixtures/
+!tests/fixtures/**
+!artifacts/audits/
+!artifacts/audits/**
+!artifacts/metrics/
+!artifacts/metrics/**
+!artifacts/reports/
+!artifacts/reports/**
+!artifacts/releases/
+!artifacts/releases/**

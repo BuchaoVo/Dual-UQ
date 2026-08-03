@@ -13,3 +13,5 @@ reproducibility:
   deterministic: true
   record_git_commit: true
   record_package_versions: true
+third_party:
+  proteinmpnn_root: third_party/ProteinMPNN

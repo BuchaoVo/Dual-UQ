@@ -1,4 +1,4 @@
-"""V4 read-only variant-recovery probe (TASK-B, docs/Dataset-A_后续任务规格包_v0.1.md).
+"""V4 read-only variant-recovery probe (TASK-B, docs/handoff/Dataset-A_后续任务规格包_v0.1.md).
 
 Answers, WITHOUT modifying p1.py: if the known pdb_amino_acid_mismatch sites
 for a protein (from the TASK-A round-1 site table) are excluded from the

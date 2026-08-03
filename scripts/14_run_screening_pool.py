@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the screening pool with preflight gates and stage-level resume."
     )
-    parser.add_argument("--config", default="configs/screening_pool.yaml")
+    parser.add_argument("--config", default="configs/legacy/a0_screening/screening_pool.yaml")
     parser.add_argument("--pool", default="data/manifests/screening_pool.tsv")
     parser.add_argument("--project-root", default=None)
     parser.add_argument("--limit", type=int, default=None)
@@ -64,9 +64,7 @@ def _read_status(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     records: list[dict[str, Any]] = []
-    for line_number, line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
         try:
@@ -151,8 +149,7 @@ def _commands(
 
 def _print_plan(index: int, candidate: dict[str, Any], plan: list[Any]) -> None:
     print(
-        f"[{index:03d}] {candidate['pdb_id']}:{candidate['chain_id']} "
-        f"↔ {candidate['uniprot_id']}"
+        f"[{index:03d}] {candidate['pdb_id']}:{candidate['chain_id']} ↔ {candidate['uniprot_id']}"
     )
     for item in plan:
         print(f"  {item.stage:<18} {item.action:<18} {item.reason}")
@@ -246,9 +243,7 @@ def main() -> None:
         )
         remaining_force = set(requested_force)
 
-        output_state = {
-            stage: validate_stage_outputs(stage, candidate, root) for stage in STAGES
-        }
+        output_state = {stage: validate_stage_outputs(stage, candidate, root) for stage in STAGES}
         plan = build_stage_plan(
             candidate,
             records,
@@ -281,8 +276,7 @@ def main() -> None:
 
         while True:
             output_state = {
-                stage: validate_stage_outputs(stage, candidate, root)
-                for stage in STAGES
+                stage: validate_stage_outputs(stage, candidate, root) for stage in STAGES
             }
             plan = build_stage_plan(
                 candidate,
@@ -329,9 +323,7 @@ def main() -> None:
             item = runnable[0]
             downstream = STAGES[STAGES.index(item.stage) + 1 :]
             for stage in downstream:
-                blocked = next(
-                    plan_item for plan_item in plan if plan_item.stage == stage
-                )
+                blocked = next(plan_item for plan_item in plan if plan_item.stage == stage)
                 record = make_planned_status_record(
                     blocked,
                     run_id=run_id,

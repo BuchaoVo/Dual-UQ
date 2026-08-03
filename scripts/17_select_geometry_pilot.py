@@ -67,7 +67,7 @@ def main() -> None:
     indices = output["screening_index"].astype(int).tolist() if not output.empty else []
     command = (
         "python scripts/14_run_screening_pool.py "
-        "--config configs/screening_pool.yaml "
+        "--config configs/legacy/a0_screening/screening_pool.yaml "
         f"--only {','.join(str(i) for i in indices)}"
     )
     summary_path = root / "reports/geometry_pilot_selection.json"

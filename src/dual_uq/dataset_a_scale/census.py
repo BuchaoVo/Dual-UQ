@@ -1,13 +1,13 @@
 """Dataset A round-1 eligibility census.
 
 Read-only-in-spirit measurement harness described in
-docs/Dual-UQ_Dataset-A_实验设计方案_v0.1.md §5.0: it walks the proteins that
+docs/design/Dual-UQ_Dataset-A_实验设计方案_v0.1.md §5.0: it walks the proteins that
 already have real inputs on local disk, resolves each through P0/P1, and
 tallies the failure_code distribution needed to freeze the D1/D2 protocol
 decisions. It does not decide D1-D5, does not download anything, and does not
 alter any A1-A8 stage contract.
 
-TASK-A extension (docs/Dataset-A_后续任务规格包_v0.1.md): adds per-protein
+TASK-A extension (docs/handoff/Dataset-A_后续任务规格包_v0.1.md): adds per-protein
 stage_reached / mapped_length / uniprot_full_length, and for the
 pdb_amino_acid_mismatch cohort, a full non-fail-fast replay
 (analyze_sequence_mismatches) producing the site table and shape statistics

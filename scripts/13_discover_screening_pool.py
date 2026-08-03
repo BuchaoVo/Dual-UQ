@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--config",
-        default="configs/screening_pool.yaml",
+        default="configs/legacy/a0_screening/screening_pool.yaml",
     )
     parser.add_argument(
         "--project-root",

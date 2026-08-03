@@ -147,7 +147,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--project-root", required=True)
     parser.add_argument(
         "--config",
-        default="configs/a0_selection.yaml",
+        default="configs/legacy/a0_screening/a0_selection.yaml",
     )
     parser.add_argument(
         "--output",

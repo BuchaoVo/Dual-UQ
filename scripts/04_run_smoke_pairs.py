@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run all PDB–AFDB smoke pairs.")
     parser.add_argument(
         "--targets",
-        default="configs/smoke_pairs.tsv",
+        default="tests/fixtures/manifests/smoke_pairs.tsv",
         help="TSV containing pdb_id, chain_id and uniprot_id.",
     )
     parser.add_argument("--project-root", default=DEFAULT_PROJECT_ROOT)

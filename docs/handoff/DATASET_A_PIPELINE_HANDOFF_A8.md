@@ -27,7 +27,7 @@ The earlier A0 candidate workflow is frozen as a development dataset. Its
 authoritative documents are:
 
 - `docs/DATASET_A0_DEV_CARD.md`;
-- `docs/MODEL_STAGE_HANDOFF.md`;
+- `docs/handoff/MODEL_STAGE_HANDOFF.md`;
 - `reports/a0_dev_v0_9_freeze_manifest.json`;
 - `reports/a0_final_selection_audit.json`.
 

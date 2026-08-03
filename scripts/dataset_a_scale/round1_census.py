@@ -1,12 +1,12 @@
 """Run the Dataset A round-1 eligibility census against real local pair data.
 
-See docs/Dual-UQ_Dataset-A_实验设计方案_v0.1.md §5.0 and
-docs/DATASET_A_PIPELINE_HANDOFF_A8.md. This only touches proteins that
+See docs/design/Dual-UQ_Dataset-A_实验设计方案_v0.1.md §5.0 and
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md. This only touches proteins that
 already have real inputs on local disk (no AFDB/PDB download), and it does
 not decide the pending D1/D2 protocol questions -- it only measures the
 failure_code distribution those decisions need.
 
-TASK-A (docs/Dataset-A_后续任务规格包_v0.1.md) rerun: uses a new run_id and a
+TASK-A (docs/handoff/Dataset-A_后续任务规格包_v0.1.md) rerun: uses a new run_id and a
 new census_stage_root so this rerun's P0 scratch outputs do not collide with
 or overwrite the first round-1 run's `round1_stage_outputs/`. The report
 deliverable itself (round1_report.json) is intentionally replaced.

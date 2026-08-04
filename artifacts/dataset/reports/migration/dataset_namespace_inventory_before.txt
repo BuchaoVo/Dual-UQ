@@ -1,0 +1,13 @@
+artifacts/audits/dataset_a
+artifacts/reports/dataset_a
+configs/dataset_a
+docs/DATASET_A0_DEV_CARD.md
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md
+experiments/dataset_a_scale
+reports/dataset_a_census
+reports/dataset_a_scale
+runs/dataset_a
+scripts/dataset_a
+scripts/dataset_a_scale
+src/dual_uq/dataset_a_scale
+tests/dataset_a_scale

@@ -1,7 +1,11 @@
 from __future__ import annotations
-import argparse, json
+
+import argparse
+import json
 from pathlib import Path
+
 import pandas as pd
+
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--project-root', required=True); a=p.parse_args()
@@ -12,8 +16,8 @@ def main():
     print(pd.crosstab(df.provisional_stratum, df.preflight_status, margins=True).to_string())
     passed=df[df.preflight_status=='pass_full_length']
     summary={
-      'total': int(len(df)),
-      'pass_full_length': int(len(passed)),
+      'total': len(df),
+      'pass_full_length': len(passed),
       'warn_construct_difference': int((df.preflight_status=='warn_construct_difference').sum()),
       'fail_preflight': int((df.preflight_status=='fail_preflight').sum()),
       'pass_by_stratum': passed.provisional_stratum.value_counts().to_dict(),

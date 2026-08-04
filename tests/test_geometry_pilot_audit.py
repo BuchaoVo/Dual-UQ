@@ -12,7 +12,7 @@ MANIFEST_PATH = ROOT / "data/manifests/geometry_pilot.tsv"
 MECHANISMS_PATH = ROOT / "reports/geometry_pilot_mechanisms.csv"
 AUDIT_PATH = ROOT / "reports/geometry_pilot_audit.json"
 PREFLIGHT_PATH = ROOT / "data/manifests/screening_pool_preflight.tsv"
-SELECTION_CONFIG_PATH = ROOT / "configs/a0_selection.yaml"
+SELECTION_CONFIG_PATH = ROOT / "configs/legacy/a0_screening/a0_selection.yaml"
 
 SCREENING_INDICES = {6, 8, 24, 35, 36}
 POSITIVE_PILOTS = {

@@ -1,6 +1,9 @@
 from __future__ import annotations
-import platform, sys
+
+import platform
+import sys
 from importlib.metadata import PackageNotFoundError, version
+
 PACKAGES = ["numpy","pandas","pyarrow","PyYAML","pydantic","biopython","scipy","scikit-learn","statsmodels"]
 def package_version(name: str) -> str:
     try:

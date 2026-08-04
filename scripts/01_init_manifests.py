@@ -1,5 +1,6 @@
 from dual_uq.manifests import initialize_manifests
 
+
 def main() -> None:
     initialize_manifests("data/manifests")
     print("Initialized manifest tables in data/manifests/")

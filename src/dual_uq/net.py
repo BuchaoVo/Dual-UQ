@@ -7,7 +7,6 @@ from typing import Any
 
 import requests
 
-
 USER_AGENT = "dual-uq-inverse-folding/0.1 (research pipeline)"
 
 

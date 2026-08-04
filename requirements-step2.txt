@@ -1,5 +1,0 @@
-numpy>=1.26
-pandas>=2.2
-pyarrow>=16
-biopython>=1.83
-scipy>=1.13

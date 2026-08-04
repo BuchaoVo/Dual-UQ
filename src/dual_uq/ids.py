@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import hashlib
+
 
 def stable_id(prefix: str, *parts: object, length: int = 12) -> str:
     payload = "|".join(str(x) for x in parts)

@@ -357,7 +357,7 @@ def test_current_replacements_remain_partial_without_lifecycle(
 ) -> None:
     candidate, mapped = _replacement_inputs(index)
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
 
     row = summary_script._assemble_candidate(
@@ -389,7 +389,7 @@ def test_complete_replacement_lifecycle_propagates_to_classification(
 ) -> None:
     candidate, mapped = _replacement_inputs(101)
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
     pair_dir = tmp_path / "data/processed/pairs" / candidate["pair_name"]
     pair_dir.mkdir(parents=True)
@@ -468,7 +468,7 @@ def test_explicit_not_started_lifecycle_is_not_promoted(
 ) -> None:
     candidate, mapped = _replacement_inputs(101)
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
     lifecycle = _lifecycle_row(
         101,

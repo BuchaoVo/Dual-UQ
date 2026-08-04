@@ -1,0 +1,14 @@
+project_root: .
+pool_path: data/manifests/screening_pool.tsv
+
+thresholds:
+  min_full_length_mapping_coverage: 0.90
+  min_entity_mapping_coverage: 0.90
+  min_sequence_identity: 0.95
+  min_observed_ca_fraction: 0.90
+  warn_full_length_mapping_coverage: 0.70
+  max_internal_unmapped_fraction: 0.05
+
+runtime:
+  request_pause_seconds: 0.10
+  continue_on_error: true

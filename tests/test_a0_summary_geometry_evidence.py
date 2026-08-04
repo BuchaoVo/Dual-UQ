@@ -449,7 +449,7 @@ def test_synthetic_replacement_complete_geometry_propagates_classification(
         state_disagreement=False,
     )
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
 
     row = summary_script._assemble_candidate(
@@ -487,7 +487,7 @@ def test_synthetic_index101_multilabel_priority_is_unchanged(
         state_disagreement=True,
     )
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
 
     row = summary_script._assemble_candidate(
@@ -522,7 +522,7 @@ def test_lifecycle_geometry_status_precedes_stale_pilot_status(
         state_disagreement=False,
     )
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
     lifecycle = {
         **_complete_lifecycle(candidate),
@@ -562,7 +562,7 @@ def test_strict_summary_rejects_lifecycle_pilot_geometry_status_conflict(
         state_disagreement=False,
     )
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
     lifecycle = _complete_lifecycle(candidate)
 

@@ -1,0 +1,52 @@
+project_root: .
+
+discovery:
+  query_rows: 500
+  experimental_methods:
+    - X-RAY DIFFRACTION
+    - ELECTRON MICROSCOPY
+  resolution_max: 3.0
+  length_min: 100
+  length_max: 500
+  require_single_uniprot: true
+  prefer_single_protein_chain: true
+  sequence_identity_grouping: null
+  afdb_metadata_probe_limit: 220
+  request_pause_seconds: 0.10
+  random_seed: 20260729
+  discovery_batch_size: 5
+
+screening_pool:
+  target_total: 36
+  quotas:
+    high_global_confidence: 10
+    lower_global_confidence: 10
+    long_backbone_proxy: 10
+    balanced_background: 6
+
+  definitions:
+    high_global_confidence:
+      global_plddt_min: 90.0
+      length_max: 320
+    lower_global_confidence:
+      global_plddt_max: 85.0
+    long_backbone_proxy:
+      length_min: 300
+
+  diversity:
+    unique_uniprot: true
+    unique_sequence_cluster: true
+    max_per_organism: 4
+    length_bins:
+      - [100, 180]
+      - [181, 300]
+      - [301, 500]
+
+batch:
+  local_permutations: 1000
+  pair_permutations: 500
+  pair_min_separation: 6
+  segment_threshold: 1.0
+  segment_min_length: 3
+  segment_flank_size: 10
+  continue_on_error: true

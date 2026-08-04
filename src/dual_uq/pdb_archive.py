@@ -4,7 +4,6 @@ from pathlib import Path
 
 from .net import download_file
 
-
 RCSB_MMCIF_URL = "https://files.rcsb.org/download/{pdb_id}.cif"
 
 

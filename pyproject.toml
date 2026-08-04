@@ -20,6 +20,9 @@ dependencies = [
   "tqdm>=4.66",
 ]
 
+[project.scripts]
+dual-uq = "dual_uq.cli:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
 

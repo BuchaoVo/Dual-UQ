@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run lightweight mapping and construct QC before geometry analysis."
     )
-    parser.add_argument("--config", default="configs/screening_preflight.yaml")
+    parser.add_argument("--config", default="configs/legacy/a0_screening/screening_preflight.yaml")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--start-index", type=int, default=1)
     parser.add_argument("--only", default=None, help="Comma-separated screening indices.")
@@ -95,9 +95,7 @@ def main() -> None:
                 uniprot_id=uniprot_id,
             )
             pdb_ca = load_chain_ca_table(pdb_path, chain_id)
-            mapped_positions = (
-                mapping["uniprot_residue_number"].dropna().astype(int).unique()
-            )
+            mapped_positions = mapping["uniprot_residue_number"].dropna().astype(int).unique()
             if len(mapped_positions) == 0:
                 raise ValueError("SIFTS mapping contains no UniProt residue positions.")
             mapped_interval = (
@@ -118,11 +116,7 @@ def main() -> None:
             )
             result.update(metrics)
             result.update(
-                {
-                    key: value
-                    for key, value in fragment_support.items()
-                    if key != "prediction"
-                }
+                {key: value for key, value in fragment_support.items() if key != "prediction"}
             )
             result.update(
                 finalize_preflight_status(
@@ -171,18 +165,26 @@ def main() -> None:
         "status_counts": final["preflight_status"].value_counts(dropna=False).to_dict(),
         "pass_indices": final.loc[
             final["preflight_status"] == "pass_full_length", "screening_index"
-        ].astype(int).tolist(),
+        ]
+        .astype(int)
+        .tolist(),
         "warning_indices": final.loc[
             final["preflight_status"] == "warn_construct_difference", "screening_index"
-        ].astype(int).tolist(),
+        ]
+        .astype(int)
+        .tolist(),
         "failed_indices": final.loc[
             final["preflight_status"].isin(["fail_preflight", "failed_runtime"]),
             "screening_index",
-        ].astype(int).tolist(),
+        ]
+        .astype(int)
+        .tolist(),
         "unsupported_afdb_fragment_indices": final.loc[
             final["preflight_status"] == "unsupported_afdb_fragment",
             "screening_index",
-        ].astype(int).tolist(),
+        ]
+        .astype(int)
+        .tolist(),
         "output_path": str(final_path),
         "checkpoint_path": str(checkpoint_path),
     }
@@ -190,10 +192,16 @@ def main() -> None:
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     show_cols = [
-        "screening_index", "pdb_id", "chain_id", "uniprot_id",
-        "provisional_stratum", "full_length_mapping_coverage",
-        "entity_mapping_coverage", "sequence_identity",
-        "observed_ca_fraction_of_mapped", "preflight_status",
+        "screening_index",
+        "pdb_id",
+        "chain_id",
+        "uniprot_id",
+        "provisional_stratum",
+        "full_length_mapping_coverage",
+        "entity_mapping_coverage",
+        "sequence_identity",
+        "observed_ca_fraction_of_mapped",
+        "preflight_status",
         "preflight_reason",
     ]
     print("\n" + final[[c for c in show_cols if c in final.columns]].to_string(index=False))

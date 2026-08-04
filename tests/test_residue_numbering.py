@@ -248,6 +248,24 @@ def test_duplicate_mapping_author_key_fails_before_join() -> None:
         join_residue_mapping_to_ca(mapping, _ca())
 
 
+def test_duplicate_unobserved_author_key_is_retained_without_coordinates() -> None:
+    mapping = _mapping(
+        auth_seq_id=[66, 66, 66],
+        label_seq_id=[65, 66, 67],
+        uniprot_residue_number=[65, 66, 67],
+    )
+
+    joined, diagnostics = join_residue_mapping_to_ca(
+        mapping,
+        _ca(auth_seq_id=[68], label_seq_id=[68]),
+    )
+
+    assert joined.empty
+    assert diagnostics["auth_match_count"] == 0
+    assert diagnostics["unmatched_mapping_count"] == 3
+    assert diagnostics["residue_join_mode"] == "none"
+
+
 def test_unused_duplicate_label_keys_do_not_block_unique_auth_join() -> None:
     ca = _ca(
         auth_seq_id=[41, 42],

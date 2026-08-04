@@ -60,12 +60,19 @@ def load_pae(path: str | Path, expected_length: int | None = None) -> np.ndarray
         for key in ("predicted_aligned_error", "pae"):
             if key in record:
                 array = _as_float_array(record[key])
-                if array is not None and array.ndim == 2:
-                    if expected_length is None or array.shape == (
-                        expected_length,
-                        expected_length,
-                    ):
-                        return array
+                if (
+                    array is not None
+                    and array.ndim == 2
+                    and (
+                        expected_length is None
+                        or array.shape
+                        == (
+                            expected_length,
+                            expected_length,
+                        )
+                    )
+                ):
+                    return array
 
         residue1 = record.get("residue1")
         residue2 = record.get("residue2")
@@ -83,9 +90,15 @@ def load_pae(path: str | Path, expected_length: int | None = None) -> np.ndarray
             return matrix
 
     array = _as_float_array(record)
-    if array is not None and array.ndim == 2:
-        if expected_length is None or array.shape == (expected_length, expected_length):
-            return array
+    if (
+        array is not None
+        and array.ndim == 2
+        and (
+            expected_length is None
+            or array.shape == (expected_length, expected_length)
+        )
+    ):
+        return array
 
     raise ValueError(
         f"Unable to parse PAE from {path}. "

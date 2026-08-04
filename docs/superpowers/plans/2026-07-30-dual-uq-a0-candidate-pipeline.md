@@ -141,7 +141,7 @@
 **Files:**
 - Create: `src/dual_uq/replacements.py`
 - Modify: `scripts/20_build_lower_conf_replacement_pool.py`
-- Modify: `configs/lower_conf_replacement.yaml`
+- Modify: `configs/legacy/a0_screening/lower_conf_replacement.yaml`
 - Create: `tests/test_replacements.py`
 - Create: `data/manifests/lower_conf_replacement_pool.tsv`
 - Create: `reports/lower_conf_replacement_audit.json`
@@ -176,7 +176,7 @@
 **Files:**
 - Create: `src/dual_uq/a0_classification.py`
 - Modify: `scripts/12_build_a0_candidate_summary.py`
-- Modify: `configs/a0_selection.yaml`
+- Modify: `configs/legacy/a0_screening/a0_selection.yaml`
 - Create: `tests/test_a0_classification.py`
 - Update: `reports/a0_candidate_summary.csv`
 

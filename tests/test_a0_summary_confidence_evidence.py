@@ -200,7 +200,7 @@ def _assemble(
     strict: bool = True,
 ) -> dict[str, object]:
     config = yaml.safe_load(
-        (ROOT / "configs/a0_selection.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs/legacy/a0_screening/a0_selection.yaml").read_text(encoding="utf-8")
     )
     return module._assemble_candidate(
         identity,

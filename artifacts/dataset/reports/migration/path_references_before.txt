@@ -1,0 +1,339 @@
+README.md:43:- Reusable stage logic: `src/dual_uq/dataset_a_scale/`
+README.md:44:- P0/P1 and manifest tests: `tests/dataset_a_scale/`
+README.md:45:- Census entrypoints: `scripts/dataset_a/census/`
+README.md:59:pytest -q tests/dataset_a_scale
+configs/examples/evaluator_registry.example.yaml:115:    training_data_relation: unknown_overlap_with_dataset_a_and_other_evaluators
+configs/examples/evaluator_registry.example.yaml:125:    calibration_information: no_dataset_a_calibration
+configs/examples/evaluator_registry.example.yaml:168:    training_data_relation: documented_reference_but_dataset_a_overlap_unknown
+configs/examples/evaluator_registry.example.yaml:175:    calibration_information: bundled_niwa_reference_no_dataset_a_recalibration
+configs/examples/evaluator_registry.example.yaml:194:      - dataset_a_overlap_unknown
+configs/examples/evaluator_registry.example.yaml:220:    threshold_if_any: model_class_threshold_0.5_not_dataset_a_threshold
+configs/examples/evaluator_registry.example.yaml:269:    calibration_information: no_dataset_a_calibration
+configs/examples/evaluator_registry.example.yaml:518:    - missing_data_and_coverage_policy_frozen
+docs/archive/PDR-01_D1-D2_条款草案_v0.1.md:151:**连带影响**：`tests/dataset_a_scale/test_p1.py` 中断言首位点错误载荷的用例需同步更新；本次修改须与测试更新在同一次提交内完成。`pipeline_version` 升版至 `dataset-a.v2`，使 `config_digest` 与 v1 时代产物自然区隔。
+docs/archive/PDR-01_D1-D2_条款草案_v0.1.md:8:| 证据基础 | Round-1 eligibility census，`reports/dataset_a_census/round1_report.json` |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:115:`dataset_a` remains valid in structured instance metadata such as:
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:118:dataset_id: dataset_a
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:121:release_id: dataset_a_v1
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:15:Dataset-A remains an instance expressed through `dataset_id=dataset_a`, not a
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:235:| `src/dual_uq/dataset_a_scale/` | `src/dual_uq/dataset/` | Move capability-by-capability; leave one-release import facades at old module paths. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:236:| `scripts/dataset_a/census/` | `scripts/dataset/` + `dual_uq.dataset.stages.census` | Extract logic first; legacy scripts become deprecation wrappers. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:237:| `scripts/dataset_a/acquisition/` | `scripts/dataset/` + `dual_uq.dataset.stages.acquisition`/`audits` | Separate operational stage logic from forensic audits. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:238:| `scripts/dataset_a/derivation/` | `scripts/dataset/derive.py` + `dual_uq.dataset.stages.derivation` | Preserve generic `run_derivation`; no scale-specific implementation. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:239:| `scripts/dataset_a_scale/` | `scripts/dataset/` | Inventory first; delete only after reference scan is clean. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:240:| `tests/dataset_a_scale/` | `tests/dataset/{unit,stages,audits,integration,regression}` | Classify frozen regressions separately; use `git mv` only in clean, exact batches. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:241:| `configs/dataset_a/` | `configs/dataset/` | Current directory contains placeholders; copy structure, then delete after reference scan. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:242:| `runs/dataset_a/` | `runs/dataset/` | Never move historical runs; register them in relocation manifest. New runs use new root. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:243:| `reports/dataset_a_census/` | `artifacts/dataset/reports/census/` | Preserve old files; promote reviewed byte-identical copies with source/destination hashes. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:244:| `reports/dataset_a_scale/*audit*` | `artifacts/dataset/audits/` | Copy only reviewed artifacts; old path remains readable. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:245:| `reports/dataset_a_scale/*plan*` | `artifacts/dataset/reports/acquisition/` | Copy with relocation entry; do not recompute. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:246:| `reports/dataset_a_scale/*run*` | historical `runs/dataset/...` index | Do not reinterpret a report as a run without checking its schema and provenance. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:247:| `artifacts/audits/dataset_a/` | `artifacts/dataset/audits/` | Byte-identical promotion plus relocation entry; retain old path during compatibility release. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:248:| `artifacts/reports/dataset_a/` | `artifacts/dataset/reports/` | Byte-identical promotion plus relocation entry. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:249:| `experiments/dataset_a_scale/` | none | Directory contains only `.gitkeep`; delete in final cleanup, not before reference scan. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:265:      "logical_resource_id": "dataset_a:report:round1:v1",
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:266:      "legacy_path": "reports/dataset_a_census/round1_report.json",
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:300:# src/dual_uq/dataset_a_scale/hashing.py
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:37:  under `dual_uq.dataset_a_scale`.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:384:  id: dataset_a
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:458:- Convert old infrastructure files under `dataset_a_scale` to compatibility
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:465:- [ ] Reject new source imports of `dual_uq.dataset_a_scale` with an architecture
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:539:- [ ] Register historical `runs/dataset_a` as legacy resources without moving it.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:53:| Text references to `dataset_a*`/`data_a` | 265 | Imports and filesystem contracts cannot be changed safely by directory rename alone. |
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:566:- [ ] Require zero non-allowlisted imports of `dual_uq.dataset_a_scale`.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:567:- [ ] Require zero active references to `scripts/dataset_a`, `configs/dataset_a`
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:568:  and `runs/dataset_a`; historical relocation records are allowed.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:600:- [ ] No new code imports `dual_uq.dataset_a_scale`.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:601:- [ ] `dataset_a_scale` compatibility wrappers contain no implementation and are
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:64:src/dual_uq/dataset_a_scale/ frozen A1–A8-era contracts and utilities
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:662:git diff --check -- src/dual_uq/dataset src/dual_uq/dataset_a_scale \
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:663:  scripts/dataset scripts/dataset_a tests/dataset tests/dataset_a_scale \
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:672:pytest -q tests/dataset_a_scale  # until compatibility removal
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:674:ruff check src/dual_uq/dataset src/dual_uq/dataset_a_scale \
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:675:  scripts/dataset scripts/dataset_a tests/dataset tests/dataset_a_scale
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:68:validators from `dual_uq.dataset_a_scale`. Conversely, census and legacy scripts
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:74:`scripts/dataset_a/` contains census, acquisition, forensic and derivation
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:81:Tests are split between `tests/dataset/` and `tests/dataset_a_scale/`. The former
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:91:- Historical acquisition runs use `runs/dataset_a/acquisition`.
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:92:- Reports are split across `reports/dataset_a_census`,
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:93:  `reports/dataset_a_scale`, `artifacts/audits/dataset_a` and
+docs/dataset/architecture/DATASET_NAMESPACE_MIGRATION_PLAN_V1.md:94:  `artifacts/reports/dataset_a`.
+docs/design/DATASET_SCALE_AND_VALIDATION_PLAN_V1.md:167:`dual_uq.dataset_a_scale` frozen sequence. The MAP-EDGE edit changes only the
+docs/design/DERIVATION_ARCHITECTURE_V1.md:148:| SHA-256 | `dual_uq.dataset_a_scale.hashing.sha256_file` | none | raw bytes, no normalization | yes |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:149:| AFDB fragment and PAE types | `dual_uq.dataset_a_scale.pae.AFDBFragment`, `PAEMappingError`, `load_pae_json`, `validate_pae_matrix` | thin conversion from exact metadata record | inclusive UniProt interval and exact model length | yes |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:150:| P0 AFDB URL/model validators | `dual_uq.dataset_a_scale.stages.p0._validate_artifact_identities`, `_validate_model_mmcif` | named wrapper in `dataset.fragments` | same AFDB version and exact model identity | yes, but private-API coupling is a documented risk |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:158:| A1–A8 P0/P1 contracts | `dual_uq.dataset_a_scale.stages.p0/p1` and associated models | read/validate only; no migration | frozen identity, immutability and coordinate semantics | yes |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:18:The current `scripts/dataset_a/derivation/derive_pilot.py` contains 1,599 lines and
+docs/design/DERIVATION_ARCHITECTURE_V1.md:395:The final `scripts/dataset_a/derivation/derive_pilot.py` remains a compatibility
+docs/design/DERIVATION_ARCHITECTURE_V1.md:432:| `reports/dataset_a_scale/derive_pilot_v1.json` | `90ba56dba15237b348f7e3e67d947c43db80a37afcefacd37f1731b52a8248ef` |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:433:| `reports/dataset_a_scale/derive_pilot_v1.tsv` | `e645f46270694c777d03d1c92e6e824e0b22a0b58ed4c04c1dc34ce4bb30f2be` |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:434:| `reports/dataset_a_scale/derive_pilot_v1.md` | `1211ff7fbac6256bc2760409316a2823a362cf7f09993156605241af0ea677b6` |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:48:| 690–695 `_sha256_file` | File hashing | frozen-module adapter | reuse `dual_uq.dataset_a_scale.hashing.sha256_file` |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:494:- **Protected invariant:** package name is `dual_uq.dataset`; no `dataset_a` package
+docs/design/DERIVATION_ARCHITECTURE_V1.md:571:| `dual_uq.dataset`, not `dataset_a` | import test succeeds for the former; repository scan rejects creation of `src/dual_uq/dataset_a` |
+docs/design/DERIVATION_ARCHITECTURE_V1.md:633:scripts/dataset_a/derivation/derive_pilot.py
+docs/design/DERIVATION_ARCHITECTURE_V1.md:634:tests/dataset_a_scale/test_derive_pilot.py
+docs/design/DERIVATION_ARCHITECTURE_V1.md:643:src/dual_uq/dataset_a_scale/**
+docs/design/DERIVATION_ARCHITECTURE_V1.md:652:scripts/dataset_a/acquisition/**
+docs/design/DERIVATION_ARCHITECTURE_V1.md:653:scripts/dataset_a/census/**
+docs/design/DERIVATION_ARCHITECTURE_V1.md:656:reports/dataset_a_scale/batch1_acquisition_*.json
+docs/design/DERIVATION_ARCHITECTURE_V1.md:657:reports/dataset_a_scale/batch1_acquisition_*.tsv
+docs/design/DERIVATION_ARCHITECTURE_V1.md:658:reports/dataset_a_scale/batch1_acquisition_*.md
+docs/design/DERIVATION_ARCHITECTURE_V1.md:661:No `dual_uq.dataset_a`, `dataset/acquisition.py`, `derive_48.py` or new scientific
+docs/design/DERIVATION_ARCHITECTURE_V1.md:681:6. **Existing `dataset_a_scale` name.** It remains as a frozen dependency during
+docs/design/DERIVATION_ARCHITECTURE_V1.md:702:No `dual_uq.dataset_a`, `dataset.acquisition`, `derive_48.py` or second scientific
+docs/design/DERIVATION_ARCHITECTURE_V1.md:773:Raw hashing uses `dataset_a_scale.hashing.sha256_file`; fragment/PAE and P0 model
+docs/design/DERIVATION_ARCHITECTURE_V1.md:77:- File hashing: `dual_uq.dataset_a_scale.hashing.sha256_file`.
+docs/design/DERIVATION_ARCHITECTURE_V1.md:784:new `dataset_a` package, frozen adapter imports and the pilot AST boundary. The
+docs/design/DERIVATION_ARCHITECTURE_V1.md:85:  `dual_uq.dataset_a_scale.pae`.
+docs/design/DERIVATION_ARCHITECTURE_V1.md:87:  `dual_uq.dataset_a_scale.stages.p0`.
+docs/design/Dual-UQ_Dataset-A_实验设计方案_v0.1.md:264:汇总为三层：`dataset_a_candidates` / `dataset_a_sites` / `dataset_a_proteins`。**推断只在 protein 层进行**（§2.2）。
+docs/design/Dual-UQ_Dataset-A_实验设计方案_v0.1.md:394:`dataset_a_scale` 之外的旧模块可能为历史 A0 workflow 保留兼容行为，其存在不构成在 Dataset A 阶段使用该行为的授权。
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:106:tests/dataset_a_scale/test_manifest_schema.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:107:tests/dataset_a_scale/test_hashing_and_seeds.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:108:tests/dataset_a_scale/test_resume.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:109:tests/dataset_a_scale/test_failure_propagation.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:110:tests/dataset_a_scale/test_structure_identity.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:111:tests/dataset_a_scale/test_altloc.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:112:tests/dataset_a_scale/test_fasta_and_npz.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:113:tests/dataset_a_scale/test_pae_mapping.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:114:tests/dataset_a_scale/test_p0.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:115:tests/dataset_a_scale/test_p1.py
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:205:from dual_uq.dataset_a_scale.hashing import sha256_canonical, sha256_file
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:206:from dual_uq.dataset_a_scale.seeds import derive_seed
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:272:from dual_uq.dataset_a_scale.stages.p0 import (
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:29:- `docs/DATASET_A0_DEV_CARD.md`;
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:347:from dual_uq.dataset_a_scale.stages.p1 import (
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:520:Older modules outside `dataset_a_scale` may intentionally retain compatibility
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:529:conda run -n dual-uq pytest tests/dataset_a_scale/test_p0.py -q
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:530:conda run -n dual-uq pytest tests/dataset_a_scale/test_p1.py -q
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:531:conda run -n dual-uq pytest tests/dataset_a_scale -q
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:82:| `src/dual_uq/dataset_a_scale/manifest.py` | Load, validate, and deterministically write protein manifests |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:83:| `src/dual_uq/dataset_a_scale/hashing.py` | Canonical JSON bytes and SHA-256 for bytes, files, and canonical objects |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:84:| `src/dual_uq/dataset_a_scale/seeds.py` | Stable SHA-derived tool seeds |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:85:| `src/dual_uq/dataset_a_scale/schema.py` | Lifecycle enums, validation records, output declarations, and stage manifests |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:86:| `src/dual_uq/dataset_a_scale/lifecycle.py` | Resume decisions, drift detection, output-integrity checks, and upstream blocking |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:87:| `src/dual_uq/dataset_a_scale/io.py` | Atomic JSON write helper |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:88:| `src/dual_uq/dataset_a_scale/structures.py` | Residue/atom identity, canonical amino acids, altloc selection, and backbone extraction |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:89:| `src/dual_uq/dataset_a_scale/proteinmpnn.py` | Strict single-candidate FASTA and ProteinMPNN NPZ readers/validators |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:90:| `src/dual_uq/dataset_a_scale/pae.py` | AFDB fragment coverage, PAE parsing, coordinate mapping, and long-range summaries |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:96:| `src/dual_uq/dataset_a_scale/stages/p0.py` | Resolve seven explicit inputs, validate scientific identity, and write an immutable P0 lock |
+docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md:97:| `src/dual_uq/dataset_a_scale/stages/p1.py` | Consume P0, build exact PDB/AFDB paired backbones, and retain atom-level provenance |
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:101:ruff check src/dual_uq/dataset_a_scale/census.py tests/dataset_a_scale/test_census.py
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:102:python scripts/dataset_a/census/round1_census.py     # 新 run_id 实跑
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:131:scripts/dataset_a/census/v4_variant_recovery_probe.py   # 新增，只读
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:132:tests/dataset_a_scale/test_v4_probe.py                 # 新增
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:158:`reports/dataset_a_census/v4_recovery_probe.json` + 四桶计数摘要。
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:224:src/dual_uq/dataset_a_scale/manifest.py    # 授权修改，依据：PDR-01 §1.4
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:225:tests/dataset_a_scale/test_manifest_schema.py
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:260:`tests/dataset_a_scale/test_p1.py` 中断言首位点错误载荷的用例同步更新，**必须同一提交**。新增 PDR §1.9 第 9 项用例（循环后 `residue_count_mismatch` 优先）。
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:53:src/dual_uq/dataset_a_scale/census.py      # 加字段与统计量
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:54:tests/dataset_a_scale/test_census.py       # 新断言
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:55:reports/dataset_a_census/round1_report.json  # 重跑后替换
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:98:pytest tests/dataset_a_scale/test_census.py -q     # 先 RED
+docs/handoff/Dataset-A_后续任务规格包_v0.1.md:99:pytest tests/dataset_a_scale -q                     # 362 不退化
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:17:- Moved round1, V4, and V5 census entrypoints to `scripts/dataset_a/census/` and updated tests/documentation.
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:32:- `pytest -q tests/dataset_a_scale`: 387 passed.
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:38:- `pytest -q tests/dataset_a_scale`: 387 passed.
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:49:- Both round1 stage-output trees remain under `reports/dataset_a_census/`; V4 and H2 evidence hard-code v2 paths.
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:50:- Active H2 evidence packet and human review sheet remain at historical paths; `artifacts/reports/dataset_a/h2_review/INDEX.md` records them.
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:66:| P0 Resolve & Freeze | `experiments/dataset_a_scale/` | `runs/dataset_a/p0/` | `artifacts/audits/dataset_a/` |
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:67:| P1 Build & Validate Backbones | `experiments/dataset_a_scale/` | `runs/dataset_a/p1/` | `artifacts/audits/dataset_a/` |
+docs/handoff/PROJECT_LAYOUT_HANDOFF_V1.md:78:Start with this handoff, then read `docs/protocols/RUN_DIRECTORY_SPEC.md`, `docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md`, and `docs/protocols/PDR-01_D1-D2_条款草案_v0.2.md`. The next experimental implementation stage is P2 ProteinMPNN clean baseline after the required human gates; do not treat layout completion as authorization to train.
+docs/protocols/GATE0_HUMAN_DECISION_PACKET.md:232:| Candidate inventory | `reports/dataset_a_scale/candidate_inventory_v1.json` | `05ee31ce8e13b699aa36ae0501a934f07b487ca9a5825e1c07a3c8c0e8f15fdf` |
+docs/protocols/GATE0_HUMAN_DECISION_PACKET.md:233:| Batch-1 plan | `reports/dataset_a_scale/batch1_plan_v1.tsv` | `013ea4d4dd78a0269cf08afb7fe9294fb3ac1ba27bc131b875ff8ba43fec8f15` |
+docs/protocols/GATE0_HUMAN_DECISION_PACKET.md:36:- `reports/dataset_a_census/h2_variant_human_review_sheet.json`
+docs/protocols/GATE0_HUMAN_DECISION_PACKET.md:37:- `reports/dataset_a_census/h2_variant_evidence_packet.json`
+docs/protocols/PDR-01_D1-D2_条款草案_v0.2.md:430:| V1/V2/V3/C-R | `reports/dataset_a_census/round1_report.json` | §0.1、§1.2–§1.3、§2.4 |
+docs/protocols/PDR-01_D1-D2_条款草案_v0.2.md:431:| V4 | `reports/dataset_a_census/v4_recovery_probe.json` | §1.4、§1.7、§1.9 |
+docs/protocols/PDR-01_D1-D2_条款草案_v0.2.md:432:| V5 | `reports/dataset_a_census/v5_fragment_empirical_probe.json` | §2.3–§2.7 |
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:119:        row for row in records if row.get("failure_code") == "metadata_asset_missing"
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:127:        "downstream_metadata_asset_missing_assets": len(dependent),
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:22:LEDGER_PATH = Path("reports/dataset_a_scale/batch1_acquisition_run_v1.json")
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:23:INVENTORY_PATH = Path("reports/dataset_a_scale/candidate_inventory_v1.tsv")
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:26:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:375:            "metadata_asset_count": len(controls),
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:468:            f"- Metadata assets: {controls['metadata_asset_count']}",
+scripts/dataset_a/acquisition/audit_identity_mismatches.py:478:            f"- Downstream metadata-asset-missing dependencies: {accounting['downstream_metadata_asset_missing_assets']}",
+scripts/dataset_a/acquisition/audit_metadata_record_resolution.py:26:LEDGER_PATH = Path("reports/dataset_a_scale/batch1_acquisition_run_v1.json")
+scripts/dataset_a/acquisition/audit_metadata_record_resolution.py:27:ACQ3_PATH = Path("reports/dataset_a_scale/acq1_rejected_metadata_forensics_v1.json")
+scripts/dataset_a/acquisition/audit_metadata_record_resolution.py:28:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/acquisition/batch1_acquire.py:269:            raise AcquisitionError("metadata_asset_missing", "PAE validation requires metadata")
+scripts/dataset_a/acquisition/batch1_acquire.py:28:from dual_uq.dataset_a_scale.pae import PAEMappingError, validate_pae_matrix
+scripts/dataset_a/acquisition/batch1_acquire.py:31:PLAN_PATH = Path("reports/dataset_a_scale/batch1_acquisition_plan_v1.json")
+scripts/dataset_a/acquisition/batch1_acquire.py:32:INVENTORY_PATH = Path("reports/dataset_a_scale/candidate_inventory_v1.json")
+scripts/dataset_a/acquisition/batch1_acquire.py:33:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/acquisition/batch1_acquire.py:725:        raise AcquisitionError("metadata_asset_missing", f"AFDB metadata lacks {field}")
+scripts/dataset_a/acquisition/batch1_acquire.py:728:        raise AcquisitionError("metadata_asset_missing", f"AFDB metadata {field} is invalid")
+scripts/dataset_a/acquisition/batch1_acquire.py:741:            "metadata_asset_missing",
+scripts/dataset_a/acquisition/batch1_acquire.py:868:            root / "artifacts/audits/dataset_a/acquisition_rejected"
+scripts/dataset_a/acquisition/batch1_acquire.py:904:                    _failure_without_request(row, asset_type, "metadata_asset_missing", clock())
+scripts/dataset_a/acquisition/complete_exact_record_dependents.py:23:ACQ1_LEDGER_PATH = Path("reports/dataset_a_scale/batch1_acquisition_run_v1.json")
+scripts/dataset_a/acquisition/complete_exact_record_dependents.py:25:    "reports/dataset_a_scale/afdb_metadata_record_resolution_v1.json"
+scripts/dataset_a/acquisition/complete_exact_record_dependents.py:27:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:359:    run_dir = root / "runs/dataset_a/acquisition" / _run_id(
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:377:        "python scripts/dataset_a/acquisition/refetch_rejected_metadata.py --project-root .\n",
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:40:LEDGER_PATH = Path("reports/dataset_a_scale/batch1_acquisition_run_v1.json")
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:41:ACQ2_PATH = Path("reports/dataset_a_scale/acq1_identity_mismatch_audit_v1.json")
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:42:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/acquisition/refetch_rejected_metadata.py:43:REJECTED_DIR = Path("artifacts/audits/dataset_a/acquisition_rejected")
+scripts/dataset_a/census/batch1_acquisition_plan.py:130:        "afdb_metadata": bool(candidate.get("fragment_metadata_available"))
+scripts/dataset_a/census/batch1_acquisition_plan.py:16:INVENTORY_PATH = Path("reports/dataset_a_scale/candidate_inventory_v1.json")
+scripts/dataset_a/census/batch1_acquisition_plan.py:17:BATCH1_PATH = Path("reports/dataset_a_scale/batch1_plan_v1.tsv")
+scripts/dataset_a/census/batch1_acquisition_plan.py:18:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/census/candidate_inventory.py:126:    "fragment_metadata_available",
+scripts/dataset_a/census/candidate_inventory.py:24:OUTPUT_DIR = Path("reports/dataset_a_scale")
+scripts/dataset_a/census/candidate_inventory.py:351:    payload = _read_json(project_root / "reports/dataset_a_census/round1_report.json")
+scripts/dataset_a/census/candidate_inventory.py:724:        "fragment_metadata_available": bool(metadata_records),
+scripts/dataset_a/census/candidate_inventory.py:817:            row["fragment_metadata_available"]
+scripts/dataset_a/census/round1_census.py:20:from dual_uq.dataset_a_scale.census import CENSUS_CONFIG, run_round1_census, write_round1_report
+scripts/dataset_a/census/round1_census.py:22:RUN_ID = "dataset_a_census_round1_v2"
+scripts/dataset_a/census/round1_census.py:28:CENSUS_STAGE_ROOT = PROJECT_ROOT / "reports/dataset_a_census/round1_stage_outputs_v2"
+scripts/dataset_a/census/round1_census.py:29:REPORT_PATH = PROJECT_ROOT / "reports/dataset_a_census/round1_report.json"
+scripts/dataset_a/census/round1_census.py:4:docs/handoff/DATASET_A_PIPELINE_HANDOFF_A8.md. This only touches proteins that
+scripts/dataset_a/census/v4_variant_recovery_probe.py:26:from dual_uq.dataset_a_scale.stages.p0 import P0_STAGE_NAME
+scripts/dataset_a/census/v4_variant_recovery_probe.py:27:from dual_uq.dataset_a_scale.stages.p1 import (
+scripts/dataset_a/census/v4_variant_recovery_probe.py:33:from dual_uq.dataset_a_scale.structures import (
+scripts/dataset_a/census/v4_variant_recovery_probe.py:40:ROUND1_REPORT_PATH = PROJECT_ROOT / "reports/dataset_a_census/round1_report.json"
+scripts/dataset_a/census/v4_variant_recovery_probe.py:41:CENSUS_STAGE_ROOT = PROJECT_ROOT / "reports/dataset_a_census/round1_stage_outputs_v2"
+scripts/dataset_a/census/v4_variant_recovery_probe.py:42:OUTPUT_PATH = PROJECT_ROOT / "reports/dataset_a_census/v4_recovery_probe.json"
+scripts/dataset_a/census/v5_fragment_empirical_probe.py:21:ROUND1_REPORT_PATH = PROJECT_ROOT / "reports/dataset_a_census/round1_report.json"
+scripts/dataset_a/census/v5_fragment_empirical_probe.py:24:OUTPUT_PATH = PROJECT_ROOT / "reports/dataset_a_census/v5_fragment_empirical_probe.json"
+scripts/dataset_a/derivation/derive_pilot.py:26:from dual_uq.dataset_a_scale.hashing import sha256_canonical, sha256_file
+scripts/dataset_a/derivation/derive_pilot.py:313:        "inventory": paths.reports_root / "dataset_a_scale/candidate_inventory_v1.json",
+scripts/dataset_a/derivation/derive_pilot.py:314:        "batch1": paths.reports_root / "dataset_a_scale/batch1_acquisition_plan_v1.json",
+scripts/dataset_a/derivation/derive_pilot.py:316:        / "dataset_a_scale/batch1_acquisition_current_state_v2.json",
+scripts/dataset_a/derivation/derive_pilot.py:355:        paths.reports_root / "dataset_a_scale/batch1_acquisition_run_v1.json"
+scripts/dataset_a/derivation/derive_pilot.py:370:def _metadata_asset(
+scripts/dataset_a/derivation/derive_pilot.py:489:    metadata = _metadata_asset(
+scripts/dataset_a/derivation/derive_pilot.py:571:        paths.reports_root / "dataset_a_scale/batch1_plan_v1.tsv", sep="\t"
+scripts/dataset_a/derivation/derive_pilot.py:576:        / "dataset_a_scale/afdb_metadata_record_resolution_v1.json"
+scripts/dataset_a/derivation/derive_pilot.py:672:    output_dir = args.output_dir or paths.reports_root / "dataset_a_scale"
+src/dual_uq/dataset/audits/namespace.py:16:_NAMESPACE_PATTERN = re.compile(r"dataset_a_scale|dataset_a|data_a", re.IGNORECASE)
+src/dual_uq/dataset/audits/namespace.py:18:    r"dual_uq\.dataset_a_scale|scripts/dataset_a|configs/dataset_a|runs/dataset_a"
+src/dual_uq/dataset/audits/namespace.py:42:    "reports/dataset_a_census",
+src/dual_uq/dataset/audits/namespace.py:43:    "reports/dataset_a_scale",
+src/dual_uq/dataset/audits/namespace.py:44:    "runs/dataset_a",
+src/dual_uq/dataset/audits/namespace.py:45:    "artifacts/audits/dataset_a",
+src/dual_uq/dataset/audits/namespace.py:46:    "artifacts/reports/dataset_a",
+src/dual_uq/dataset/derivation.py:11:from dual_uq.dataset_a_scale.hashing import sha256_file
+src/dual_uq/dataset/derivation.py:12:from dual_uq.dataset_a_scale.pae import PAEMappingError, load_pae_json
+src/dual_uq/dataset/derivation.py:306:        metadata_asset, metadata_path = resolved_assets["afdb_metadata"]
+src/dual_uq/dataset/derivation.py:323:                "metadata_path": metadata_asset.logical_path,
+src/dual_uq/dataset/derivation.py:325:                "metadata_provenance": metadata_asset.provenance,
+src/dual_uq/dataset/derivation.py:366:                artifacts=(metadata_asset,),
+src/dual_uq/dataset/derivation.py:426:                "nearest_gap_metadata_available": gaps[
+src/dual_uq/dataset/derivation.py:427:                    "nearest_gap_metadata_available"
+src/dual_uq/dataset/fragments.py:11:from dual_uq.dataset_a_scale.pae import AFDBFragment, validate_pae_matrix
+src/dual_uq/dataset/fragments.py:12:from dual_uq.dataset_a_scale.stages.p0 import (
+src/dual_uq/dataset/mapping.py:16:from dual_uq.dataset_a_scale.pae import AFDBFragment
+src/dual_uq/dataset/mapping.py:353:        "nearest_gap_metadata_available": True,
+src/dual_uq/dataset/observability.py:13:from dual_uq.dataset_a_scale.pae import AFDBFragment
+src/dual_uq/dataset_a_scale/census.py:29:from dual_uq.dataset_a_scale.stages.p0 import (
+src/dual_uq/dataset_a_scale/census.py:36:from dual_uq.dataset_a_scale.stages.p1 import (
+src/dual_uq/dataset_a_scale/census.py:43:from dual_uq.dataset_a_scale.structures import (
+src/dual_uq/dataset_a_scale/census.py:49:CENSUS_RUN_ID = "dataset_a_census_round1"
+src/dual_uq/dataset_a_scale/census.py:51:    "purpose": "dataset_a_census_round1",
+src/dual_uq/dataset_a_scale/lifecycle.py:8:from dual_uq.dataset_a_scale.hashing import sha256_file
+src/dual_uq/dataset_a_scale/lifecycle.py:9:from dual_uq.dataset_a_scale.schema import (
+src/dual_uq/dataset_a_scale/proteinmpnn.py:8:from dual_uq.dataset_a_scale.hashing import sha256_bytes
+src/dual_uq/dataset_a_scale/schema.py:12:from dual_uq.dataset_a_scale.io import atomic_write_json
+src/dual_uq/dataset_a_scale/schema.py:13:from dual_uq.dataset_a_scale.seeds import MAX_TOOL_SEED, MIN_TOOL_SEED
+src/dual_uq/dataset_a_scale/schema.py:15:STAGE_MANIFEST_SCHEMA_VERSION = "dataset_a_stage_manifest.v1"
+src/dual_uq/dataset_a_scale/schema.py:16:VALIDATION_SCHEMA_VERSION = "dataset_a_validation.v1"
+src/dual_uq/dataset_a_scale/seeds.py:5:from dual_uq.dataset_a_scale.hashing import sha256_canonical
+src/dual_uq/dataset_a_scale/stages/p0.py:1033:        pipeline_name="dataset_a_scale",
+src/dual_uq/dataset_a_scale/stages/p0.py:20:from dual_uq.dataset_a_scale.hashing import sha256_canonical, sha256_file
+src/dual_uq/dataset_a_scale/stages/p0.py:21:from dual_uq.dataset_a_scale.lifecycle import evaluate_resume
+src/dual_uq/dataset_a_scale/stages/p0.py:22:from dual_uq.dataset_a_scale.pae import (
+src/dual_uq/dataset_a_scale/stages/p0.py:28:from dual_uq.dataset_a_scale.schema import (
+src/dual_uq/dataset_a_scale/stages/p0.py:36:from dual_uq.dataset_a_scale.structures import ResidueKey, ResidueProvenance
+src/dual_uq/dataset_a_scale/stages/p1.py:1070:        pipeline_name="dataset_a_scale",
+src/dual_uq/dataset_a_scale/stages/p1.py:19:from dual_uq.dataset_a_scale.hashing import sha256_canonical, sha256_file
+src/dual_uq/dataset_a_scale/stages/p1.py:20:from dual_uq.dataset_a_scale.lifecycle import (
+src/dual_uq/dataset_a_scale/stages/p1.py:25:from dual_uq.dataset_a_scale.schema import (
+src/dual_uq/dataset_a_scale/stages/p1.py:34:from dual_uq.dataset_a_scale.stages.p0 import P0_STAGE_NAME
+src/dual_uq/dataset_a_scale/stages/p1.py:35:from dual_uq.dataset_a_scale.structures import (
+src/dual_uq/rcsb_discovery.py:18:RCSB_DATA_API = "https://data.rcsb.org/rest/v1/core"
+src/dual_uq/rcsb_discovery.py:208:        f"{RCSB_DATA_API}/polymer_entity/{entry_id}/{entity_id}"
+src/dual_uq/rcsb_discovery.py:210:    entry = request_json(f"{RCSB_DATA_API}/entry/{entry_id}")
+tests/dataset/audits/test_namespace_inventory.py:21:        "src/dual_uq/dataset_a_scale/legacy.py": (
+tests/dataset/audits/test_namespace_inventory.py:22:            "from dual_uq.dataset_a_scale.hashing import sha256_file\n"
+tests/dataset/audits/test_namespace_inventory.py:24:        "scripts/dataset_a/tool.py": "OUTPUT = 'runs/dataset_a/acquisition'\n",
+tests/dataset/audits/test_namespace_inventory.py:25:        "reports/dataset_a_scale/report.json": '{"value": 7}\n',
+tests/dataset/audits/test_namespace_inventory.py:26:        "docs/scientific_identity.md": "dataset_id: dataset_a\n",
+tests/dataset/audits/test_namespace_inventory.py:39:        "dataset_id: dataset_a\nchanged: true\n", encoding="utf-8"
+tests/dataset/audits/test_namespace_inventory.py:52:        test_counts={"dataset": 50, "dataset_a_scale": 484, "full": 858},
+tests/dataset/audits/test_namespace_inventory.py:59:    assert "src/dual_uq/dataset_a_scale" in inventory.namespace_paths
+tests/dataset/audits/test_namespace_inventory.py:60:    assert "scripts/dataset_a" in inventory.namespace_paths
+tests/dataset/audits/test_namespace_inventory.py:62:        "scripts/dataset_a/tool.py:1:OUTPUT = 'runs/dataset_a/acquisition'",
+tests/dataset/audits/test_namespace_inventory.py:63:        "src/dual_uq/dataset_a_scale/legacy.py:1:from dual_uq.dataset_a_scale.hashing import sha256_file",
+tests/dataset/audits/test_namespace_inventory.py:66:        row == "docs/scientific_identity.md:1:dataset_id: dataset_a"
+tests/dataset/audits/test_namespace_inventory.py:72:        "dataset_a_scale": 484,
+tests/dataset/audits/test_namespace_inventory.py:76:    assert legacy["reports/dataset_a_scale/report.json"]["sha256"] == hashlib.sha256(
+tests/dataset/audits/test_namespace_inventory.py:86:        test_counts={"dataset": 50, "dataset_a_scale": 484, "full": 858},
+tests/dataset/test_capabilities.py:25:from dual_uq.dataset_a_scale.pae import AFDBFragment, PAEMappingError
+tests/dataset/test_capabilities.py:26:from dual_uq.dataset_a_scale.stages.p0 import P0ValidationError
+tests/dataset/test_mapping_edge.py:13:from dual_uq.dataset_a_scale.pae import AFDBFragment
+tests/dataset/test_pipeline.py:24:from dual_uq.dataset_a_scale.pae import AFDBFragment
+tests/dataset/test_pipeline.py:395:                "nearest_gap_metadata_available": True,
+tests/dataset/test_pipeline.py:447:    assert not (REPOSITORY_ROOT / "src/dual_uq/dataset_a").exists()
+tests/dataset/test_pipeline.py:455:    path = REPOSITORY_ROOT / "scripts/dataset_a/derivation/derive_pilot.py"
+tests/dataset/test_pipeline.py:478:    assert "dataset_a_scale.hashing import sha256_file" in derivation
+tests/dataset/test_pipeline.py:479:    assert "dataset_a_scale.stages.p0 import" in fragments
+tests/dataset_a_scale/test_acq1_identity_mismatch_audit.py:102:                    "failure_code": "metadata_asset_missing",
+tests/dataset_a_scale/test_acq1_identity_mismatch_audit.py:111:        "downstream_metadata_asset_missing_assets": 15,
+tests/dataset_a_scale/test_acq1_identity_mismatch_audit.py:13:    / "dataset_a"
+tests/dataset_a_scale/test_acq1_rejected_metadata_forensics.py:138:        rejected_dir=tmp_path / "artifacts/audits/dataset_a/acquisition_rejected",
+tests/dataset_a_scale/test_acq1_rejected_metadata_forensics.py:14:    / "dataset_a"
+tests/dataset_a_scale/test_acq1_rejected_metadata_forensics.py:178:        rejected_dir=tmp_path / "artifacts/audits/dataset_a/acquisition_rejected",
+tests/dataset_a_scale/test_acq5_exact_record_dependents.py:14:    / "dataset_a"
+tests/dataset_a_scale/test_afdb_metadata_record_resolution.py:11:    / "dataset_a"
+tests/dataset_a_scale/test_altloc.py:8:from dual_uq.dataset_a_scale.structures import (
+tests/dataset_a_scale/test_batch1_acquire.py:15:    / "dataset_a"
+tests/dataset_a_scale/test_batch1_acquire.py:249:        assert by_type[asset_type]["failure_code"] == "metadata_asset_missing"
+tests/dataset_a_scale/test_batch1_acquire.py:317:    rejected_dir = tmp_path / "artifacts/audits/dataset_a/acquisition_rejected"
+tests/dataset_a_scale/test_batch1_acquire.py:360:    rejected_dir = tmp_path / "artifacts/audits/dataset_a/acquisition_rejected"
+tests/dataset_a_scale/test_batch1_acquire.py:407:    rejected_dir = tmp_path / "artifacts/audits/dataset_a/acquisition_rejected"
+tests/dataset_a_scale/test_batch1_acquire.py:448:        tmp_path / "artifacts/audits/dataset_a/acquisition_rejected"
+tests/dataset_a_scale/test_batch1_acquire.py:556:    assert by_type["afdb_confidence"]["failure_code"] == "metadata_asset_missing"
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:11:    / "dataset_a"
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:152:        "candidate_inventory_path": "reports/dataset_a_scale/candidate_inventory_v1.json",
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:154:            PROJECT_ROOT / "reports/dataset_a_scale/candidate_inventory_v1.json"
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:156:        "batch1_plan_path": "reports/dataset_a_scale/batch1_plan_v1.tsv",
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:158:            PROJECT_ROOT / "reports/dataset_a_scale/batch1_plan_v1.tsv"
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:43:        "fragment_metadata_available": True,
+tests/dataset_a_scale/test_batch1_acquisition_plan.py:98:            fragment_metadata_available=False,
+tests/dataset_a_scale/test_candidate_inventory.py:11:    / "dataset_a"
+tests/dataset_a_scale/test_candidate_inventory.py:480:        "fragment_metadata_available": False,
+tests/dataset_a_scale/test_census.py:1008:        run_id="dataset_a_census_round1_test",
+tests/dataset_a_scale/test_census.py:1032:    out_path = project_root / "reports/dataset_a_census/round1_report.json"
+tests/dataset_a_scale/test_census.py:24:from dual_uq.dataset_a_scale.stages.p0 import P0_STAGE_NAME, run_p0
+tests/dataset_a_scale/test_census.py:9:from dual_uq.dataset_a_scale.census import (
+tests/dataset_a_scale/test_derive_pilot.py:32:from dual_uq.dataset_a_scale.pae import AFDBFragment, PAEMappingError
+tests/dataset_a_scale/test_derive_pilot.py:37:    / "dataset_a"
+tests/dataset_a_scale/test_failure_propagation.py:5:from dual_uq.dataset_a_scale.lifecycle import evaluate_upstream_dependencies
+tests/dataset_a_scale/test_failure_propagation.py:6:from dual_uq.dataset_a_scale.schema import LifecycleStatus
+tests/dataset_a_scale/test_fasta_and_npz.py:8:from dual_uq.dataset_a_scale.proteinmpnn import (
+tests/dataset_a_scale/test_hashing_and_seeds.py:11:from dual_uq.dataset_a_scale.hashing import (
+tests/dataset_a_scale/test_hashing_and_seeds.py:17:from dual_uq.dataset_a_scale.seeds import (
+tests/dataset_a_scale/test_manifest_schema.py:3:from dual_uq.dataset_a_scale.manifest import (
+tests/dataset_a_scale/test_p0.py:10:from dual_uq.dataset_a_scale.hashing import sha256_file
+tests/dataset_a_scale/test_p0.py:11:from dual_uq.dataset_a_scale.schema import LifecycleStatus
+tests/dataset_a_scale/test_p0.py:12:from dual_uq.dataset_a_scale.stages.p0 import (
+tests/dataset_a_scale/test_p1.py:10:from dual_uq.dataset_a_scale.schema import LifecycleStatus
+tests/dataset_a_scale/test_p1.py:11:from dual_uq.dataset_a_scale.stages.p0 import run_p0
+tests/dataset_a_scale/test_p1.py:12:from dual_uq.dataset_a_scale.stages.p1 import (
+tests/dataset_a_scale/test_pae_mapping.py:10:from dual_uq.dataset_a_scale.pae import (
+tests/dataset_a_scale/test_resume.py:10:from dual_uq.dataset_a_scale.io import atomic_write_json
+tests/dataset_a_scale/test_resume.py:11:from dual_uq.dataset_a_scale.lifecycle import (
+tests/dataset_a_scale/test_resume.py:17:from dual_uq.dataset_a_scale.schema import (
+tests/dataset_a_scale/test_resume.py:449:    result = validate_stage_manifest({"pipeline_name": "dataset_a_scale"})
+tests/dataset_a_scale/test_resume.py:75:        pipeline_name="dataset_a_scale",
+tests/dataset_a_scale/test_resume.py:9:from dual_uq.dataset_a_scale.hashing import sha256_file
+tests/dataset_a_scale/test_structure_identity.py:7:from dual_uq.dataset_a_scale.structures import (
+tests/dataset_a_scale/test_v4_probe.py:18:from dual_uq.dataset_a_scale.stages.p0 import P0_STAGE_NAME, run_p0
+tests/dataset_a_scale/test_v4_probe.py:1:"""Tests for scripts/dataset_a/census/v4_variant_recovery_probe.py (TASK-B).
+tests/dataset_a_scale/test_v4_probe.py:23:    / "dataset_a"
+tests/dataset_a_scale/test_v4_probe.py:36:    "purpose": "dataset_a_census_round1",
+tests/dataset_a_scale/test_v5_fragment_probe.py:9:    / "dataset_a"

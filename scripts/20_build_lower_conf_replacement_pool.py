@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--config",
-        default="configs/lower_conf_replacement.yaml",
+        default="configs/legacy/a0_screening/lower_conf_replacement.yaml",
     )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(

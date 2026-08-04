@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import math
 import time
 from collections import Counter
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from .afdb import get_afdb_prediction_metadata
 from .net import post_json, request_json
-
 
 RCSB_SEARCH_API = "https://search.rcsb.org/rcsbsearch/v2/query"
 RCSB_DATA_API = "https://data.rcsb.org/rest/v1/core"
@@ -163,7 +160,7 @@ def _sequence_cluster(entity: dict[str, Any]) -> str | None:
         candidates.append((preferred.get(identity_int, 99), identity_int, str(cluster_id)))
     if not candidates:
         return None
-    _, identity, cluster_id = sorted(candidates)[0]
+    _, identity, cluster_id = min(candidates)
     return f"{identity}:{cluster_id}"
 
 
@@ -296,7 +293,9 @@ def discover_candidates(
             row["afdb_version"] = metadata.get("latestVersion")
             row["discovery_status"] = "eligible"
             rows.append(row)
-        except Exception as exc:
+        # Discovery is record-isolated: transport and parser failures are captured
+        # as evidence for this identifier and must not terminate the batch.
+        except Exception as exc:  # noqa: BLE001
             rows.append(
                 {
                     "polymer_entity_id": identifier,
@@ -372,7 +371,7 @@ def select_screening_pool(
             "_random",
         ],
         ascending=[
-            False if prefer_single_protein_chain else True,
+            not prefer_single_protein_chain,
             True,
             False,
             True,
@@ -393,9 +392,7 @@ def select_screening_pool(
             return False
         if unique_sequence_cluster and cluster and cluster != "nan" and cluster in used_clusters:
             return False
-        if organism_counts[organism] >= max_per_organism:
-            return False
-        return True
+        return organism_counts[organism] < max_per_organism
 
     def take(row: pd.Series, selection_reason: str) -> None:
         record = row.to_dict()

@@ -473,6 +473,8 @@ def test_repository_config_uses_canonical_state_threshold_key() -> None:
     path = (
         Path(__file__).resolve().parents[1]
         / "configs"
+        / "legacy"
+        / "a0_screening"
         / "a0_selection.yaml"
     )
     config = yaml.safe_load(path.read_text(encoding="utf-8"))

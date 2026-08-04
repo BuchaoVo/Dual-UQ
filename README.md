@@ -40,9 +40,9 @@ Legacy A0 configuration is preserved under `configs/legacy/a0_screening/`. Machi
 
 ## Dataset-A pipeline
 
-- Reusable stage logic: `src/dual_uq/dataset_a_scale/`
-- P0/P1 and manifest tests: `tests/dataset_a_scale/`
-- Census entrypoints: `scripts/dataset_a/census/`
+- Reusable dataset logic: `src/dual_uq/dataset/`
+- Dataset stage and contract tests: `tests/dataset/`
+- Dataset entrypoints: `scripts/dataset/`
 - Design and protocol context: `docs/design/` and `docs/protocols/`
 - Current collaboration handoff: `docs/handoff/`
 
@@ -56,7 +56,7 @@ The layout migration does not rerun P0/P1, census, pair, geometry, confidence, o
 
 ```bash
 python -m compileall -q src
-pytest -q tests/dataset_a_scale
+pytest -q tests/dataset
 pytest -q
 ruff check src scripts tests
 ```

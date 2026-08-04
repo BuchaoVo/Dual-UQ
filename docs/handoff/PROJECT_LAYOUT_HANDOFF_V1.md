@@ -47,7 +47,7 @@ Post-migration verification before handoff:
 - Root `scripts/00_*.py` through `scripts/23_*.py` remain in place; wrappers or a full move are deferred until Dataset-A v1 release.
 - Legacy reports and 108 log files remain in place because complete run metadata is unavailable.
 - Both round1 stage-output trees remain under `reports/dataset_a_census/`; V4 and H2 evidence hard-code v2 paths.
-- Active H2 evidence packet and human review sheet remain at historical paths; `artifacts/reports/dataset_a/h2_review/INDEX.md` records them.
+- Active H2 evidence packet and human review sheet remain at historical paths; `artifacts/dataset/reports/h2_review/INDEX.md` records them.
 - `src/dual_uq` was not split into core/data/design/evaluators/analysis packages.
 - `docs/superpowers/plans/` remains in place because its documents span design, execution history, and handoff roles.
 - Existing user worktree modifications and untracked experiment outputs/configurations were preserved and not normalized into commits.

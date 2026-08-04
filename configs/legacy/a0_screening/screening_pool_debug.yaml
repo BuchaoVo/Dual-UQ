@@ -1,4 +1,4 @@
-project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+project_root: .
 
 discovery:
   query_rows: 40

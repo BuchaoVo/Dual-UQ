@@ -2,7 +2,6 @@ import pandas as pd
 
 from dual_uq.preflight import classify_preflight, compute_preflight_metrics
 
-
 THRESHOLDS = {
     "min_full_length_mapping_coverage": 0.90,
     "min_entity_mapping_coverage": 0.90,

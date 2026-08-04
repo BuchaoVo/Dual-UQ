@@ -1,4 +1,4 @@
-project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+project_root: .
 
 source:
   discovered_candidates: data/processed/discovery/discovered_candidates.parquet

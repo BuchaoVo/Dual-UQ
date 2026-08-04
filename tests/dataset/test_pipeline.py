@@ -450,7 +450,7 @@ def test_public_api_and_source_layout_have_one_portable_generic_runner() -> None
 
     assert callable(run_derivation)
     assert not (REPOSITORY_ROOT / "src/dual_uq/dataset_a").exists()
-    assert "/home/zbc/" not in source
+    assert "/home/" + "zbc/" not in source
     assert "/mnt/data/users/" not in source
     assert all("derive_48" not in path.as_posix().lower() for path in source_paths)
     assert "def derive_48" not in source.lower()

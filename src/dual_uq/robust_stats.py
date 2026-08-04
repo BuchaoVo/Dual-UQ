@@ -156,7 +156,7 @@ def contiguous_segments(
                 "threshold": float(threshold),
                 "start_position": int(positions[group[0]]),
                 "end_position": int(positions[group[-1]]),
-                "residue_count": int(len(group)),
+                "residue_count": len(group),
                 "max_disagreement": float(np.max(segment_values)),
                 "median_disagreement": float(np.median(segment_values)),
                 "median_plddt": float(np.median(segment_confidence)),

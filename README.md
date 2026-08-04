@@ -63,7 +63,7 @@ ruff check src scripts tests
 
 ## Third-party ProteinMPNN
 
-The canonical checkout is `third_party/ProteinMPNN`; `third_party/ProteinMPNN.version` records its commit, weights, checksums, and license. The root `ProteinMPNN` symlink is temporary compatibility for historical commands. New model output must go to `runs/`, not the dependency checkout.
+The canonical checkout is `third_party/ProteinMPNN`; `third_party/ProteinMPNN.version` records its commit, weights, checksums, and license. Historical root-level compatibility links are no longer part of the repository. New model output must go to `runs/`, not the dependency checkout.
 
 ## Legacy A0 pipeline
 

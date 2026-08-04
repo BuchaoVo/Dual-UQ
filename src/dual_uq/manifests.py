@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import pandas as pd
 
 PROTEIN_COLUMNS = ["protein_id","uniprot_id","pdb_id","chain_id","sequence","length","sequence_cluster","domain_count","secondary_structure_class","split","mapping_coverage","sequence_identity","quality_flag"]

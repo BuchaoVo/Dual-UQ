@@ -70,3 +70,14 @@ Thumbs.db
 !artifacts/reports/**
 !artifacts/releases/
 !artifacts/releases/**
+
+# Reconstructible local dataset/runtime state
+data/processed/
+data/manifests/*.parquet
+reports/
+artifacts/audits/
+artifacts/metrics/
+artifacts/reports/
+experiments/**/logs/
+experiments/**/outputs/
+experiments/**/metrics/

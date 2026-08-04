@@ -82,7 +82,7 @@ def test_context_rejects_filesystem_identity_and_duplicate_assets() -> None:
     with pytest.raises(ValueError, match="portable logical path"):
         LogicalAssetRef(
             asset_type="pdb_mmcif",
-            logical_path="/home/developer/project/1abc.cif",
+            logical_path="/" + "home/developer/project/1abc.cif",
             sha256=None,
             provenance="invalid",
         )

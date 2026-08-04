@@ -1,6 +1,9 @@
 from pathlib import Path
+
 import pandas as pd
-from dual_uq.manifests import PROTEIN_COLUMNS, STRUCTURE_COLUMNS, SEQUENCE_COLUMNS, SCORE_COLUMNS
+
+from dual_uq.manifests import PROTEIN_COLUMNS, SCORE_COLUMNS, SEQUENCE_COLUMNS, STRUCTURE_COLUMNS
+
 
 def check(path: Path, expected: list[str]) -> None:
     if not path.exists():

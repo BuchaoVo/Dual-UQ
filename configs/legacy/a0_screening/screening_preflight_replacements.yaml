@@ -1,4 +1,4 @@
-project_root: /mnt/data/users/zbc/AI4S/ProteinDesign/Dual-UQ
+project_root: .
 pool_path: data/manifests/lower_conf_replacement_pool.tsv
 thresholds:
   min_full_length_mapping_coverage: 0.90

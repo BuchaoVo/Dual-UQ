@@ -110,6 +110,38 @@ def _require_exact_fields(
         )
 
 
+class TaskStatusStore:
+    """One atomic, record-keyed status document for a manifest stage run."""
+
+    SCHEMA_VERSION = "dataset.task-status.v1"
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    def read(self) -> dict[str, Any]:
+        if not self.path.is_file():
+            return {}
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("task status store is unreadable") from exc
+        if not isinstance(payload, dict) or payload.get("schema_version") != self.SCHEMA_VERSION:
+            raise ValueError("task status store schema is invalid")
+        records = payload.get("records")
+        if not isinstance(records, dict):
+            raise TypeError("task status store records must be a mapping")
+        return dict(records)
+
+    def write(self, records: Mapping[str, Any]) -> None:
+        atomic_write_json(
+            self.path,
+            {
+                "schema_version": self.SCHEMA_VERSION,
+                "records": dict(sorted(records.items())),
+            },
+        )
+
+
 @dataclass(frozen=True)
 class ValidationRecord:
     validation_pass: bool

@@ -11,7 +11,13 @@ from dual_uq.dataset.models import (
     DerivationRunResult,
     StageResult,
 )
-from dual_uq.dataset.reporting import build_report, write_reports
+from dual_uq.dataset.pipeline import LifecycleStatus, TaskExecutionResult
+from dual_uq.dataset.reporting import (
+    build_report,
+    execution_summary,
+    write_execution_report,
+    write_reports,
+)
 
 
 def _result() -> DerivationRunResult:
@@ -115,3 +121,33 @@ def test_output_profile_is_run_configuration_not_a_new_scientific_pipeline(
     markdown = (tmp_path / "derivation_batch1_v1.md").read_text()
     assert markdown.startswith("# Dataset derivation Batch-1\n")
     assert "Pre-registered derivation run." in markdown
+
+
+def test_batch_execution_reports_only_consume_structured_results(tmp_path: Path) -> None:
+    result = TaskExecutionResult(
+        record_id="protein-001",
+        task_key="a" * 64,
+        task_digest="b" * 64,
+        stage="validation",
+        stage_version="v1",
+        input_digest="c" * 64,
+        config_digest="d" * 64,
+        dependency_digest="e" * 64,
+        execution_status=LifecycleStatus.COMPLETE,
+        metrics={"checked": 3},
+        scientific_disposition="eligible",
+    )
+    table_path = tmp_path / "results.parquet"
+    summary_path = tmp_path / "summary.json"
+
+    write_execution_report(
+        (result,), table_path=table_path, summary_path=summary_path
+    )
+
+    assert execution_summary((result,)) == {
+        "record_count": 1,
+        "execution_status_counts": {"complete": 1},
+        "failure_code_counts": {},
+    }
+    assert json.loads(summary_path.read_text())["record_count"] == 1
+    assert table_path.is_file()

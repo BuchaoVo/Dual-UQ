@@ -8,10 +8,14 @@ from dual_uq.dataset.models import (
     BiologicalIdentity,
     CandidateContext,
     CandidateDerivationResult,
+    DatasetRelease,
     DerivationConfig,
     DerivationRunResult,
     LogicalAssetRef,
+    MappingRecord,
+    ProteinRecord,
     StageResult,
+    StructureRecord,
     skipped_dependency_results,
 )
 
@@ -197,3 +201,27 @@ def test_candidate_result_rejects_duplicate_or_out_of_order_stage_records() -> N
             evidence={},
             report_record={"candidate_index": 1},
         )
+
+
+def test_shared_manifest_models_require_portable_hashed_resources() -> None:
+    protein = ProteinRecord("protein-001", {"nested": {"value": 1}})
+    structure = StructureRecord(
+        "protein-001", "pdb:1abc:A", "data/raw/pdb/1abc.cif", "a" * 64
+    )
+    mapping = MappingRecord(
+        "protein-001", "sifts:1abc:A", "data/raw/mappings/1abc.xml.gz", "b" * 64
+    )
+    release = DatasetRelease(
+        "dataset-a",
+        "dataset-a-dev-v1",
+        "data/dataset/releases/dataset-a-dev-v1.parquet",
+        "c" * 64,
+        1,
+    )
+
+    assert protein.record_id == structure.record_id == mapping.record_id
+    assert release.record_count == 1
+    with pytest.raises(ValueError, match="SHA-256"):
+        StructureRecord("protein-001", "pdb:1abc:A", "data/pdb.cif", "invalid")
+    with pytest.raises(ValueError, match="portable"):
+        DatasetRelease("dataset-a", "v1", "/tmp/release.parquet", "c" * 64, 1)

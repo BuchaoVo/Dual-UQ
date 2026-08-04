@@ -12,12 +12,14 @@ from .models import (
     LogicalAssetRef,
     StageResult,
 )
+from .paths import DatasetPaths
 from .pipeline import run_derivation
 
 __all__ = [
     "BiologicalIdentity",
     "CandidateContext",
     "CandidateDerivationResult",
+    "DatasetPaths",
     "DerivationConfig",
     "DerivationError",
     "DerivationRunResult",

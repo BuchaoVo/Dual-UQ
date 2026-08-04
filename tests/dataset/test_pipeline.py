@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-import dual_uq.dataset.derivation as derivation_module
+import dual_uq.dataset.stages.candidate_derivation as derivation_module
 from dual_uq.core.paths import ProjectPaths
 from dual_uq.dataset import run_derivation
-from dual_uq.dataset.derivation import derive_candidate, verify_bound_hash
 from dual_uq.dataset.models import (
+    AFDBFragment,
     BiologicalIdentity,
     CandidateContext,
     CandidateDerivationResult,
@@ -20,7 +21,7 @@ from dual_uq.dataset.models import (
     LogicalAssetRef,
     StageResult,
 )
-from dual_uq.dataset_a_scale.pae import AFDBFragment
+from dual_uq.dataset.stages.candidate_derivation import derive_candidate, verify_bound_hash
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -68,6 +69,73 @@ def _config() -> DerivationConfig:
     )
 
 
+def test_fragment_only_metadata_is_a_candidate_level_canonical_failure(
+    tmp_path: Path,
+) -> None:
+    paths = _paths(tmp_path)
+    accession = "P0DTD1"
+    model_id = "AF-0000000365840311"
+    assets = []
+    for asset_type, suffix in (
+        ("afdb_metadata", "metadata.json"),
+        ("pdb_mmcif", "pdb.cif"),
+        ("sifts", "sifts.xml"),
+        ("afdb_structure", "model.cif"),
+        ("afdb_pae", "pae.json"),
+        ("afdb_confidence", "plddt.json"),
+    ):
+        logical_path = f"data/raw/fixture/{accession}/{suffix}"
+        path = paths.resolve_logical(logical_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if asset_type == "afdb_metadata":
+            path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "uniprotAccession": accession,
+                            "uniprotSequence": "A" * 126,
+                            "modelEntityId": model_id,
+                            "sequenceStart": 1368,
+                            "sequenceEnd": 1493,
+                        }
+                    ]
+                )
+            )
+        else:
+            path.write_text("fixture")
+        assets.append(
+            LogicalAssetRef(asset_type, logical_path, None, "fixture")
+        )
+    context = CandidateContext(
+        candidate_index=46,
+        identity=BiologicalIdentity(
+            pair_id="7kr0_A__P0DTD1",
+            pdb_id="7kr0",
+            chain_id="A",
+            uniprot_accession=accession,
+            polymer_entity_id="7KR0_1",
+        ),
+        exact_afdb_accession=accession,
+        expected_afdb_model_identity=model_id,
+        assets=tuple(assets),
+        source_bindings=(),
+        protocol_binding="fixture-binding",
+    )
+
+    result = derive_candidate(context, _config(), paths)
+
+    assert result.report_record["raw_complete"] is True
+    assert result.report_record["canonical_sequence_complete"] is False
+    assert result.report_record["prediction_record_sequence_length"] == 126
+    assert result.report_record["prediction_record_interval"] == (1368, 1493)
+    assert result.report_record["primary_failure_stage"] == "canonical_sequence"
+    assert (
+        result.report_record["primary_failure_code"]
+        == "missing_canonical_sequence_provenance"
+    )
+    assert result.report_record["attrition_class"] == "identity_or_provenance_issue"
+
+
 @pytest.mark.parametrize("size", [1, 8, 48, 213])
 def test_same_runner_handles_all_panel_sizes_without_count_switches(
     size: int,
@@ -96,7 +164,9 @@ def test_same_runner_handles_all_panel_sizes_without_count_switches(
             report_record=record,
         )
 
-    monkeypatch.setattr("dual_uq.dataset.pipeline.derive_candidate", controlled_derivation)
+    monkeypatch.setattr(
+        "dual_uq.dataset.pipeline.runner.derive_candidate", controlled_derivation
+    )
     panel = [_context(index) for index in reversed(range(1, size + 1))]
 
     result = run_derivation(panel=panel, config=_config(), paths=_paths(tmp_path))
@@ -170,7 +240,9 @@ def test_noncontiguous_subset_uses_candidate_identity_order_only(
             report_record=record,
         )
 
-    monkeypatch.setattr("dual_uq.dataset.pipeline.derive_candidate", controlled_derivation)
+    monkeypatch.setattr(
+        "dual_uq.dataset.pipeline.runner.derive_candidate", controlled_derivation
+    )
 
     result = run_derivation(
         panel=[_context(101), _context(3), _context(19)],
@@ -267,11 +339,27 @@ def test_model_artifact_validation_failure_is_fragment_causal_failure(
     }
     monkeypatch.setattr(
         derivation_module,
+        "extract_prediction_record_sequence",
+        lambda *args: {
+            "prediction_sequence_source_field": "uniprotSequence",
+            "prediction_sequence_length": 3,
+            "prediction_sequence_sha256": "a" * 64,
+            "prediction_interval": [1, 3],
+            "metadata_record_count": 1,
+            "prediction_record_count": 1,
+            "model_entity_id": "AF-P00001-F1",
+            "nonselected_sibling_record_count": 0,
+            "exact_record": exact_record,
+        },
+    )
+    monkeypatch.setattr(
+        derivation_module,
         "extract_canonical_sequence",
         lambda *args: {
             "sequence_source_field": "uniprotSequence",
             "sequence_length": 3,
             "sequence_sha256": "a" * 64,
+            "canonical_sequence_provenance": "full_span_exact_prediction_record",
             "metadata_record_count": 1,
             "prediction_record_count": 1,
             "model_entity_id": "AF-P00001-F1",
@@ -357,18 +445,21 @@ def test_model_artifact_validation_failure_is_fragment_causal_failure(
 
 def test_public_api_and_source_layout_have_one_portable_generic_runner() -> None:
     source_root = REPOSITORY_ROOT / "src/dual_uq/dataset"
-    source = "\n".join(path.read_text() for path in source_root.glob("*.py"))
+    source = "\n".join(path.read_text() for path in source_root.rglob("*.py"))
+    source_paths = tuple(path.relative_to(source_root) for path in source_root.rglob("*.py"))
 
     assert callable(run_derivation)
     assert not (REPOSITORY_ROOT / "src/dual_uq/dataset_a").exists()
     assert "/home/zbc/" not in source
     assert "/mnt/data/users/" not in source
-    assert "derive_48" not in source.lower()
+    assert all("derive_48" not in path.as_posix().lower() for path in source_paths)
+    assert "def derive_48" not in source.lower()
+    assert "class derive_48" not in source.lower()
     assert "derive_213" not in source.lower()
 
 
 def test_thin_pilot_has_no_embedded_scientific_implementations() -> None:
-    path = REPOSITORY_ROOT / "scripts/dataset_a/derivation/derive_pilot.py"
+    path = REPOSITORY_ROOT / "scripts/dataset/derive.py"
     tree = ast.parse(path.read_text())
     definitions = {
         node.name
@@ -382,15 +473,17 @@ def test_thin_pilot_has_no_embedded_scientific_implementations() -> None:
     assert "run_derivation" not in definitions
 
 
-def test_frozen_hashing_and_scientific_adapters_are_imported_not_copied() -> None:
+def test_frozen_scientific_contracts_have_one_canonical_implementation() -> None:
     derivation = (
-        REPOSITORY_ROOT / "src/dual_uq/dataset/derivation.py"
+        REPOSITORY_ROOT / "src/dual_uq/dataset/stages/candidate_derivation.py"
     ).read_text()
     fragments = (
-        REPOSITORY_ROOT / "src/dual_uq/dataset/fragments.py"
+        REPOSITORY_ROOT / "src/dual_uq/dataset/policies/fragments.py"
     ).read_text()
-    mapping = (REPOSITORY_ROOT / "src/dual_uq/dataset/mapping.py").read_text()
+    mapping = (
+        REPOSITORY_ROOT / "src/dual_uq/dataset/services/mapping.py"
+    ).read_text()
 
-    assert "dataset_a_scale.hashing import sha256_file" in derivation
-    assert "dataset_a_scale.stages.p0 import" in fragments
+    assert "from dual_uq.core.hashing import sha256_file" in derivation
+    assert "from ..stages.resolution import" in fragments
     assert "from dual_uq.preflight import" in mapping

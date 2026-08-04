@@ -6,21 +6,24 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dual_uq.dataset.fragments import (
+from dual_uq.core.errors import PAEMappingError
+from dual_uq.dataset.audits.observability import recompute_sampling_prior, state_segments
+from dual_uq.dataset.models import AFDBFragment, DerivationError
+from dual_uq.dataset.policies.fragments import (
     resolve_exact_fragment,
     validate_bound_arrays,
     validate_frozen_model_artifacts,
 )
-from dual_uq.dataset.identity import extract_canonical_sequence
-from dual_uq.dataset.mapping import (
+from dual_uq.dataset.policies.identity import (
+    extract_canonical_sequence,
+    extract_prediction_record_sequence,
+)
+from dual_uq.dataset.services.mapping import (
     annotate_gap_semantics,
     are_peptide_adjacent,
     audit_sequence_discrepancies,
 )
-from dual_uq.dataset.models import DerivationError
-from dual_uq.dataset.observability import recompute_sampling_prior, state_segments
-from dual_uq.dataset_a_scale.pae import AFDBFragment, PAEMappingError
-from dual_uq.dataset_a_scale.stages.p0 import P0ValidationError
+from dual_uq.dataset.stages.resolution import P0ValidationError
 
 
 def _record(accession: str, model: str, start: int, end: int) -> dict[str, object]:
@@ -47,6 +50,25 @@ def test_exact_sibling_never_supplies_sequence_or_model() -> None:
     assert result["sequence"] == "AAA"
     assert result["model_entity_id"] == "AF-P12345-F1"
     assert result["nonselected_sibling_record_count"] == 1
+
+
+def test_fragment_sequence_is_not_promoted_to_canonical_sequence() -> None:
+    payload = json.dumps(
+        [_record("P0DTD1", "AF-0000000365840311", 1368, 1493) | {
+            "uniprotSequence": "A" * 126,
+        }]
+    ).encode()
+
+    prediction = extract_prediction_record_sequence(payload, "P0DTD1")
+
+    assert prediction["prediction_sequence_length"] == 126
+    assert prediction["prediction_interval"] == [1368, 1493]
+    assert prediction["model_entity_id"] == "AF-0000000365840311"
+    with pytest.raises(
+        DerivationError, match="does not establish the canonical UniProt sequence"
+    ) as error:
+        extract_canonical_sequence(payload, "P0DTD1")
+    assert error.value.code == "missing_canonical_sequence_provenance"
 
 
 def test_true_gap_is_not_compressed_peptide_adjacency() -> None:
@@ -126,7 +148,7 @@ def test_frozen_artifact_validation_preserves_structured_failure_code(
         raise P0ValidationError("afdb_model_identity_mismatch", "wrong model")
 
     monkeypatch.setattr(
-        "dual_uq.dataset.fragments._validate_artifact_identities", rejected
+        "dual_uq.dataset.policies.fragments._validate_artifact_identities", rejected
     )
 
     with pytest.raises(DerivationError) as error:

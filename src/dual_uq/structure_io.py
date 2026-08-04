@@ -199,7 +199,14 @@ def join_residue_mapping_to_ca(
     auth_keys = ["auth_asym_id", "auth_seq_id", "insertion_code"]
     label_keys = ["label_asym_id", "label_seq_id"]
     ca_auth_duplicates = _duplicate_count(ca, auth_keys)
-    mapping_auth_duplicates = _duplicate_count(normalized, auth_keys)
+    ca_auth_keys = ca.dropna(subset=auth_keys)[auth_keys].drop_duplicates()
+    joinable_mapping_auth = normalized.dropna(subset=auth_keys).merge(
+        ca_auth_keys,
+        on=auth_keys,
+        how="inner",
+        validate="many_to_one",
+    )
+    mapping_auth_duplicates = _duplicate_count(joinable_mapping_auth, auth_keys)
     if ca_auth_duplicates:
         raise ResidueJoinError(
             f"CA table contains duplicate author residue keys "
@@ -223,7 +230,16 @@ def join_residue_mapping_to_ca(
             raise ResidueJoinError(
                 "Chainless legacy CA table has duplicate author residue keys."
             )
-        mapping_reduced_duplicates = _duplicate_count(normalized, auth_keys)
+        ca_auth_keys = ca.dropna(subset=auth_keys)[auth_keys].drop_duplicates()
+        joinable_mapping_auth = normalized.dropna(subset=auth_keys).merge(
+            ca_auth_keys,
+            on=auth_keys,
+            how="inner",
+            validate="many_to_one",
+        )
+        mapping_reduced_duplicates = _duplicate_count(
+            joinable_mapping_auth, auth_keys
+        )
         if mapping_reduced_duplicates:
             raise ResidueJoinError(
                 "Chainless legacy mapping contains duplicate author residue keys."
@@ -252,7 +268,7 @@ def join_residue_mapping_to_ca(
     auth_source = auth_source.rename(
         columns={column: f"{column}_ca" for column in auth_extra}
     )
-    auth_matches = normalized.dropna(subset=["auth_seq_id"]).merge(
+    auth_matches = joinable_mapping_auth.merge(
         auth_source,
         on=auth_keys,
         how="inner",

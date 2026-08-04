@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from dual_uq.core.hashing import sha256_file
 from dual_uq.core.paths import ProjectPaths
 
 SCHEMA_VERSION = "dataset.relocation.v1"
@@ -184,14 +184,6 @@ def load_relocation_manifest(path: Path) -> RelocationManifest:
     return RelocationManifest.from_dict(value)
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
 def verify_relocation_manifest(
     manifest: RelocationManifest,
     project: ProjectPaths,
@@ -205,8 +197,8 @@ def verify_relocation_manifest(
             raise RelocationError(
                 "relocation_file_missing", record.logical_resource_id
             )
-        legacy_digest = _sha256(legacy)
-        canonical_digest = _sha256(canonical)
+        legacy_digest = sha256_file(legacy)
+        canonical_digest = sha256_file(canonical)
         if not (
             legacy_digest == canonical_digest == record.content_sha256
         ):

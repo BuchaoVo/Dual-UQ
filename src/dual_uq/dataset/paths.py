@@ -18,11 +18,16 @@ class DatasetPaths:
     manifests: Path
     fixtures: Path
     releases: Path
+    runs: Path
+    artifacts: Path
+    reports: Path
+    audits: Path
 
     @classmethod
     def from_project(cls, project: ProjectPaths) -> DatasetPaths:
         """Project the configured data root without creating any directories."""
         root = project.data_root / "dataset"
+        artifacts = project.artifacts_root / "dataset"
         return cls(
             root=root,
             sources=root / "sources",
@@ -30,4 +35,8 @@ class DatasetPaths:
             manifests=root / "manifests",
             fixtures=root / "fixtures",
             releases=root / "releases",
+            runs=project.runs_root / "dataset",
+            artifacts=artifacts,
+            reports=artifacts / "reports",
+            audits=artifacts / "audits",
         )

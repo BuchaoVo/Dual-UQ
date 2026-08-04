@@ -236,17 +236,17 @@ def build_mapped_confidence_residue_table(
     fragment_end: int,
 ) -> pd.DataFrame:
     observed, _ = join_residue_mapping_to_ca(mapping, pdb_ca_table)
-    auth_key = ["auth_asym_id", "auth_seq_id", "insertion_code"]
-    observed_keys = observed[auth_key].drop_duplicates().assign(
-        observed_ca=True
+    observed_positions = set(
+        pd.to_numeric(
+            observed["uniprot_residue_number"], errors="coerce"
+        ).dropna().astype(int)
     )
-    table = mapping.merge(
-        observed_keys,
-        on=auth_key,
-        how="left",
-        validate="one_to_one",
+    table = mapping.copy()
+    table["observed_ca"] = (
+        pd.to_numeric(table["uniprot_residue_number"], errors="coerce")
+        .isin(observed_positions)
+        .astype(bool)
     )
-    table["observed_ca"] = table["observed_ca"].fillna(False).astype(bool)
     table["mapped"] = True
     positions = pd.to_numeric(
         table["uniprot_residue_number"],

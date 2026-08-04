@@ -32,6 +32,10 @@ def test_dataset_paths_project_configured_data_root_without_using_cwd(
     assert paths.manifests == data_root.resolve() / "dataset/manifests"
     assert paths.fixtures == data_root.resolve() / "dataset/fixtures"
     assert paths.releases == data_root.resolve() / "dataset/releases"
+    assert paths.runs == project.runs_root / "dataset"
+    assert paths.artifacts == project.artifacts_root / "dataset"
+    assert paths.reports == project.artifacts_root / "dataset/reports"
+    assert paths.audits == project.artifacts_root / "dataset/audits"
     assert Path.cwd() == unrelated
 
 

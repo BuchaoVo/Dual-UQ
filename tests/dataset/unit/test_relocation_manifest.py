@@ -48,7 +48,7 @@ def test_manifest_serialization_is_deterministic_and_resource_sorted() -> None:
     first = _record()
     second = _record(
         resource_id="dataset_a:report:second:v1",
-        legacy_path="reports/dataset_a_scale/second.json",
+        legacy_path="reports/legacy_scale/second.json",
         canonical_path="artifacts/dataset/reports/second.json",
         content_sha256=SHA_B,
     )
@@ -97,7 +97,7 @@ def test_manifest_rejects_duplicate_identity_and_destination() -> None:
     duplicate_id = _record(canonical_path="artifacts/dataset/reports/other.json")
     duplicate_destination = _record(
         resource_id="dataset_a:report:other:v1",
-        legacy_path="reports/dataset_a_scale/other.json",
+        legacy_path="reports/legacy_scale/other.json",
     )
 
     with pytest.raises(RelocationError) as id_error:

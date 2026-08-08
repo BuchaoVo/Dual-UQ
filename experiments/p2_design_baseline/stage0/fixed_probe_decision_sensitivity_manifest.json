@@ -1,0 +1,195 @@
+{
+  "analysis_protocol": {
+    "continuous_association_computed": false,
+    "decision_unit": "protein_x_canonical_uniprot_position_x_repeat",
+    "identity": "stage0_fixed_probe_local_decision_sensitivity_v1",
+    "local_candidate_set": {
+      "choice_count": 20,
+      "definition": "analytical_WT_plus_19_frozen_single_mutants",
+      "standard_amino_acid_order": "ACDEFGHIKLMNPQRSTVWY"
+    },
+    "quantile_levels": [
+      0.75,
+      0.95
+    ],
+    "quantile_method": "linear",
+    "rank_metrics": {
+      "normalized_displacement": "absolute_AFDB_minus_PDB_rank_divided_by_19",
+      "spearman": "pearson_correlation_of_integer_amino_acid_ranks"
+    },
+    "ranking": {
+      "direction": "higher_is_better",
+      "exact_tie_break": "canonical_standard_amino_acid_order",
+      "practical_tie_atol": 1e-06,
+      "practical_tie_changes_strict_ranking": false,
+      "practical_tie_rtol": 1e-06,
+      "score": "score_mean_logp_mask"
+    },
+    "regret": {
+      "afdb_to_pdb": "max_PDB_score_minus_PDB_score_of_AFDB_argmax",
+      "pdb_to_afdb": "max_AFDB_score_minus_AFDB_score_of_PDB_argmax",
+      "semantics": "frozen_internal_model_local_score_regret_only",
+      "symmetric": "mean_of_two_directional_regrets"
+    },
+    "repeat_count": 30,
+    "repeat_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "same_state_technical_null": {
+      "definition": "all_unordered_repeat_pairs_within_position_and_backbone",
+      "pair_count_per_position_backbone": 435,
+      "pairwise_values_are_independent_observations": false
+    },
+    "structural_orientation": "AFDB_versus_PDB",
+    "structural_vs_technical_semantics": "descriptive_contrasts_without_thresholds",
+    "top_k_instability": "1_minus_intersection_size_divided_by_k",
+    "top_k_values": [
+      3,
+      5
+    ]
+  },
+  "final_counts": {
+    "position_summary_rows": 1790,
+    "protein_summary_rows": 8,
+    "repeat_effect_rows": 53700,
+    "technical_null_rows": 3580
+  },
+  "inputs": {
+    "candidate_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidate_sensitivity.parquet",
+      "rows": 34010,
+      "sha256": "a7276db340e23334f9ee5c8d6287e0a0427c628b0bf15294170884d8162f50ca"
+    },
+    "fixed_probe_scoring_null": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_null.parquet",
+      "rows": 68020,
+      "sha256": "fa248c180444498e89541582edab12ef6d42a822ddbb65bc92e358b383621403"
+    },
+    "fixed_probes": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidates.parquet",
+      "rows": 34010,
+      "sha256": "26dc56745c005c01e78007ad3c3b6dbc59708da23087ac7bd2337acc2ea27ef0"
+    },
+    "position_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_sensitivity.parquet",
+      "rows": 1790,
+      "sha256": "6faa79d1d1ff3a0999a878ad35aeb3e9ffdb22df058c308d727e95fc06ed0eb9"
+    },
+    "protein_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/protein_manifest.json",
+      "rows": 8,
+      "sha256": "fd34ae871c3d5feebba1dbe38bce24141634764882a9d51db1ce79cd7581d30b"
+    },
+    "protein_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_protein_sensitivity.parquet",
+      "rows": 8,
+      "sha256": "91464052845e5c02250ca7dff5b27ef93c77279296a47736ffe8d6ba52f65e18"
+    },
+    "raw_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scores.parquet",
+      "rows": 2040600,
+      "sha256": "ac0cf8e1f251770fd4ade08580b8df19000a47124531350e9af63dd71f773abf"
+    },
+    "scoring_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_manifest.json",
+      "rows": null,
+      "sha256": "ec9882604cdfad0d61fbd30c1314466fbc7cbbea1fe7173d84c9913309783b00"
+    },
+    "sensitivity_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_sensitivity_manifest.json",
+      "rows": null,
+      "sha256": "148354c1ac1d4389ac8cb73240fb457dd193bee7c105e183b65f8d4db048a3ff"
+    },
+    "structural_effects": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_structural_effects.parquet",
+      "rows": 1020300,
+      "sha256": "171504e5dc75828b931ac91ee2c0deedf3583cf1f32de8f6902f18a897ff39e4"
+    },
+    "wt_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_wt_scores.parquet",
+      "rows": 480,
+      "sha256": "373948042b6868611ba6bc9ea80253d47cf0b441e002dcc6c10eed57f23b8d31"
+    }
+  },
+  "outputs": {
+    "position_summary": {
+      "bytes": 381928,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_decision_sensitivity.parquet",
+      "rows": 1790,
+      "sha256": "7569e6f76e3e519655c8ee8d3d57a8b36f4439ba959deb6ca9b6bbf65723bf57"
+    },
+    "protein_summary": {
+      "bytes": 24153,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_protein_decision_sensitivity.parquet",
+      "rows": 8,
+      "sha256": "6360cea66fa0f32eaeae8ed9a6c353cf440ea50dec039718c5c9c02f19d7adf1"
+    },
+    "repeat_effects": {
+      "bytes": 594274,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_local_decision_effects.parquet",
+      "rows": 53700,
+      "sha256": "4eac7ce9612459e320878bc0d9f533221ec0b554275ac0f54ae45d7acfbb84f9"
+    },
+    "technical_null": {
+      "bytes": 158350,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_local_decision_null.parquet",
+      "rows": 3580,
+      "sha256": "9a553c8e37b4485687b0fc77d58da92459012673c64578d6a1356b335c4a5a27"
+    }
+  },
+  "protein_order": [
+    "5gv8_A__P83686",
+    "5mn1_A__P00760",
+    "1fn8_A__P35049",
+    "1pjx_A__Q7SIG4",
+    "3pyp_A__P16113",
+    "6s2s_A__P02689",
+    "4ce8_A__Q9HYN5",
+    "5avh_A__P24300"
+  ],
+  "schema_version": "stage0_fixed_probe_decision_sensitivity_manifest_v1",
+  "scientific_scope": "stage0_fixed_probe_local_amino_acid_decision_sensitivity_only",
+  "scope_declarations": {
+    "arm_b_started": false,
+    "binary_uncertainty_classification_performed": false,
+    "biological_mutation_recommendations_made": false,
+    "external_evaluator_executed": false,
+    "generated_candidate_union_started": false,
+    "hypothesis_testing_performed": false,
+    "p_values_computed": false,
+    "protein_ranking_performed": false,
+    "proteinmpnn_executed": false,
+    "sequence_generation_performed": false,
+    "stage0_2b_started": false
+  },
+  "status": "complete"
+}

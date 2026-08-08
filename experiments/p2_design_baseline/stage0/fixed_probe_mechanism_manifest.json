@@ -1,0 +1,389 @@
+{
+  "analysis_protocol": {
+    "association_matrix": [
+      {
+        "id": "perturbation_top1_disagreement",
+        "x": "position_mean_abs_interaction",
+        "y": "top1_disagreement_fraction"
+      },
+      {
+        "id": "perturbation_symmetric_regret",
+        "x": "position_mean_abs_interaction",
+        "y": "symmetric_regret_mean"
+      },
+      {
+        "id": "perturbation_rank_displacement",
+        "x": "position_mean_abs_interaction",
+        "y": "mean_normalized_rank_displacement_mean"
+      },
+      {
+        "id": "margin_top1_disagreement",
+        "x": "margin_mean_both",
+        "y": "top1_disagreement_fraction"
+      },
+      {
+        "id": "margin_symmetric_regret",
+        "x": "margin_mean_both",
+        "y": "symmetric_regret_mean"
+      },
+      {
+        "id": "ratio_top1_disagreement",
+        "x": "perturbation_to_margin",
+        "y": "top1_disagreement_fraction"
+      },
+      {
+        "id": "ratio_symmetric_regret",
+        "x": "perturbation_to_margin",
+        "y": "symmetric_regret_mean"
+      },
+      {
+        "id": "ratio_rank_displacement",
+        "x": "perturbation_to_margin",
+        "y": "mean_normalized_rank_displacement_mean"
+      }
+    ],
+    "association_semantics": "within_protein_descriptive_pearson_and_spearman_only",
+    "cohort": {
+      "definition": "exact_full_join_on_protein_id_and_canonical_position",
+      "position_count": 1790,
+      "preselection_performed": false
+    },
+    "continuous_variables": [
+      "position_mean_abs_interaction",
+      "position_rms_interaction",
+      "position_max_abs_interaction"
+    ],
+    "decision_variables": [
+      "top1_disagreement_fraction",
+      "symmetric_regret_mean",
+      "mean_normalized_rank_displacement_mean"
+    ],
+    "hypothesis_testing": false,
+    "identity": "stage0_fixed_probe_local_mechanism_v1",
+    "local_candidate_set": {
+      "choice_count": 20,
+      "definition": "analytical_WT_plus_19_frozen_single_mutants",
+      "standard_amino_acid_order": "ACDEFGHIKLMNPQRSTVWY"
+    },
+    "margin": {
+      "definition": "highest_score_minus_second_highest_score",
+      "epsilon_substitution": false,
+      "primary": "margin_mean_both",
+      "score": "score_mean_logp_mask"
+    },
+    "perturbation_to_margin": {
+      "definition": "position_mean_abs_interaction_divided_by_margin_mean_both",
+      "semantics": "descriptive_only_not_probability_or_risk_score",
+      "zero_margin": "null_with_margin_ratio_status_zero_margin"
+    },
+    "ranking": {
+      "direction": "higher_is_better",
+      "exact_tie_break": "canonical_standard_amino_acid_order",
+      "practical_tie_atol": 1e-06,
+      "practical_tie_changes_strict_ranking": false,
+      "practical_tie_rtol": 1e-06
+    },
+    "repeat_count": 30,
+    "repeat_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "undefined_correlation": "null_with_structured_reason"
+  },
+  "checkpoint_commit": "9cf144656b96ef26a14c42d7a7ff6d400e2c8f15",
+  "final_counts": {
+    "position_mechanism_rows": 1790,
+    "protein_association_rows": 8
+  },
+  "inputs": {
+    "candidate_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidate_sensitivity.parquet",
+      "rows": 34010,
+      "sha256": "a7276db340e23334f9ee5c8d6287e0a0427c628b0bf15294170884d8162f50ca"
+    },
+    "decision_position_summary": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_decision_sensitivity.parquet",
+      "rows": 1790,
+      "sha256": "7569e6f76e3e519655c8ee8d3d57a8b36f4439ba959deb6ca9b6bbf65723bf57"
+    },
+    "decision_sensitivity_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_decision_sensitivity_manifest.json",
+      "rows": null,
+      "sha256": "f7e0df9a6636864207a849e659d68aad077dbaf6aaaf5aa1fb2d943480986e98"
+    },
+    "fixed_probe_scoring_null": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_null.parquet",
+      "rows": 68020,
+      "sha256": "fa248c180444498e89541582edab12ef6d42a822ddbb65bc92e358b383621403"
+    },
+    "fixed_probes": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidates.parquet",
+      "rows": 34010,
+      "sha256": "26dc56745c005c01e78007ad3c3b6dbc59708da23087ac7bd2337acc2ea27ef0"
+    },
+    "position_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_sensitivity.parquet",
+      "rows": 1790,
+      "sha256": "6faa79d1d1ff3a0999a878ad35aeb3e9ffdb22df058c308d727e95fc06ed0eb9"
+    },
+    "protein_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/protein_manifest.json",
+      "rows": 8,
+      "sha256": "fd34ae871c3d5feebba1dbe38bce24141634764882a9d51db1ce79cd7581d30b"
+    },
+    "protein_sensitivity": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_protein_sensitivity.parquet",
+      "rows": 8,
+      "sha256": "91464052845e5c02250ca7dff5b27ef93c77279296a47736ffe8d6ba52f65e18"
+    },
+    "raw_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scores.parquet",
+      "rows": 2040600,
+      "sha256": "ac0cf8e1f251770fd4ade08580b8df19000a47124531350e9af63dd71f773abf"
+    },
+    "scoring_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_manifest.json",
+      "rows": null,
+      "sha256": "ec9882604cdfad0d61fbd30c1314466fbc7cbbea1fe7173d84c9913309783b00"
+    },
+    "sensitivity_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_sensitivity_manifest.json",
+      "rows": null,
+      "sha256": "148354c1ac1d4389ac8cb73240fb457dd193bee7c105e183b65f8d4db048a3ff"
+    },
+    "structural_effects": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_structural_effects.parquet",
+      "rows": 1020300,
+      "sha256": "171504e5dc75828b931ac91ee2c0deedf3583cf1f32de8f6902f18a897ff39e4"
+    },
+    "wt_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_wt_scores.parquet",
+      "rows": 480,
+      "sha256": "373948042b6868611ba6bc9ea80253d47cf0b441e002dcc6c10eed57f23b8d31"
+    }
+  },
+  "outputs": {
+    "position_mechanism": {
+      "bytes": 607350,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_mechanism.parquet",
+      "rows": 1790,
+      "sha256": "4d295053103ec49522613cc8aefc8d1a1c30c60d5406bcfa235eaa61ed5d665e"
+    },
+    "protein_associations": {
+      "bytes": 45376,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_protein_mechanism_association.parquet",
+      "rows": 8,
+      "sha256": "65db52c1c72a2b0eae1b5cd665822c8c0a0e38e4550845fb2ec29d47e4b72f6b"
+    }
+  },
+  "project_fork": {
+    "assessment_semantics": "multi_criterion_descriptive_gate_without_universal_coefficient_threshold",
+    "decision_rule": {
+      "go_requires": [
+        "continuous_perturbation_coherent",
+        "margin_protective",
+        "ratio_clearer"
+      ],
+      "ratio_clearer_minimum_outcomes": 2,
+      "ratio_clearer_total_outcomes": 3,
+      "recurrence_target": 5,
+      "recurrence_target_rule": "floor(protein_count / 2) + 1",
+      "semantics": "descriptive_project_fork_not_calibrated_risk_threshold",
+      "single_protein_dominance_threshold": 0.5
+    },
+    "evidence_summary": {
+      "q1": {
+        "continuous_perturbation_coherent": true,
+        "direction_counts": {
+          "perturbation_rank_displacement": {
+            "pearson": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            },
+            "spearman": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            }
+          },
+          "perturbation_symmetric_regret": {
+            "pearson": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            },
+            "spearman": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            }
+          },
+          "perturbation_top1_disagreement": {
+            "pearson": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            },
+            "spearman": {
+              "defined_count": 8,
+              "expected_direction_count": 8
+            }
+          }
+        }
+      },
+      "q2": {
+        "direction_counts": {
+          "margin_symmetric_regret": {
+            "pearson": {
+              "defined_count": 8,
+              "protective_direction_count": 8
+            },
+            "spearman": {
+              "defined_count": 8,
+              "protective_direction_count": 8
+            }
+          },
+          "margin_top1_disagreement": {
+            "pearson": {
+              "defined_count": 8,
+              "protective_direction_count": 8
+            },
+            "spearman": {
+              "defined_count": 8,
+              "protective_direction_count": 8
+            }
+          }
+        },
+        "margin_protective": true
+      },
+      "q3": {
+        "association_counts": {
+          "ratio_rank_displacement": {
+            "pearson": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 0
+            },
+            "spearman": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 0
+            }
+          },
+          "ratio_symmetric_regret": {
+            "pearson": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 2
+            },
+            "spearman": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 8
+            }
+          },
+          "ratio_top1_disagreement": {
+            "pearson": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 8
+            },
+            "spearman": {
+              "comparison_count": 8,
+              "defined_count": 8,
+              "expected_direction_count": 8,
+              "stronger_absolute_count": 8
+            }
+          }
+        },
+        "clearer_outcome_count": 1,
+        "dominated_by_single_protein": false,
+        "maximum_single_protein_share": 0.26941904988104576,
+        "ratio_clearer": false
+      },
+      "q4": {
+        "crossing_margin_quantiles": {
+          "median": 0.002164419004219093,
+          "min": 0.0002893093827024666,
+          "q25": 0.0013245524237215172
+        },
+        "crossing_regret_quantiles": {
+          "max": 0.025861821868022265,
+          "median": 0.00037076117660427845,
+          "q75": 0.0012386413181889174,
+          "q95": 0.0055039915608791805
+        },
+        "positions_with_top1_disagreement": 938,
+        "structural_exceeds_mean_same_state_regret_count": 413,
+        "structural_exceeds_mean_same_state_regret_fraction": 0.44029850746268656,
+        "structural_minus_same_state_regret_quantiles": {
+          "max": 0.025861821868022265,
+          "median": -3.698179997143614e-05,
+          "q75": 0.00046176387461876767,
+          "q95": 0.004573757138316377
+        },
+        "substantive_regret_tail_definition": "q95_structural_minus_mean_same_state_regret_above_zero",
+        "substantive_regret_tail_present": true,
+        "substantive_regret_tail_semantics": "descriptive_upper_tail_excess_not_biological_calibration"
+      }
+    },
+    "recommendation": "HOLD_STAGE0_2B",
+    "recurrence_target": 5,
+    "stage0_2b_executed": false
+  },
+  "protein_order": [
+    "5gv8_A__P83686",
+    "5mn1_A__P00760",
+    "1fn8_A__P35049",
+    "1pjx_A__Q7SIG4",
+    "3pyp_A__P16113",
+    "6s2s_A__P02689",
+    "4ce8_A__Q9HYN5",
+    "5avh_A__P24300"
+  ],
+  "schema_version": "stage0_fixed_probe_mechanism_manifest_v1",
+  "scientific_scope": "stage0_fixed_probe_local_mechanism_closure_only",
+  "scope_declarations": {
+    "arm_b_started": false,
+    "binary_uncertainty_classification_performed": false,
+    "external_evaluator_executed": false,
+    "hypothesis_testing_performed": false,
+    "new_data_acquired": false,
+    "new_model_used": false,
+    "p_values_computed": false,
+    "proteinmpnn_executed": false,
+    "publication_figures_created": false,
+    "sequence_generation_performed": false,
+    "stage0_2b_started": false
+  },
+  "status": "complete"
+}

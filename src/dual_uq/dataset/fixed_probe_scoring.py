@@ -1039,6 +1039,7 @@ def execute_g2_audit(
         for protein_id in candidates
     }
     replay_runtime = None
+    runtime: Any
     if model_python is None:
         runtime = load_authorized_proteinmpnn_runtime(
             implementation_path=model_identity.implementation_path,
@@ -1669,16 +1670,16 @@ def consolidate_formal_scores(
         for backbone in ("PDB", "AFDB"):
             for repeat in range(repeat_count):
                 key = (protein_id, backbone, repeat)
-                payload = shard_map.get(key)
-                if payload is None:
+                shard_payload = shard_map.get(key)
+                if shard_payload is None:
                     raise FixedProbeScoringError(
                         "formal_shard_count_mismatch", f"Missing shard: {key}"
                     )
-                binding = payload["binding"]
+                binding = shard_payload["binding"]
                 fingerprints[repeat].add(
                     str(binding["decoding_realization_sha256"])
                 )
-                wt_score = payload["wt_score"]
+                wt_score = shard_payload["wt_score"]
                 wt_rows.append(
                     {
                         "protein_id": protein_id,
@@ -1987,7 +1988,16 @@ def build_formal_protein_request(
             "formal_candidate_identity_mismatch", "Formal shard candidate set differs"
         )
     canonical = str(protein["canonical_wt_sequence"])
+    canonical_hash = str(protein["canonical_sequence_sha256"])
+    common_mask_binding = sha256_canonical(
+        {
+            "protein_id": protein_id,
+            "canonical_positions": list(mask_positions),
+            "canonical_sequence_sha256": canonical_hash,
+        }
+    )
     projected_sequences = []
+    candidate_records = []
     for row in candidates.itertuples(index=False):
         projected_sequences.append(
             project_candidate_sequence(
@@ -1999,6 +2009,15 @@ def build_formal_protein_request(
                 wt_aa=str(row.wt_aa),
                 mut_aa=str(row.mut_aa),
             )
+        )
+        candidate_records.append(
+            {
+                "sequence_hash": str(row.sequence_hash),
+                "full_sequence": str(row.full_sequence),
+                "position": int(row.position),
+                "wt_aa": str(row.wt_aa),
+                "mut_aa": str(row.mut_aa),
+            }
         )
     tasks = []
     for spec in shard_specs:
@@ -2021,7 +2040,7 @@ def build_formal_protein_request(
             }
         )
     return {
-        "schema_version": "stage0_formal_protein_request_v1",
+        "schema_version": "stage0_formal_protein_request_v2",
         "model_identity": {
             "implementation_path": config.model.implementation_path.as_posix(),
             "implementation_commit": model_identity.implementation_commit,
@@ -2032,11 +2051,15 @@ def build_formal_protein_request(
         "protein_id": protein_id,
         "uniprot_positions": list(mask_positions),
         "wt_sequence": paired.pdb.wt_sequence_projection,
+        "canonical_wt_sequence": canonical,
+        "canonical_sequence_sha256": canonical_hash,
+        "common_mask_binding": common_mask_binding,
         "candidate_sequence_hashes": list(expected_hashes),
         "candidate_projection_sha256": [
             sequence_sha256(sequence) for sequence in projected_sequences
         ],
         "candidate_sequences": projected_sequences,
+        "candidate_records": candidate_records,
         "pdb_coordinates": paired.pdb.coordinates.tolist(),
         "afdb_coordinates": paired.afdb.coordinates.tolist(),
         "tasks": tasks,

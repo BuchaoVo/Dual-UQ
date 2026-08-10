@@ -6,78 +6,68 @@ not require Torch, while runtime scoring uses the one authorized submodule.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import platform
 import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
-from itertools import pairwise
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import numpy as np
 
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_bytes, sha256_canonical, sha256_file
-from dual_uq.dataset.storage.proteinmpnn import (
+from dual_uq.models.proteinmpnn import (
+    AUTHORIZED_CHECKPOINT_SHA256,
+    AUTHORIZED_IMPLEMENTATION_COMMIT,
+    PROTEINMPNN_SCORER_ID,
+    DecodingRealization,
+    ProteinMPNNAdapter,
+    ProteinMPNNScorer,
+    ProteinMPNNScoringError,
+    ProteinMPNNStructureInput,
+    implementation_worktree_is_clean,
+    load_authorized_proteinmpnn_adapter,
     sequence_sha256,
     validate_protein_sequence,
+    validate_structure_input,
 )
+from dual_uq.models.proteinmpnn import (
+    DECODING_REALIZATION_ALGORITHM as _DECODING_REALIZATION_ALGORITHM,
+)
+from dual_uq.models.proteinmpnn import ProteinMPNNScore as _ProteinMPNNScore
+from dual_uq.models.proteinmpnn import (
+    make_decoding_realization as _make_decoding_realization,
+)
+from dual_uq.models.proteinmpnn import (
+    score_target_log_probs as _score_target_log_probs,
+)
+from dual_uq.models.proteinmpnn import (
+    tile_decoding_order as _tile_decoding_order,
+)
+from dual_uq.models.scoring import (
+    CandidateCollection,
+    ScoreDispatchError,
+    ScoreRecord,
+    ScoreRequest,
+    ScoringVariant,
+    VariantKind,
+    execute_score_request,
+)
+from dual_uq.structure import StructureCondition
 
-DECODING_REALIZATION_ALGORITHM = "sha256_ranked_permutation_v1"
-PROTEINMPNN_ALPHABET = "ACDEFGHIKLMNPQRSTVWYX"
 BACKBONE_ATOM_NAMES = ("N", "CA", "C", "O")
-AUTHORIZED_IMPLEMENTATION_COMMIT = "8907e6671bfbfc92303b5f79c4b5e6ce47cdef57"
-AUTHORIZED_CHECKPOINT_SHA256 = (
-    "c9cb4a671d79604111231f8dbfc7c590e06f1197453b7a6854ac6661a642f5bd"
-)
-
-
-class ProteinMPNNScoringError(ValueError):
-    """Structured projection, runtime, or numerical scoring failure."""
-
-    def __init__(self, code: str, message: str) -> None:
-        self.code = code
-        super().__init__(message)
-
-
+DECODING_REALIZATION_ALGORITHM = _DECODING_REALIZATION_ALGORITHM
 FixedProbeScoringError = ProteinMPNNScoringError
-
-
-def implementation_worktree_is_clean(path: Path) -> bool:
-    """Return whether the authorized implementation has no tracked-file drift."""
-    try:
-        status = subprocess.check_output(
-            [
-                "git",
-                "-C",
-                str(path),
-                "status",
-                "--porcelain=v1",
-                "--untracked-files=no",
-            ],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise ProteinMPNNScoringError(
-            "implementation_worktree_unavailable",
-            "Cannot verify ProteinMPNN tracked-file state",
-        ) from exc
-    return not status.strip()
-
-
-@dataclass(frozen=True)
-class ScoringBackboneProjection:
-    protein_id: str
-    backbone_condition: str
-    uniprot_positions: tuple[int, ...]
-    wt_sequence_projection: str
-    coordinates: np.ndarray
-
-    @property
-    def residue_count(self) -> int:
-        return len(self.uniprot_positions)
+ProteinMPNNRuntime = ProteinMPNNAdapter
+ProteinMPNNScore = _ProteinMPNNScore
+ScoringBackboneProjection = ProteinMPNNStructureInput
+load_authorized_proteinmpnn_runtime = load_authorized_proteinmpnn_adapter
+make_decoding_realization = _make_decoding_realization
+score_target_log_probs = _score_target_log_probs
+tile_decoding_order = _tile_decoding_order
 
 
 @dataclass(frozen=True)
@@ -86,278 +76,66 @@ class PairedScoringProjection:
     afdb: ScoringBackboneProjection
 
 
-@dataclass(frozen=True)
-class DecodingRealization:
-    protein_id: str
-    repeat_index: int
-    seed: int
-    protocol_version: str
-    algorithm: str
-    order: tuple[int, ...]
-    fingerprint: str
-
-
-@dataclass(frozen=True)
-class ProteinMPNNScore:
-    score_sum_logp_mask: float
-    score_mean_logp_mask: float
-
-
-@dataclass(frozen=True)
-class ProteinMPNNRuntime:
-    """Authorized loaded model plus frozen runtime identity."""
-
-    model: Any
-    torch: Any
-    device: Any
-    checkpoint_num_edges: int
-    checkpoint_noise_level: float
-
-    def score_sequences(
-        self,
-        projection: ScoringBackboneProjection,
-        sequences: tuple[str, ...],
-        realization: DecodingRealization,
-        *,
-        batch_size: int,
-    ) -> tuple[ProteinMPNNScore, ...]:
-        """Score projected sequences without generation or fresh randomness."""
-        _validate_projection(projection)
-        if batch_size <= 0:
-            raise FixedProbeScoringError(
-                "invalid_batch_size", "ProteinMPNN batch size must be positive"
-            )
-        if (
-            realization.protein_id != projection.protein_id
-            or len(realization.order) != projection.residue_count
-        ):
-            raise FixedProbeScoringError(
-                "decoding_realization_mismatch",
-                "Decoding realization does not match the scoring projection",
-            )
-        checked_sequences = tuple(validate_protein_sequence(value) for value in sequences)
-        if not checked_sequences or any(
-            len(value) != projection.residue_count for value in checked_sequences
-        ):
-            raise FixedProbeScoringError(
-                "scoring_sequence_length_mismatch",
-                "Projected sequence length differs from the scoring domain",
-            )
-        alphabet_index = {amino_acid: index for index, amino_acid in enumerate(PROTEINMPNN_ALPHABET)}
-        results: list[ProteinMPNNScore] = []
-        torch = self.torch
-        coordinates = np.asarray(projection.coordinates, dtype=np.float32)
-        positions = np.asarray(projection.uniprot_positions, dtype=np.int64)
-        for start in range(0, len(checked_sequences), batch_size):
-            chunk = checked_sequences[start : start + batch_size]
-            size = len(chunk)
-            target_indices = np.asarray(
-                [[alphabet_index[amino_acid] for amino_acid in sequence] for sequence in chunk],
-                dtype=np.int64,
-            )
-            x = torch.as_tensor(
-                np.broadcast_to(coordinates, (size, *coordinates.shape)).copy(),
-                dtype=torch.float32,
-                device=self.device,
-            )
-            s = torch.as_tensor(target_indices, dtype=torch.long, device=self.device)
-            mask = torch.ones((size, projection.residue_count), dtype=torch.float32, device=self.device)
-            chain_m = torch.ones_like(mask)
-            residue_idx = torch.as_tensor(
-                np.broadcast_to(positions, (size, len(positions))).copy(),
-                dtype=torch.long,
-                device=self.device,
-            )
-            chain_encoding = torch.ones_like(residue_idx)
-            randn = torch.zeros_like(mask)
-            decoding_order = torch.as_tensor(
-                tile_decoding_order(realization, batch_size=size),
-                dtype=torch.long,
-                device=self.device,
-            )
-            with torch.inference_mode():
-                log_probs = self.model(
-                    x,
-                    s,
-                    mask,
-                    chain_m,
-                    residue_idx,
-                    chain_encoding,
-                    randn,
-                    use_input_decoding_order=True,
-                    decoding_order=decoding_order,
-                )
-            results.extend(
-                score_target_log_probs(
-                    log_probs.detach().to("cpu").numpy(), target_indices
-                )
-            )
-        return tuple(results)
-
-
-def make_decoding_realization(
-    *,
-    protein_id: str,
-    mask_length: int,
-    repeat_index: int,
-    seed: int,
-    protocol_version: str,
-) -> DecodingRealization:
-    """Create a portable explicit autoregressive order without runtime RNG state."""
-    if (
-        not protein_id
-        or not protocol_version
-        or isinstance(mask_length, bool)
-        or not isinstance(mask_length, int)
-        or mask_length <= 0
-        or isinstance(repeat_index, bool)
-        or not isinstance(repeat_index, int)
-        or repeat_index < 0
-        or isinstance(seed, bool)
-        or not isinstance(seed, int)
-        or seed < 0
-    ):
-        raise FixedProbeScoringError(
-            "invalid_decoding_realization", "Decoding realization inputs are invalid"
-        )
-    ranked = sorted(
-        (
-            sha256_canonical(
-                {
-                    "algorithm": DECODING_REALIZATION_ALGORITHM,
-                    "protocol_version": protocol_version,
-                    "protein_id": protein_id,
-                    "repeat_index": repeat_index,
-                    "seed": seed,
-                    "position_index": position,
-                }
-            ),
-            position,
-        )
-        for position in range(mask_length)
-    )
-    order = tuple(position for _digest, position in ranked)
-    canonical_order_bytes = np.asarray(order, dtype="<i8").tobytes()
-    fingerprint = sha256_bytes(canonical_order_bytes)
-    return DecodingRealization(
-        protein_id=protein_id,
-        repeat_index=repeat_index,
-        seed=seed,
-        protocol_version=protocol_version,
-        algorithm=DECODING_REALIZATION_ALGORITHM,
-        order=order,
-        fingerprint=fingerprint,
-    )
-
-
-def tile_decoding_order(
-    realization: DecodingRealization, *, batch_size: int
-) -> np.ndarray:
-    """Tile one exact scientific realization without drawing new randomness."""
-    if isinstance(batch_size, bool) or not isinstance(batch_size, int) or batch_size <= 0:
-        raise FixedProbeScoringError(
-            "invalid_batch_size", "ProteinMPNN batch size must be positive"
-        )
-    return np.broadcast_to(
-        np.asarray(realization.order, dtype=np.int64),
-        (batch_size, len(realization.order)),
-    ).copy()
-
-
-def score_target_log_probs(
-    log_probs: np.ndarray, targets: np.ndarray
-) -> tuple[ProteinMPNNScore, ...]:
-    """Gather target-AA log probabilities directly; higher remains better."""
-    probabilities = np.asarray(log_probs)
-    target_indices = np.asarray(targets)
-    if probabilities.ndim != 3:
-        raise FixedProbeScoringError(
-            "invalid_log_probs", "ProteinMPNN log_probs must have shape [B,L,A]"
-        )
-    if not np.isfinite(probabilities).all():
-        raise FixedProbeScoringError(
-            "nonfinite_score", "ProteinMPNN log_probs contain non-finite values"
-        )
-    if target_indices.ndim != 2 or target_indices.shape != probabilities.shape[:2]:
-        raise FixedProbeScoringError(
-            "score_shape_mismatch", "Target indices must match log_probs [B,L]"
-        )
-    if not np.issubdtype(target_indices.dtype, np.integer):
-        raise FixedProbeScoringError(
-            "invalid_target_indices", "Target amino-acid indices must be integers"
-        )
-    if target_indices.size == 0 or target_indices.min() < 0 or target_indices.max() >= probabilities.shape[2]:
-        raise FixedProbeScoringError(
-            "target_index_out_of_range", "Target amino-acid index is out of range"
-        )
-    gathered = np.take_along_axis(
-        probabilities, target_indices[..., np.newaxis], axis=-1
-    ).squeeze(-1)
-    if not np.isfinite(gathered).all():
-        raise FixedProbeScoringError(
-            "nonfinite_score", "Target log-probability score is not finite"
-        )
-    return tuple(
-        ProteinMPNNScore(
-            score_sum_logp_mask=float(row.sum(dtype=np.float64)),
-            score_mean_logp_mask=float(row.mean(dtype=np.float64)),
-        )
-        for row in gathered
-    )
-
-
-def load_authorized_proteinmpnn_runtime(
-    *,
-    implementation_path: Path,
-    checkpoint_path: Path,
-    device_name: str,
-    backbone_noise: float,
-) -> ProteinMPNNRuntime:
-    """Lazy-load the hash-verified ProteinMPNN implementation and checkpoint."""
+def _normalized_score_fields(record: dict[str, Any]) -> dict[str, Any]:
+    """Adapt fields shared by authoritative WT and probe persisted rows."""
     try:
-        import torch
-    except ImportError as exc:
-        raise FixedProbeScoringError(
-            "torch_unavailable", "ProteinMPNN runtime requires the model environment"
+        return {
+            "protein_id": str(record["protein_id"]),
+            "condition_id": str(record["backbone_condition"]),
+            "structure_sha256": str(record["backbone_sha256"]),
+            "repeat_index": int(record["repeat_index"]),
+            "seed": int(record["seed"]),
+            "realization_id": str(record["decoding_realization_sha256"]),
+            "scorer_id": PROTEINMPNN_SCORER_ID,
+            "implementation_id": AUTHORIZED_IMPLEMENTATION_COMMIT,
+            "checkpoint_id": str(record["model_checkpoint_sha256"]),
+            "score_contract_id": str(record["scoring_protocol"]),
+            "score_sum_logp_mask": float(record["score_sum_logp_mask"]),
+            "score_mean_logp_mask": float(record["score_mean_logp_mask"]),
+            "scored_residue_count": int(record["scored_residue_count"]),
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ProteinMPNNScoringError(
+            "invalid_normalized_score_record",
+            "Authoritative persisted score fields are incomplete",
         ) from exc
-    utility_path = implementation_path / "protein_mpnn_utils.py"
-    spec = importlib.util.spec_from_file_location(
-        "_dual_uq_authorized_protein_mpnn_utils", utility_path
-    )
-    if spec is None or spec.loader is None:
-        raise FixedProbeScoringError(
-            "implementation_import_failure", "Cannot load authorized ProteinMPNN utilities"
-        )
-    module = importlib.util.module_from_spec(spec)
+
+
+def normalized_wt_score_record(record: dict[str, Any]) -> ScoreRecord:
+    """Map one authoritative WT persisted row to the normalized envelope."""
     try:
-        spec.loader.exec_module(module)
-        checkpoint = torch.load(checkpoint_path, map_location=device_name)
-        model = module.ProteinMPNN(
-            ca_only=False,
-            num_letters=21,
-            node_features=128,
-            edge_features=128,
-            hidden_dim=128,
-            num_encoder_layers=3,
-            num_decoder_layers=3,
-            augment_eps=backbone_noise,
-            k_neighbors=int(checkpoint["num_edges"]),
+        return ScoreRecord(
+            **_normalized_score_fields(record),
+            variant_kind=VariantKind.WT,
+            variant_id=None,
+            sequence_hash=None,
+            position=None,
+            wt_aa=None,
+            mut_aa=None,
         )
-        device = torch.device(device_name)
-        model.to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        model.eval()
-    except (OSError, KeyError, RuntimeError, ValueError) as exc:
-        raise FixedProbeScoringError(
-            "model_load_failure", "Authorized ProteinMPNN checkpoint failed to load"
+    except ValueError as exc:
+        raise ProteinMPNNScoringError(
+            "invalid_normalized_score_record", str(exc)
         ) from exc
-    return ProteinMPNNRuntime(
-        model=model,
-        torch=torch,
-        device=device,
-        checkpoint_num_edges=int(checkpoint["num_edges"]),
-        checkpoint_noise_level=float(checkpoint["noise_level"]),
-    )
+
+
+def normalized_probe_score_record(record: dict[str, Any]) -> ScoreRecord:
+    """Map one authoritative fixed-probe persisted row without deriving delta."""
+    try:
+        sequence_hash = str(record["sequence_hash"])
+        return ScoreRecord(
+            **_normalized_score_fields(record),
+            variant_kind=VariantKind.PROBE,
+            variant_id=sequence_hash,
+            sequence_hash=sequence_hash,
+            position=int(record["position"]),
+            wt_aa=str(record["wt_aa"]),
+            mut_aa=str(record["mut_aa"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ProteinMPNNScoringError(
+            "invalid_normalized_score_record", str(exc)
+        ) from exc
 
 
 def _validate_projection(projection: ScoringBackboneProjection) -> None:
@@ -365,28 +143,7 @@ def _validate_projection(projection: ScoringBackboneProjection) -> None:
         raise FixedProbeScoringError(
             "invalid_backbone_condition", "Backbone condition must be PDB or AFDB"
         )
-    positions = projection.uniprot_positions
-    if (
-        not positions
-        or any(isinstance(value, bool) or not isinstance(value, int) for value in positions)
-        or any(right <= left for left, right in pairwise(positions))
-    ):
-        raise FixedProbeScoringError(
-            "scoring_projection_domain_mismatch",
-            "Scoring positions must be strictly increasing UniProt coordinates",
-        )
-    coordinates = np.asarray(projection.coordinates)
-    if coordinates.shape != (len(positions), 4, 3) or not np.isfinite(coordinates).all():
-        raise FixedProbeScoringError(
-            "invalid_backbone_coordinates",
-            "Scoring projection requires finite N/CA/C/O coordinates",
-        )
-    if len(projection.wt_sequence_projection) != len(positions):
-        raise FixedProbeScoringError(
-            "scoring_projection_sequence_mismatch",
-            "Projected WT sequence and residue domain lengths differ",
-        )
-    validate_protein_sequence(projection.wt_sequence_projection)
+    validate_structure_input(projection)
 
 
 def validate_paired_projection(
@@ -863,93 +620,185 @@ def _write_runtime_shard(path: Path, payload: dict[str, Any]) -> str:
     return "created"
 
 
-def run_formal_runtime_request(
+@dataclass(frozen=True)
+class FormalRuntimeScoreRequestView:
+    """Normalized scientific request plus legacy execution-only bindings."""
+
+    request: ScoreRequest
+    projection: ScoringBackboneProjection
+    binding: Mapping[str, Any]
+    output_filename: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "binding", MappingProxyType(dict(self.binding)))
+
+
+def _formal_candidate_collection(
+    request: Mapping[str, Any],
     *,
-    request: dict[str, Any],
-    runtime: Any,
-    shard_directory: Path,
-    batch_size: int,
-    execution_environment: dict[str, Any],
-    progress_callback: Any | None = None,
-) -> dict[str, Any]:
-    """Score all requested logical cells for one protein with one loaded model."""
-    if request.get("schema_version") != "stage0_formal_protein_request_v1":
+    protein_id: str,
+    positions: tuple[int, ...],
+) -> CandidateCollection:
+    canonical = validate_protein_sequence(
+        str(request.get("canonical_wt_sequence", ""))
+    )
+    canonical_hash = str(request.get("canonical_sequence_sha256", ""))
+    if sequence_sha256(canonical) != canonical_hash:
+        raise ProteinMPNNScoringError(
+            "formal_candidate_identity_mismatch",
+            "Formal canonical sequence identity differs",
+        )
+    expected_domain = sha256_canonical(
+        {
+            "protein_id": protein_id,
+            "canonical_positions": list(positions),
+            "canonical_sequence_sha256": canonical_hash,
+        }
+    )
+    if request.get("common_mask_binding") != expected_domain:
+        raise ProteinMPNNScoringError(
+            "formal_scoring_domain_mismatch",
+            "Formal common-mask scientific binding differs",
+        )
+
+    records = request.get("candidate_records")
+    candidate_hashes = request.get("candidate_sequence_hashes")
+    if (
+        not isinstance(records, list)
+        or not records
+        or not isinstance(candidate_hashes, list)
+        or len(records) != len(candidate_hashes)
+    ):
+        raise ProteinMPNNScoringError(
+            "invalid_formal_runtime_request",
+            "Formal full-sequence candidate records are incomplete",
+        )
+    variants = []
+    for index, (record, expected_hash) in enumerate(
+        zip(records, candidate_hashes, strict=True)
+    ):
+        if not isinstance(record, dict) or record.get("sequence_hash") != expected_hash:
+            raise ProteinMPNNScoringError(
+                "formal_candidate_identity_mismatch",
+                f"Formal candidate record {index} identity differs",
+            )
+        try:
+            variants.append(
+                ScoringVariant(
+                    variant_kind=VariantKind.PROBE,
+                    variant_id=str(record["sequence_hash"]),
+                    sequence_hash=str(record["sequence_hash"]),
+                    sequence=str(record["full_sequence"]),
+                    position=int(record["position"]),
+                    wt_aa=str(record["wt_aa"]),
+                    mut_aa=str(record["mut_aa"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProteinMPNNScoringError(
+                "formal_candidate_identity_mismatch",
+                f"Formal candidate record {index} is invalid",
+            ) from exc
+    collection_id = sha256_canonical(
+        {"sequence_hashes": [str(value) for value in candidate_hashes]}
+    )
+    try:
+        return CandidateCollection(
+            collection_id=collection_id,
+            wt=ScoringVariant(
+                variant_kind=VariantKind.WT,
+                variant_id=None,
+                sequence_hash=canonical_hash,
+                sequence=canonical,
+                position=None,
+                wt_aa=None,
+                mut_aa=None,
+            ),
+            probes=tuple(variants),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ProteinMPNNScoringError(
+            "formal_candidate_identity_mismatch",
+            "Formal candidate collection violates the normalized request contract",
+        ) from exc
+
+
+def adapt_formal_runtime_requests(
+    request: Mapping[str, Any],
+) -> tuple[FormalRuntimeScoreRequestView, ...]:
+    """Adapt one historical formal worker request into normalized score requests."""
+    schema_version = request.get("schema_version")
+    if schema_version == "stage0_formal_protein_request_v1":
+        raise ProteinMPNNScoringError(
+            "legacy_formal_request_requires_enrichment",
+            "Legacy v1 request lacks canonical full-sequence probe identity; "
+            "rebuild missing work from its frozen plan instead of inferring it",
+        )
+    if schema_version != "stage0_formal_protein_request_v2":
         raise ProteinMPNNScoringError(
             "invalid_formal_runtime_request", "Formal request schema differs"
         )
     model_identity = request.get("model_identity")
+    score_contract = request.get("scoring_protocol")
     if (
         not isinstance(model_identity, dict)
         or model_identity.get("implementation_commit")
         != AUTHORIZED_IMPLEMENTATION_COMMIT
         or model_identity.get("checkpoint_sha256") != AUTHORIZED_CHECKPOINT_SHA256
-        or request.get("scoring_protocol")
-        != "stage0_fixed_sequence_autoregressive_mask_logp_v1"
+        or score_contract != "stage0_fixed_sequence_autoregressive_mask_logp_v1"
     ):
         raise ProteinMPNNScoringError(
             "unauthorized_scoring_model", "Formal request model/protocol differs"
         )
     protein_id = request.get("protein_id")
     positions_raw = request.get("uniprot_positions")
-    candidate_hashes_raw = request.get("candidate_sequence_hashes")
-    projection_hashes_raw = request.get("candidate_projection_sha256")
-    candidate_sequences_raw = request.get("candidate_sequences")
     tasks = request.get("tasks")
     if (
         not isinstance(protein_id, str)
         or not isinstance(positions_raw, list)
-        or not isinstance(candidate_hashes_raw, list)
-        or not isinstance(projection_hashes_raw, list)
-        or not isinstance(candidate_sequences_raw, list)
         or not isinstance(tasks, list)
         or not tasks
-        or len(candidate_hashes_raw) != len(candidate_sequences_raw)
-        or len(projection_hashes_raw) != len(candidate_sequences_raw)
     ):
         raise ProteinMPNNScoringError(
             "invalid_formal_runtime_request", "Formal request fields are incomplete"
         )
-    positions = tuple(int(value) for value in positions_raw)
-    wt_sequence = validate_protein_sequence(str(request.get("wt_sequence", "")))
-    candidate_sequences = tuple(
-        validate_protein_sequence(str(value)) for value in candidate_sequences_raw
+    try:
+        positions = tuple(int(value) for value in positions_raw)
+        collection = _formal_candidate_collection(
+            request, protein_id=protein_id, positions=positions
+        )
+    except (TypeError, ValueError) as exc:
+        if isinstance(exc, ProteinMPNNScoringError):
+            raise
+        raise ProteinMPNNScoringError(
+            "invalid_formal_runtime_request", "Formal scoring domain is invalid"
+        ) from exc
+
+    projected_wt = "".join(collection.wt.sequence[position - 1] for position in positions)
+    projected_candidates = tuple(
+        "".join(probe.sequence[position - 1] for position in positions)
+        for probe in collection.probes
     )
-    candidate_hashes = tuple(str(value) for value in candidate_hashes_raw)
-    projection_hashes = tuple(str(value) for value in projection_hashes_raw)
+    declared_sequences = request.get("candidate_sequences")
+    declared_projection_hashes = request.get("candidate_projection_sha256")
     if (
-        len(wt_sequence) != len(positions)
-        or any(len(value) != len(positions) for value in candidate_sequences)
-        or tuple(sequence_sha256(value) for value in candidate_sequences)
-        != projection_hashes
+        request.get("wt_sequence") != projected_wt
+        or declared_sequences != list(projected_candidates)
+        or declared_projection_hashes
+        != [sequence_sha256(sequence) for sequence in projected_candidates]
     ):
         raise ProteinMPNNScoringError(
             "formal_candidate_identity_mismatch",
             "Formal projected candidate identity differs",
         )
-    candidate_identity = sha256_canonical(
-        {"sequence_hashes": list(candidate_hashes)}
-    )
+
     coordinates = {
         "PDB": np.asarray(request.get("pdb_coordinates"), dtype=np.float32),
         "AFDB": np.asarray(request.get("afdb_coordinates"), dtype=np.float32),
     }
-    projections = {
-        backbone: ScoringBackboneProjection(
-            protein_id=protein_id,
-            backbone_condition=backbone,
-            uniprot_positions=positions,
-            wt_sequence_projection=wt_sequence,
-            coordinates=value,
-        )
-        for backbone, value in coordinates.items()
-    }
-    for projection in projections.values():
-        _validate_projection(projection)
-
     fingerprints: dict[int, set[str]] = {}
-    checked_tasks: list[
-        tuple[dict[str, Any], DecodingRealization, str]
-    ] = []
+    canonical_realization_mismatches = []
+    views = []
     for task in tasks:
         if not isinstance(task, dict) or not isinstance(task.get("binding"), dict):
             raise ProteinMPNNScoringError(
@@ -970,110 +819,227 @@ def run_formal_runtime_request(
             or sorted(order_raw) != list(range(len(positions)))
             or not isinstance(output_filename, str)
             or Path(output_filename).name != output_filename
-            or binding.get("candidate_count") != len(candidate_hashes)
-            or binding.get("candidate_identity_sha256") != candidate_identity
+            or binding.get("candidate_count") != len(collection.probes)
+            or binding.get("candidate_identity_sha256") != collection.collection_id
             or binding.get("checkpoint_sha256") != AUTHORIZED_CHECKPOINT_SHA256
-            or binding.get("implementation_commit") != AUTHORIZED_IMPLEMENTATION_COMMIT
-            or binding.get("scoring_protocol")
-            != "stage0_fixed_sequence_autoregressive_mask_logp_v1"
+            or binding.get("implementation_commit")
+            != AUTHORIZED_IMPLEMENTATION_COMMIT
+            or binding.get("scoring_protocol") != score_contract
             or binding.get("mask_length") != len(positions)
+            or binding.get("backbone_sha256") is None
         ):
             raise ProteinMPNNScoringError(
                 "invalid_formal_runtime_request", "Formal task binding differs"
             )
-        order = tuple(int(value) for value in order_raw)
-        fingerprint = sha256_bytes(np.asarray(order, dtype="<i8").tobytes())
-        if binding.get("decoding_realization_sha256") != fingerprint:
-            raise ProteinMPNNScoringError(
-                "decoding_realization_mismatch", "Formal decoding order SHA differs"
-            )
-        fingerprints.setdefault(repeat_index, set()).add(fingerprint)
-        realization = DecodingRealization(
+        expected_realization = make_decoding_realization(
             protein_id=protein_id,
+            mask_length=len(positions),
             repeat_index=repeat_index,
             seed=seed,
-            protocol_version=str(binding["scoring_protocol"]),
-            algorithm=str(binding["decoding_realization_algorithm"]),
-            order=order,
-            fingerprint=fingerprint,
+            protocol_version=str(score_contract),
         )
-        checked_tasks.append((binding, realization, output_filename))
+        order = tuple(int(value) for value in order_raw)
+        observed_fingerprint = sha256_bytes(
+            np.asarray(order, dtype="<i8").tobytes()
+        )
+        if (
+            binding.get("decoding_realization_sha256") != observed_fingerprint
+            or binding.get("decoding_realization_algorithm")
+            != expected_realization.algorithm
+        ):
+            raise ProteinMPNNScoringError(
+                "decoding_realization_mismatch",
+                "Formal decoding realization differs",
+            )
+        fingerprints.setdefault(repeat_index, set()).add(observed_fingerprint)
+        canonical_realization_mismatches.append(
+            order != expected_realization.order
+            or observed_fingerprint != expected_realization.fingerprint
+        )
+        structure_sha = str(binding["backbone_sha256"])
+        condition = StructureCondition(
+            protein_id=protein_id,
+            condition_id=str(backbone),
+            source="PDB" if backbone == "PDB" else "AlphaFoldDB",
+            structure_sha256=structure_sha,
+        )
+        projection = ScoringBackboneProjection(
+            protein_id=protein_id,
+            backbone_condition=str(backbone),
+            uniprot_positions=positions,
+            wt_sequence_projection=projected_wt,
+            coordinates=coordinates[str(backbone)],
+            structure_sha256=structure_sha,
+        )
+        _validate_projection(projection)
+        normalized = ScoreRequest(
+            condition=condition,
+            scoring_domain_id=str(request["common_mask_binding"]),
+            canonical_positions=positions,
+            candidate_collection=collection,
+            repeat_index=repeat_index,
+            seed=seed,
+            realization_id=expected_realization.fingerprint,
+            realization_algorithm=expected_realization.algorithm,
+            score_contract_id=str(score_contract),
+        )
+        views.append(
+            FormalRuntimeScoreRequestView(
+                request=normalized,
+                projection=projection,
+                binding=binding,
+                output_filename=output_filename,
+            )
+        )
     if any(len(values) != 1 for values in fingerprints.values()):
         raise ProteinMPNNScoringError(
             "formal_realization_pairing_mismatch",
             "PDB and AFDB task realizations differ",
         )
+    if any(canonical_realization_mismatches):
+        raise ProteinMPNNScoringError(
+            "decoding_realization_mismatch",
+            "Formal decoding realization differs from the frozen algorithm",
+        )
+    return tuple(views)
 
+
+def formal_shard_payload_from_score_records(
+    *,
+    view: FormalRuntimeScoreRequestView,
+    records: tuple[ScoreRecord, ...],
+    execution_environment: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Translate normalized measurements to the authoritative legacy shard."""
+    expected = view.request.candidate_collection.variants
+    if len(records) != len(expected):
+        raise ProteinMPNNScoringError(
+            "formal_shard_candidate_count_mismatch",
+            "Normalized record count differs from the formal candidate collection",
+        )
+    binding = view.binding
+    for index, (record, variant) in enumerate(zip(records, expected, strict=True)):
+        expected_hash = (
+            None if variant.variant_kind is VariantKind.WT else variant.sequence_hash
+        )
+        if (
+            record.protein_id != view.request.protein_id
+            or record.condition_id != view.request.condition.condition_id
+            or record.structure_sha256 != view.request.condition.structure_sha256
+            or record.repeat_index != view.request.repeat_index
+            or record.seed != view.request.seed
+            or record.realization_id != view.request.realization_id
+            or record.scorer_id != PROTEINMPNN_SCORER_ID
+            or record.score_contract_id != view.request.score_contract_id
+            or record.implementation_id != binding.get("implementation_commit")
+            or record.checkpoint_id != binding.get("checkpoint_sha256")
+            or record.variant_kind is not variant.variant_kind
+            or record.variant_id != variant.variant_id
+            or record.sequence_hash != expected_hash
+            or record.position != variant.position
+            or record.wt_aa != variant.wt_aa
+            or record.mut_aa != variant.mut_aa
+            or record.scored_residue_count != binding.get("mask_length")
+        ):
+            raise ProteinMPNNScoringError(
+                "formal_score_record_binding_mismatch",
+                f"Normalized record {index} differs from the formal shard binding",
+            )
+    wt = records[0]
+    probes = records[1:]
+    if wt.variant_kind is not VariantKind.WT or any(
+        record.variant_kind is not VariantKind.PROBE for record in probes
+    ):
+        raise ProteinMPNNScoringError(
+            "formal_candidate_identity_mismatch",
+            "Normalized WT/probe association differs",
+        )
+
+    def score_fields(record: ScoreRecord) -> dict[str, Any]:
+        return {
+            "score_sum_logp_mask": record.score_sum_logp_mask,
+            "score_mean_logp_mask": record.score_mean_logp_mask,
+            "scored_residue_count": record.scored_residue_count,
+        }
+
+    return {
+        "schema_version": "stage0_fixed_probe_scoring_shard_v1",
+        "binding": dict(view.binding),
+        "wt_score": score_fields(wt),
+        "candidate_scores": [
+            {"sequence_hash": record.sequence_hash, **score_fields(record)}
+            for record in probes
+        ],
+        "execution_environment": dict(execution_environment),
+    }
+
+
+def run_formal_runtime_request(
+    *,
+    request: dict[str, Any],
+    runtime: Any,
+    shard_directory: Path,
+    batch_size: int,
+    execution_environment: dict[str, Any],
+    progress_callback: Any | None = None,
+) -> dict[str, Any]:
+    """Score all requested logical cells for one protein with one loaded model."""
+    views = adapt_formal_runtime_requests(request)
+    model_identity = request["model_identity"]
+    if (
+        getattr(runtime, "implementation_id", None)
+        != model_identity["implementation_commit"]
+        or getattr(runtime, "checkpoint_id", None)
+        != model_identity["checkpoint_sha256"]
+    ):
+        raise ProteinMPNNScoringError(
+            "unauthorized_scoring_model",
+            "Loaded runtime identity differs from the formal request",
+        )
+    projections = {
+        (view.request.protein_id, view.request.condition.condition_id): view.projection
+        for view in views
+    }
+    scorer = ProteinMPNNScorer(
+        adapter=runtime,
+        projection_resolver=lambda normalized: projections[
+            (normalized.protein_id, normalized.condition.condition_id)
+        ],
+        score_contract_id=str(request["scoring_protocol"]),
+        batch_size=batch_size,
+    )
     shard_directory.mkdir(parents=True, exist_ok=True)
     statuses = {"created": 0, "reused_identical": 0}
-    sequences = (wt_sequence, *candidate_sequences)
-    for ordinal, (binding, realization, output_filename) in enumerate(
-        checked_tasks, start=1
-    ):
-        backbone = str(binding["backbone_condition"])
-        scores = runtime.score_sequences(
-            projections[backbone],
-            sequences,
-            realization,
-            batch_size=batch_size,
+    for ordinal, view in enumerate(views, start=1):
+        try:
+            records = execute_score_request(scorer, view.request)
+        except ScoreDispatchError as exc:
+            raise ProteinMPNNScoringError(exc.code, str(exc)) from exc
+        payload = formal_shard_payload_from_score_records(
+            view=view,
+            records=records,
+            execution_environment=execution_environment,
         )
-        if len(scores) != len(sequences):
-            raise ProteinMPNNScoringError(
-                "formal_shard_candidate_count_mismatch",
-                "Formal runtime returned an incomplete score vector",
-            )
-        mask_length = len(positions)
-
-        def score_record(
-            score: ProteinMPNNScore, residue_count: int = mask_length
-        ) -> dict[str, Any]:
-            if not np.isfinite(
-                (score.score_sum_logp_mask, score.score_mean_logp_mask)
-            ).all():
-                raise ProteinMPNNScoringError(
-                    "nonfinite_score", "Formal runtime returned a non-finite score"
-                )
-            return {
-                "score_sum_logp_mask": float(score.score_sum_logp_mask),
-                "score_mean_logp_mask": float(score.score_mean_logp_mask),
-                "scored_residue_count": residue_count,
-            }
-
-        payload = {
-            "schema_version": "stage0_fixed_probe_scoring_shard_v1",
-            "binding": binding,
-            "wt_score": score_record(scores[0]),
-            "candidate_scores": [
-                {
-                    "sequence_hash": sequence_hash,
-                    **score_record(score),
-                }
-                for sequence_hash, score in zip(
-                    candidate_hashes, scores[1:], strict=True
-                )
-            ],
-            "execution_environment": execution_environment,
-        }
         status = _write_runtime_shard(
-            shard_directory / output_filename, payload
+            shard_directory / view.output_filename, payload
         )
         statuses[status] += 1
         if progress_callback is not None:
             progress_callback(
                 {
-                    "protein_id": protein_id,
-                    "backbone_condition": backbone,
-                    "repeat_index": realization.repeat_index,
+                    "protein_id": view.request.protein_id,
+                    "backbone_condition": view.request.condition.condition_id,
+                    "repeat_index": view.request.repeat_index,
                     "completed": ordinal,
-                    "total": len(checked_tasks),
+                    "total": len(views),
                     "write_status": status,
                 }
             )
     return {
         "status": "complete",
-        "protein_id": protein_id,
-        "candidate_count": len(candidate_hashes),
-        "completed_shards": len(checked_tasks),
+        "protein_id": views[0].request.protein_id,
+        "candidate_count": len(views[0].request.candidate_collection.probes),
+        "completed_shards": len(views),
         "created_shards": statuses["created"],
         "reused_shards": statuses["reused_identical"],
         "execution_environment": execution_environment,

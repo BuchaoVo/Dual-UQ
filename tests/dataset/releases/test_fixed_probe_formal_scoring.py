@@ -365,6 +365,9 @@ def test_immutable_parquet_write_reuses_identical_and_rejects_conflict(
 
 
 class _FormalFakeRuntime:
+    implementation_id = scoring.AUTHORIZED_IMPLEMENTATION_COMMIT
+    checkpoint_id = scoring.AUTHORIZED_CHECKPOINT_SHA256
+
     def __init__(self) -> None:
         self.calls: list[tuple[str, int, int]] = []
 
@@ -382,8 +385,11 @@ class _FormalFakeRuntime:
 
 
 def _formal_runtime_request() -> dict[str, object]:
-    candidate_hashes = ["c" * 64, "d" * 64]
+    canonical_sequence = "AAA"
     projected_sequences = ["CAA", "ACA"]
+    candidate_hashes = [
+        scoring.sequence_sha256(sequence) for sequence in projected_sequences
+    ]
     projection_hashes = [
         scoring.sequence_sha256(sequence) for sequence in projected_sequences
     ]
@@ -391,10 +397,15 @@ def _formal_runtime_request() -> dict[str, object]:
         {"sequence_hashes": candidate_hashes}
     )
     tasks = []
-    order = [2, 0, 1]
-    realization_sha256 = model_scoring.sha256_bytes(
-        np.asarray(order, dtype="<i8").tobytes()
+    realization = model_scoring.make_decoding_realization(
+        protein_id="fixture_A__P00001",
+        mask_length=3,
+        repeat_index=0,
+        seed=0,
+        protocol_version=scoring.SCORING_PROTOCOL_VERSION,
     )
+    order = list(realization.order)
+    realization_sha256 = realization.fingerprint
     for backbone, backbone_sha in (("PDB", "1" * 64), ("AFDB", "2" * 64)):
         spec = replace(
             _synthetic_spec(),
@@ -413,7 +424,7 @@ def _formal_runtime_request() -> dict[str, object]:
         )
     coordinates = np.arange(36, dtype=np.float32).reshape(3, 4, 3).tolist()
     return {
-        "schema_version": "stage0_formal_protein_request_v1",
+        "schema_version": "stage0_formal_protein_request_v2",
         "model_identity": {
             "implementation_commit": scoring.AUTHORIZED_IMPLEMENTATION_COMMIT,
             "checkpoint_sha256": scoring.AUTHORIZED_CHECKPOINT_SHA256,
@@ -421,14 +432,143 @@ def _formal_runtime_request() -> dict[str, object]:
         "scoring_protocol": scoring.SCORING_PROTOCOL_VERSION,
         "protein_id": "fixture_A__P00001",
         "uniprot_positions": [1, 2, 3],
-        "wt_sequence": "AAA",
+        "wt_sequence": canonical_sequence,
+        "canonical_wt_sequence": canonical_sequence,
+        "canonical_sequence_sha256": scoring.sequence_sha256(canonical_sequence),
+        "common_mask_binding": scoring.sha256_canonical(
+            {
+                "protein_id": "fixture_A__P00001",
+                "canonical_positions": [1, 2, 3],
+                "canonical_sequence_sha256": scoring.sequence_sha256(
+                    canonical_sequence
+                ),
+            }
+        ),
         "candidate_sequence_hashes": candidate_hashes,
         "candidate_projection_sha256": projection_hashes,
         "candidate_sequences": projected_sequences,
+        "candidate_records": [
+            {
+                "sequence_hash": candidate_hashes[0],
+                "full_sequence": projected_sequences[0],
+                "position": 1,
+                "wt_aa": "A",
+                "mut_aa": "C",
+            },
+            {
+                "sequence_hash": candidate_hashes[1],
+                "full_sequence": projected_sequences[1],
+                "position": 2,
+                "wt_aa": "A",
+                "mut_aa": "C",
+            },
+        ],
         "pdb_coordinates": coordinates,
         "afdb_coordinates": coordinates,
         "tasks": tasks,
     }
+
+
+def _legacy_formal_runtime_request() -> dict[str, object]:
+    request = _formal_runtime_request()
+    request["schema_version"] = "stage0_formal_protein_request_v1"
+    for field in (
+        "canonical_wt_sequence",
+        "canonical_sequence_sha256",
+        "common_mask_binding",
+        "candidate_records",
+    ):
+        request.pop(field)
+    return request
+
+
+def test_legacy_v1_request_requires_explicit_scientific_enrichment() -> None:
+    request = _legacy_formal_runtime_request()
+
+    assert set(request) == {
+        "schema_version",
+        "model_identity",
+        "scoring_protocol",
+        "protein_id",
+        "uniprot_positions",
+        "wt_sequence",
+        "candidate_sequence_hashes",
+        "candidate_projection_sha256",
+        "candidate_sequences",
+        "pdb_coordinates",
+        "afdb_coordinates",
+        "tasks",
+    }
+    with pytest.raises(model_scoring.ProteinMPNNScoringError) as caught:
+        model_scoring.adapt_formal_runtime_requests(request)
+
+    assert caught.value.code == "legacy_formal_request_requires_enrichment"
+
+
+def test_formal_runtime_adapter_builds_two_normalized_requests() -> None:
+    request = _formal_runtime_request()
+
+    views = model_scoring.adapt_formal_runtime_requests(request)
+
+    assert len(views) == 2
+    assert views[0].request.candidate_collection is (
+        views[1].request.candidate_collection
+    )
+    assert [view.request.condition.condition_id for view in views] == [
+        "PDB",
+        "AFDB",
+    ]
+    assert all(
+        view.request.result_count == 3
+        and view.projection.structure_sha256
+        == view.request.condition.structure_sha256
+        and view.request.scoring_domain_id == request["common_mask_binding"]
+        for view in views
+    )
+    assert [view.output_filename for view in views] == [
+        task["output_filename"] for task in request["tasks"]
+    ]
+
+
+def test_formal_runtime_uses_generic_dispatch_and_legacy_persistence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    request = _formal_runtime_request()
+    real_dispatch = model_scoring.execute_score_request
+    calls = []
+
+    def checked_dispatch(scorer, normalized_request):
+        calls.append(normalized_request)
+        return real_dispatch(scorer, normalized_request)
+
+    monkeypatch.setattr(model_scoring, "execute_score_request", checked_dispatch)
+    model_scoring.run_formal_runtime_request(
+        request=request,
+        runtime=_FormalFakeRuntime(),
+        shard_directory=tmp_path,
+        batch_size=8,
+        execution_environment={"device": "test"},
+    )
+
+    assert [call.condition.condition_id for call in calls] == ["PDB", "AFDB"]
+    for task in request["tasks"]:
+        payload = json.loads((tmp_path / task["output_filename"]).read_text())
+        assert set(payload) == {
+            "schema_version",
+            "binding",
+            "wt_score",
+            "candidate_scores",
+            "execution_environment",
+        }
+        assert payload["binding"] == task["binding"]
+        assert payload["wt_score"] == {
+            "score_mean_logp_mask": -1.0,
+            "score_sum_logp_mask": -3.0,
+            "scored_residue_count": 3,
+        }
+        assert [row["sequence_hash"] for row in payload["candidate_scores"]] == (
+            request["candidate_sequence_hashes"]
+        )
 
 
 def test_formal_model_request_writes_one_valid_shard_per_task(tmp_path: Path) -> None:
@@ -502,15 +642,29 @@ def test_formal_protein_request_binds_projected_candidates_and_60_tasks() -> Non
         ),
     )
 
-    assert request["schema_version"] == "stage0_formal_protein_request_v1"
+    assert request["schema_version"] == "stage0_formal_protein_request_v2"
     assert request["protein_id"] == protein["protein_id"]
     assert len(request["candidate_sequences"]) == 5168
     assert len(request["candidate_sequence_hashes"]) == 5168
     assert len(request["tasks"]) == 60
+    assert request["canonical_sequence_sha256"] == protein[
+        "canonical_sequence_sha256"
+    ]
+    assert request["common_mask_binding"] == scoring.sha256_canonical(
+        {
+            "protein_id": protein["protein_id"],
+            "canonical_positions": protein["mask_positions"],
+            "canonical_sequence_sha256": protein["canonical_sequence_sha256"],
+        }
+    )
+    assert len(request["candidate_records"]) == 5168
     assert {task["binding"]["backbone_condition"] for task in request["tasks"]} == {
         "PDB",
         "AFDB",
     }
+    views = model_scoring.adapt_formal_runtime_requests(request)
+    assert len(views) == 60
+    assert all(view.request.result_count == 5169 for view in views)
 
 
 def test_formal_cli_mode_is_available_without_rerunning_g2() -> None:

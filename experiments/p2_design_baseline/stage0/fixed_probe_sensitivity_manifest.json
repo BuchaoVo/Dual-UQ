@@ -1,0 +1,141 @@
+{
+  "analysis_protocol": {
+    "equivalent_estimand": "candidate_raw_AFDB_minus_PDB_minus_WT_raw_AFDB_minus_PDB",
+    "identity": "stage0_fixed_probe_structural_sensitivity_v1",
+    "primary_estimand": "delta_score_vs_wt_AFDB_minus_delta_score_vs_wt_PDB",
+    "quantile_interval_semantics": "decoding_realization_quantile_interval",
+    "quantile_levels": [
+      0.05,
+      0.25,
+      0.5,
+      0.75,
+      0.95
+    ],
+    "quantile_method": "linear",
+    "repeat_count": 30,
+    "repeat_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29
+    ],
+    "standard_deviation": "population_ddof0",
+    "structural_orientation": "AFDB_minus_PDB",
+    "technical_scale": "sqrt((technical_sd_pdb^2 + technical_sd_afdb^2) / 2)",
+    "zero_tolerance_absolute": 1e-06
+  },
+  "final_counts": {
+    "candidate_summary_rows": 34010,
+    "paired_candidate_repeat_rows": 1020300,
+    "position_summary_rows": 1790,
+    "protein_summary_rows": 8
+  },
+  "inputs": {
+    "fixed_probes": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidates.parquet",
+      "rows": 34010,
+      "sha256": "26dc56745c005c01e78007ad3c3b6dbc59708da23087ac7bd2337acc2ea27ef0"
+    },
+    "protein_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/protein_manifest.json",
+      "rows": 8,
+      "sha256": "fd34ae871c3d5feebba1dbe38bce24141634764882a9d51db1ce79cd7581d30b"
+    },
+    "raw_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scores.parquet",
+      "rows": 2040600,
+      "sha256": "ac0cf8e1f251770fd4ade08580b8df19000a47124531350e9af63dd71f773abf"
+    },
+    "same_state_null": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_null.parquet",
+      "rows": 68020,
+      "sha256": "fa248c180444498e89541582edab12ef6d42a822ddbb65bc92e358b383621403"
+    },
+    "scoring_manifest": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_scoring_manifest.json",
+      "rows": null,
+      "sha256": "ec9882604cdfad0d61fbd30c1314466fbc7cbbea1fe7173d84c9913309783b00"
+    },
+    "wt_scores": {
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_wt_scores.parquet",
+      "rows": 480,
+      "sha256": "373948042b6868611ba6bc9ea80253d47cf0b441e002dcc6c10eed57f23b8d31"
+    }
+  },
+  "outputs": {
+    "candidate_summary": {
+      "bytes": 6994372,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_candidate_sensitivity.parquet",
+      "rows": 34010,
+      "sha256": "a7276db340e23334f9ee5c8d6287e0a0427c628b0bf15294170884d8162f50ca"
+    },
+    "paired_effects": {
+      "bytes": 49571440,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_structural_effects.parquet",
+      "rows": 1020300,
+      "sha256": "171504e5dc75828b931ac91ee2c0deedf3583cf1f32de8f6902f18a897ff39e4"
+    },
+    "position_summary": {
+      "bytes": 145412,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_position_sensitivity.parquet",
+      "rows": 1790,
+      "sha256": "6faa79d1d1ff3a0999a878ad35aeb3e9ffdb22df058c308d727e95fc06ed0eb9"
+    },
+    "protein_summary": {
+      "bytes": 24523,
+      "path": "experiments/p2_design_baseline/stage0/fixed_probe_protein_sensitivity.parquet",
+      "rows": 8,
+      "sha256": "91464052845e5c02250ca7dff5b27ef93c77279296a47736ffe8d6ba52f65e18"
+    }
+  },
+  "protein_order": [
+    "5gv8_A__P83686",
+    "5mn1_A__P00760",
+    "1fn8_A__P35049",
+    "1pjx_A__Q7SIG4",
+    "3pyp_A__P16113",
+    "6s2s_A__P02689",
+    "4ce8_A__Q9HYN5",
+    "5avh_A__P24300"
+  ],
+  "schema_version": "stage0_fixed_probe_sensitivity_manifest_v1",
+  "scientific_scope": "stage0_fixed_probe_structural_condition_sensitivity_only",
+  "scope_declarations": {
+    "arm_b_started": false,
+    "binary_uncertainty_classification_performed": false,
+    "external_evaluator_executed": false,
+    "hypothesis_testing_performed": false,
+    "proteinmpnn_executed": false,
+    "regret_analysis_performed": false,
+    "sequence_generation_performed": false,
+    "stage0_2b_started": false,
+    "top_k_or_rank_analysis_performed": false
+  },
+  "status": "complete"
+}

@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from dual_uq.a0_classification import (
+from dual_uq.confidence import load_plddt
+from dual_uq.dataset.classification import (
     LONG_RANGE_PAE_BINS,
     PAE_BINS,
     A0Classification,
@@ -23,7 +24,6 @@ from dual_uq.a0_classification import (
     classify_candidate,
     compute_pae_strata,
 )
-from dual_uq.confidence import load_plddt
 from dual_uq.mapped_confidence import summarize_mapped_confidence
 
 CANDIDATE_KEY = (
@@ -592,12 +592,13 @@ def enrich_pilot_mechanism_identity(
         if column == "screening_index":
             normalise = _optional_int
         else:
-            normalise = (
-                lambda value, identity_column=column: _clean_text(
+            def normalise(
+                value: Any, identity_column: str = column
+            ) -> str | None:
+                return _clean_text(
                     value,
                     lower=identity_column == "pdb_id",
                 )
-            )
         conflict = pd.Series(
             [
                 normalise(supplied_value) != normalise(canonical_value)
@@ -1865,8 +1866,7 @@ def _audit(table: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def main() -> None:
-    args = parse_args()
+def run(args: argparse.Namespace) -> int:
     root = Path(args.project_root).expanduser().resolve()
     config = load_config(root, args.config)
     output = resolve_path(root, args.output)
@@ -2000,7 +2000,12 @@ def main() -> None:
         raise RuntimeError(
             "strict classification failed: model/evidence mismatch"
         )
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run(parse_args(argv))
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

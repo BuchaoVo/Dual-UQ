@@ -1,34 +1,74 @@
+# ============================================================
+# Repository-local directories
+# ============================================================
+
+# Documentation / reports / runtime outputs kept locally only
+/docs/
+/reports/
+/runs/
+/tmp/
+
+
+# ============================================================
 # Local configuration
-configs/local/
-configs/paths.yaml
+# ============================================================
+
+/configs/local/
+/configs/paths.yaml
 *.local.yaml
+
 .env
 .env.*
 
+
+# ============================================================
 # Python
+# ============================================================
+
 __pycache__/
 *.py[cod]
 *.egg-info/
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
 .venv/
 build/
 dist/
 wandb/
 
-# Runtime
-runs/
+
+# ============================================================
+# Runtime / temporary files
+# ============================================================
+
 *.log
 *.pid
 *.lock
 *.tmp
 
-# Raw and reproducible intermediate data
-data/raw/
-data/interim/
+experiments/**/logs/
+experiments/**/outputs/
+experiments/**/metrics/
 
+
+# ============================================================
+# Raw and intermediate data
+# ============================================================
+
+/data/raw/
+/data/interim/
+
+
+# ============================================================
 # Large processed assets
+# ============================================================
+
+/data/processed/
+
+# Explicit patterns retained for clarity if processed data
+# policy is relaxed in the future.
 data/processed/**/*.pdb
 data/processed/**/*.cif
 data/processed/**/*.mmcif
@@ -36,48 +76,57 @@ data/processed/**/*.npz
 data/processed/**/*.pt
 data/processed/**/*.pth
 
-# Existing generated tables and reports
+
+# ============================================================
+# Generated manifests / large tables
+# ============================================================
+
 data/manifests/*.parquet
 data/manifests/*.csv
-reports/generated/
 
-# Checkpoints and third-party outputs
-artifacts/checkpoints/
-checkpoints/
+
+# ============================================================
+# Checkpoints and generated third-party outputs
+# ============================================================
+
+/artifacts/checkpoints/
+/checkpoints/
+
 third_party/ProteinMPNN/outputs/
 third_party/ProteinMPNN/training/*/checkpoints/
 third_party/ProteinMPNN/training/*/logs/
 
-# Notebook/editor/OS
+
+# ============================================================
+# Notebook / editor / OS
+# ============================================================
+
 .ipynb_checkpoints/
 .vscode/
 .idea/
+
 .DS_Store
 Thumbs.db
 
-# Keep versioned scientific definitions and curated deliverables
+
+# ============================================================
+# Keep versioned scientific fixtures / definitions
+# ============================================================
+
 !data/manifests/
 !data/manifests/**
+
 !data/fixtures/
 !data/fixtures/**
+
 !tests/fixtures/
 !tests/fixtures/**
-!artifacts/audits/
-!artifacts/audits/**
-!artifacts/metrics/
-!artifacts/metrics/**
-!artifacts/reports/
-!artifacts/reports/**
-!artifacts/releases/
-!artifacts/releases/**
 
-# Reconstructible local dataset/runtime state
-data/processed/
-data/manifests/*.parquet
-reports/
-artifacts/audits/
-artifacts/metrics/
-artifacts/reports/
-experiments/**/logs/
-experiments/**/outputs/
-experiments/**/metrics/
+
+# ============================================================
+# Reconstructible artifact state
+# ============================================================
+
+/artifacts/audits/
+/artifacts/metrics/
+/artifacts/reports/

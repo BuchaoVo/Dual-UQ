@@ -130,3 +130,7 @@ Thumbs.db
 /artifacts/audits/
 /artifacts/metrics/
 /artifacts/reports/
+
+# Rebuildable large Apo/Holo local-response tables
+/experiments/interventions/biological_states/apo_holo/cross_model_local_response/esm_if1/position_local_response.parquet
+/experiments/interventions/biological_states/apo_holo/cross_model_local_response/proteinmpnn/position_local_response.parquet

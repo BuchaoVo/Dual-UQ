@@ -1,0 +1,221 @@
+{
+  "canonical_sequence_summary": {
+    "conflicting_duplicate_identity": false,
+    "nonstandard_character_records": [
+      "A5YV76"
+    ],
+    "protein_count": 1410,
+    "unique_sequence_hash_count": 1404,
+    "unique_uniprot_count": 1410
+  },
+  "cluster_summary": {
+    "cluster_count": 1017,
+    "cluster_size_quantiles": {
+      "median": 1.0,
+      "q10": 1.0,
+      "q90": 2.0
+    },
+    "largest_clusters": [
+      {
+        "cluster_id": "A0A086RSH0",
+        "protein_count": 38
+      },
+      {
+        "cluster_id": "A0A0J9X1M8",
+        "protein_count": 17
+      },
+      {
+        "cluster_id": "P12612",
+        "protein_count": 15
+      },
+      {
+        "cluster_id": "G0SBE6",
+        "protein_count": 12
+      },
+      {
+        "cluster_id": "I7J7V6",
+        "protein_count": 12
+      },
+      {
+        "cluster_id": "A8BZ95",
+        "protein_count": 10
+      },
+      {
+        "cluster_id": "P08200",
+        "protein_count": 9
+      },
+      {
+        "cluster_id": "P0A6Y8",
+        "protein_count": 9
+      },
+      {
+        "cluster_id": "P01112",
+        "protein_count": 8
+      },
+      {
+        "cluster_id": "P15266",
+        "protein_count": 8
+      }
+    ],
+    "length_by_cluster_size": {
+      "1": {
+        "cluster_count": 847,
+        "length_max": 5206,
+        "length_median": 385.0,
+        "length_min": 70,
+        "protein_count": 847
+      },
+      "10": {
+        "cluster_count": 1,
+        "length_max": 464,
+        "length_median": 359.0,
+        "length_min": 298,
+        "protein_count": 10
+      },
+      "12": {
+        "cluster_count": 2,
+        "length_max": 752,
+        "length_median": 455.0,
+        "length_min": 310,
+        "protein_count": 24
+      },
+      "15": {
+        "cluster_count": 1,
+        "length_max": 568,
+        "length_median": 550.0,
+        "length_min": 527,
+        "protein_count": 15
+      },
+      "17": {
+        "cluster_count": 1,
+        "length_max": 575,
+        "length_median": 501.0,
+        "length_min": 462,
+        "protein_count": 17
+      },
+      "2": {
+        "cluster_count": 105,
+        "length_max": 7096,
+        "length_median": 392.5,
+        "length_min": 92,
+        "protein_count": 210
+      },
+      "3": {
+        "cluster_count": 31,
+        "length_max": 2116,
+        "length_median": 386.0,
+        "length_min": 147,
+        "protein_count": 93
+      },
+      "38": {
+        "cluster_count": 1,
+        "length_max": 304,
+        "length_median": 259.0,
+        "length_min": 244,
+        "protein_count": 38
+      },
+      "4": {
+        "cluster_count": 9,
+        "length_max": 517,
+        "length_median": 351.0,
+        "length_min": 112,
+        "protein_count": 36
+      },
+      "5": {
+        "cluster_count": 6,
+        "length_max": 433,
+        "length_median": 344.0,
+        "length_min": 225,
+        "protein_count": 30
+      },
+      "6": {
+        "cluster_count": 7,
+        "length_max": 1623,
+        "length_median": 336.0,
+        "length_min": 149,
+        "protein_count": 42
+      },
+      "7": {
+        "cluster_count": 2,
+        "length_max": 3432,
+        "length_median": 1837.0,
+        "length_min": 231,
+        "protein_count": 14
+      },
+      "8": {
+        "cluster_count": 2,
+        "length_max": 216,
+        "length_median": 181.0,
+        "length_min": 137,
+        "protein_count": 16
+      },
+      "9": {
+        "cluster_count": 2,
+        "length_max": 682,
+        "length_median": 535.0,
+        "length_min": 334,
+        "protein_count": 18
+      }
+    },
+    "protein_count": 1410,
+    "singleton_cluster_count": 847,
+    "singleton_fraction": 0.8328416912487709
+  },
+  "coverage_source_counts": {
+    "DYNAMICMPNN_SUBSET": 365,
+    "ESM_IF1_LOCAL_RESPONSE": 1359,
+    "GEOMETRY_EVALUABLE": 113,
+    "LIGAND_LOCALIZATION": 1267,
+    "MODEL_EVALUABLE": 1394,
+    "PRIMARY_ADMITTED": 1410,
+    "PROTEINMPNN_LOCAL_RESPONSE": 1393,
+    "SHARED_GENERATIVE_COHORT": 1357
+  },
+  "inputs": {
+    "candidate_path": "experiments/interventions/biological_states/apo_holo_selective_admission_release/primary_pairs.parquet",
+    "canonical_fasta": "experiments/comparisons/method_design/identity_split/canonical_sequences.fasta",
+    "canonical_fasta_sha256": "da1397f98e0831843a031b7ca6a9068b9524fa93f9af0dd0349a0fa30934cc92",
+    "canonical_sequence_dir": "data/raw/apo_holo/uniprot",
+    "cluster_tsv": "experiments/comparisons/method_design/identity_split/identity_clusters.tsv",
+    "cluster_tsv_sha256": "be42181a9471bb3a162d1890c47de7031b67d41e6066c18b4e836f0088917d7b",
+    "mmseqs_hits_tsv": "runs/analysis/identity_split_mmseqs_v6/identity_hits.tsv",
+    "mmseqs_hits_tsv_sha256": "dfc68b482a3becbe6133ab31aaad47d7e784297733e493f407e73096463ba9ee",
+    "seed": 20260817
+  },
+  "leakage_audit": {
+    "pairs_checked": 3,
+    "violation_count": 0
+  },
+  "schema_version": "dual_uq_identity_split_freeze_v1",
+  "split_summary": {
+    "candidate_protein_count": 1410,
+    "candidate_rows": 1410,
+    "cluster_count": 1017,
+    "leakage_violation_count": 0,
+    "split_protein_counts": {
+      "LOCKED_TEST": 212,
+      "TRAIN": 986,
+      "VALIDATION": 212
+    },
+    "split_rows": {
+      "LOCKED_TEST": 212,
+      "TRAIN": 986,
+      "VALIDATION": 212
+    },
+    "status": "READY"
+  },
+  "status": "READY",
+  "terminology": "Dual-UQ 30%-identity cluster; internal locked test",
+  "tool": {
+    "algorithm_selection_note": "A diagnostic set-cover run produced 17 cross-split threshold hits; it was not frozen. The final contract uses connected components of the same MMseqs2 identity/coverage hits, with no protein deletion or manual cluster splitting.",
+    "cluster_command": "/mnt/data/users/zbc/software/miniconda/envs/proteinopd/bin/mmseqs easy-search experiments/comparisons/method_design/identity_split/canonical_sequences.fasta experiments/comparisons/method_design/identity_split/canonical_sequences.fasta runs/analysis/identity_split_mmseqs_v6/identity_hits.tsv runs/analysis/identity_split_mmseqs_v6/all_vs_all_tmp --min-seq-id 0.3 -c 0.8 --cov-mode 0 --max-seqs 100000 --add-self-matches 1 --format-output query,target,pident,alnlen,qcov,tcov",
+    "clustering_mode": "connected_components",
+    "clustering_mode_semantics": "connected components of thresholded MMseqs2 all-vs-all hits",
+    "cov_mode": 0,
+    "cov_mode_semantics": "coverage of query and target",
+    "coverage": 0.8,
+    "executable": "/mnt/data/users/zbc/software/miniconda/envs/proteinopd/bin/mmseqs",
+    "min_sequence_identity": 0.3,
+    "version": "18.8cc5c"
+  }
+}

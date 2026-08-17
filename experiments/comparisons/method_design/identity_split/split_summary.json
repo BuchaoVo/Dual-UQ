@@ -1,0 +1,17 @@
+{
+  "candidate_protein_count": 1410,
+  "candidate_rows": 1410,
+  "cluster_count": 1017,
+  "leakage_violation_count": 0,
+  "split_protein_counts": {
+    "LOCKED_TEST": 212,
+    "TRAIN": 986,
+    "VALIDATION": 212
+  },
+  "split_rows": {
+    "LOCKED_TEST": 212,
+    "TRAIN": 986,
+    "VALIDATION": 212
+  },
+  "status": "READY"
+}

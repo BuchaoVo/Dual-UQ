@@ -1,0 +1,597 @@
+{
+  "admitted_pair_count": 1636,
+  "admitted_protein_count": 1410,
+  "alternative_pair_count": 226,
+  "attrition_funnel": {
+    "alternative_pair": 226,
+    "assembly_compatible": 1944,
+    "candidate_pair": 4246,
+    "construct_compatible": 4246,
+    "final_admitted": 1636,
+    "ligand_state_resolved": 4246,
+    "mapping_compatible": 3349,
+    "primary_pair": 1410,
+    "raw_asset_valid_pair": 4171,
+    "same_uniprot_entity_bound": 4246,
+    "sequence_compatible": 4055
+  },
+  "attrition_primary_reason_counts": {
+    "assembly_context_not_comparable": 1691,
+    "common_coverage_below_threshold": 727,
+    "raw_asset_unresolved": 75,
+    "sequence_identity_below_threshold": 53,
+    "sequence_identity_unavailable": 64
+  },
+  "attrition_summary_row_count": 16,
+  "candidate_pair_count": 4246,
+  "candidate_structure_count": 7576,
+  "census_total_rows": 308991,
+  "cluster_assignment_row_count": 3047,
+  "cluster_assignment_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+  "cohort_definitions": {
+    "GEOMETRY_EVALUABLE": "primary pairs with exact canonical-coordinate geometry descriptors; 132 pairs have zero proximal residues but retain an explicit zero-contact result",
+    "LIGAND_LOCALIZATION_EVALUABLE": "geometry-evaluable pairs with at least one recorded ligand-proximal residue row; zero-contact pairs remain usable for geometry but not proximal-residue summaries",
+    "MODEL_EVALUABLE": "primary pairs with exact common mapping and complete N/CA/C/O backbone atoms on both states; ESM-IF1 N/CA/C preflight also passes",
+    "PRIMARY_ADMITTED": "all 1,410 outcome-blind admitted primary pairs"
+  },
+  "decision": "LIMITED",
+  "esm_if1_evaluable_pair_count": 1394,
+  "funnel_status": "strict admission retained; model and geometry evaluability are reported separately; independent clustering remains unresolved without a frozen 30%-identity source",
+  "geometry_available_pair_count": 1399,
+  "geometry_evaluable_pair_count": 1399,
+  "geometry_evaluable_protein_count": 1399,
+  "geometry_failure_count": 11,
+  "geometry_failure_reason_counts": {
+    "mapping_correspondence_limitation": 11
+  },
+  "geometry_repair": {
+    "admission_decisions_changed": false,
+    "applied": true,
+    "final_unavailable_pairs": 11,
+    "reason": "technical coordinate/mapping-array alignment bug in the prior descriptor implementation",
+    "scientific_semantics_changed": false
+  },
+  "historical_geometry_failure_count_before_repair": 1250,
+  "independent_30pct_identity_clusters": null,
+  "independent_cluster_counts": {
+    "GEOMETRY_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1399,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 305.0,
+        "min": 3.0,
+        "n": 1399,
+        "q90": 571.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9976905311778291,
+        "min": 0.9008264462809917,
+        "n": 1399,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 329.0,
+        "min": 9.0,
+        "n": 1399,
+        "q90": 632.4000000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1399,
+      "protein_count": 1399,
+      "unavailable_pair_count": 11
+    },
+    "LIGAND_LOCALIZATION_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1267,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 312.0,
+        "min": 4.0,
+        "n": 1267,
+        "q90": 578.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9972948602344455,
+        "min": 0.9008264462809917,
+        "n": 1267,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 334.0,
+        "min": 10.0,
+        "n": 1267,
+        "q90": 662.8000000000002
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1267,
+      "protein_count": 1267,
+      "unavailable_pair_count": 143
+    },
+    "MODEL_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1394,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 303.5,
+        "min": 3.0,
+        "n": 1394,
+        "q90": 570.7
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9975197283848865,
+        "min": 0.9008264462809917,
+        "n": 1394,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 328.5,
+        "min": 9.0,
+        "n": 1394,
+        "q90": 633.4000000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1394,
+      "protein_count": 1394,
+      "unavailable_pair_count": 16
+    },
+    "PRIMARY_ADMITTED": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1410,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 305.0,
+        "min": 3.0,
+        "n": 1399,
+        "q90": 571.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9981112796303021,
+        "min": 0.9008264462809917,
+        "n": 1410,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 329.0,
+        "min": 7.0,
+        "n": 1410,
+        "q90": 648.700000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1410,
+      "protein_count": 1410,
+      "unavailable_pair_count": 0
+    }
+  },
+  "ligand_localization_evaluable_pair_count": 1267,
+  "ligand_localization_evaluable_protein_count": 1267,
+  "metadata_candidate_pair_count": 411221,
+  "metadata_potential_protein_count": 12485,
+  "metadata_potential_protein_count_with_apo": 12485,
+  "model_evaluable_pair_count": 1394,
+  "model_evaluable_protein_count": 1394,
+  "model_unavailable_pair_count": 16,
+  "next": "APO_HOLO_CROSS_MODEL_LOCAL_RESPONSE",
+  "no_inverse_folding_scoring": true,
+  "no_model_execution": true,
+  "no_outcome_used_for_selection": true,
+  "non_dominated_pair_count": 4244,
+  "pair_admission_frozen": true,
+  "primary_pair_count": 1410,
+  "proteins_with_both_states": 3047,
+  "proteins_with_resolved_apo": 12485,
+  "proteins_with_resolved_holo": 3047,
+  "q1_state_pair_availability": {
+    "candidate_pairs_after_raw_selection": 4246,
+    "proteins_with_both_states": 3047,
+    "state_resolved_candidate_pairs": 4246
+  },
+  "q2_strict_admission": {
+    "admitted_pairs": 1636,
+    "admitted_proteins": 1410,
+    "interpretation": "strict contract applied without structural outcomes",
+    "primary_pairs": 1410
+  },
+  "q3_redundancy": {
+    "reason": "no frozen 30%-identity clustering source; no cluster inference",
+    "status": "UNRESOLVED"
+  },
+  "q4_attrition": {
+    "primary_reason_counts": {
+      "assembly_context_not_comparable": 1691,
+      "common_coverage_below_threshold": 727,
+      "raw_asset_unresolved": 75,
+      "sequence_identity_below_threshold": 53,
+      "sequence_identity_unavailable": 64
+    }
+  },
+  "raw_unresolved_structure_count": 67,
+  "raw_valid_pair_count": 4171,
+  "raw_valid_structure_count": 7509,
+  "release_status": "FINALIZED_LIMITED",
+  "selection_characterization": {
+    "GEOMETRY_EVALUABLE_vs_unavailable": {
+      "evaluable": {
+        "assembly_comparable_fraction": 1.0,
+        "canonical_sequence_length": {
+          "max": 4966.0,
+          "median": 335.0,
+          "min": 9.0,
+          "n": 1399,
+          "q90": 640.8000000000004
+        },
+        "common_fraction": {
+          "max": 1.0,
+          "median": 0.9976905311778291,
+          "min": 0.9008264462809917,
+          "n": 1399,
+          "q90": 1.0
+        },
+        "common_mapped_count": {
+          "max": 4966.0,
+          "median": 329.0,
+          "min": 9.0,
+          "n": 1399,
+          "q90": 632.4000000000001
+        },
+        "coordinate_visible_fraction": {
+          "max": 1.0,
+          "median": 0.9509803921568627,
+          "min": 0.08913649025069638,
+          "n": 1399,
+          "q90": 1.0
+        },
+        "experimental_method_comparable_fraction": 0.9571122230164403,
+        "holo_ligand_class_group_counts": {
+          "biological_small_molecule": 964,
+          "cofactor": 435
+        },
+        "holo_ligand_component_count": {
+          "max": 9.0,
+          "median": 2.0,
+          "min": 1.0,
+          "n": 1399,
+          "q90": 4.0
+        },
+        "ligand_proximal_count": {
+          "max": 385.0,
+          "median": 37.0,
+          "min": 0.0,
+          "n": 1399,
+          "q90": 77.20000000000005
+        },
+        "model_backbone_fraction": {
+          "max": 1.0,
+          "median": 0.9541284403669725,
+          "min": 0.0,
+          "n": 1399,
+          "q90": 1.0
+        },
+        "sequence_identity": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.9546191247974068,
+          "n": 1399,
+          "q90": 1.0
+        }
+      },
+      "interpretation": "descriptive only; the 11 unavailable pairs are correspondence-limited after a lossless geometry implementation repair and are not admission failures",
+      "unavailable": {
+        "assembly_comparable_fraction": 1.0,
+        "canonical_sequence_length": {
+          "max": 1143.0,
+          "median": 159.0,
+          "min": 7.0,
+          "n": 11,
+          "q90": 840.0
+        },
+        "common_fraction": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.963855421686747,
+          "n": 11,
+          "q90": 1.0
+        },
+        "common_mapped_count": {
+          "max": 1143.0,
+          "median": 159.0,
+          "min": 7.0,
+          "n": 11,
+          "q90": 840.0
+        },
+        "coordinate_visible_fraction": {
+          "max": null,
+          "median": null,
+          "min": null,
+          "n": 0,
+          "q90": null
+        },
+        "experimental_method_comparable_fraction": 0.5454545454545454,
+        "holo_ligand_class_group_counts": {
+          "biological_small_molecule": 11
+        },
+        "holo_ligand_component_count": {
+          "max": 5.0,
+          "median": 2.0,
+          "min": 1.0,
+          "n": 11,
+          "q90": 4.0
+        },
+        "ligand_proximal_count": {
+          "max": null,
+          "median": null,
+          "min": null,
+          "n": 0,
+          "q90": null
+        },
+        "model_backbone_fraction": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 11,
+          "q90": 0.0
+        },
+        "sequence_identity": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.9855072463768116,
+          "n": 11,
+          "q90": 1.0
+        }
+      }
+    },
+    "MODEL_EVALUABLE_vs_unavailable": {
+      "evaluable": {
+        "assembly_comparable_fraction": 1.0,
+        "canonical_sequence_length": {
+          "max": 4966.0,
+          "median": 335.0,
+          "min": 9.0,
+          "n": 1394,
+          "q90": 645.3000000000004
+        },
+        "common_fraction": {
+          "max": 1.0,
+          "median": 0.9975197283848865,
+          "min": 0.9008264462809917,
+          "n": 1394,
+          "q90": 1.0
+        },
+        "common_mapped_count": {
+          "max": 4966.0,
+          "median": 328.5,
+          "min": 9.0,
+          "n": 1394,
+          "q90": 633.4000000000001
+        },
+        "coordinate_visible_fraction": {
+          "max": 1.0,
+          "median": 0.9509402779114919,
+          "min": 0.08913649025069638,
+          "n": 1394,
+          "q90": 1.0
+        },
+        "experimental_method_comparable_fraction": 0.9583931133428981,
+        "holo_ligand_class_group_counts": {
+          "biological_small_molecule": 961,
+          "cofactor": 433
+        },
+        "holo_ligand_component_count": {
+          "max": 9.0,
+          "median": 2.0,
+          "min": 1.0,
+          "n": 1394,
+          "q90": 4.0
+        },
+        "ligand_proximal_count": {
+          "max": 385.0,
+          "median": 37.0,
+          "min": 0.0,
+          "n": 1394,
+          "q90": 77.0
+        },
+        "model_backbone_fraction": {
+          "max": 1.0,
+          "median": 0.9542670401493931,
+          "min": 0.08913649025069638,
+          "n": 1394,
+          "q90": 1.0
+        },
+        "sequence_identity": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.9546191247974068,
+          "n": 1394,
+          "q90": 1.0
+        }
+      },
+      "interpretation": "descriptive only; model-unavailable pairs are slightly longer and have lower complete-backbone coverage by construction, while admission fields remain comparable",
+      "unavailable": {
+        "assembly_comparable_fraction": 1.0,
+        "canonical_sequence_length": {
+          "max": 1143.0,
+          "median": 440.0,
+          "min": 7.0,
+          "n": 16,
+          "q90": 840.0
+        },
+        "common_fraction": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.901453957996769,
+          "n": 16,
+          "q90": 1.0
+        },
+        "common_mapped_count": {
+          "max": 1143.0,
+          "median": 440.0,
+          "min": 7.0,
+          "n": 16,
+          "q90": 840.0
+        },
+        "coordinate_visible_fraction": {
+          "max": 0.9930555555555556,
+          "median": 0.978494623655914,
+          "min": 0.9224952741020794,
+          "n": 5,
+          "q90": 0.989463906581741
+        },
+        "experimental_method_comparable_fraction": 0.5625,
+        "holo_ligand_class_group_counts": {
+          "biological_small_molecule": 14,
+          "cofactor": 2
+        },
+        "holo_ligand_component_count": {
+          "max": 5.0,
+          "median": 2.0,
+          "min": 1.0,
+          "n": 16,
+          "q90": 3.5
+        },
+        "ligand_proximal_count": {
+          "max": 78.0,
+          "median": 32.0,
+          "min": 24.0,
+          "n": 5,
+          "q90": 76.8
+        },
+        "model_backbone_fraction": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 16,
+          "q90": 0.0
+        },
+        "sequence_identity": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.9855072463768116,
+          "n": 16,
+          "q90": 1.0
+        }
+      }
+    }
+  },
+  "state_characterization": {
+    "contact_change_burden": {
+      "contact_turnover_fraction": {
+        "max": 1.0,
+        "median": 0.0,
+        "min": 0.0,
+        "n": 491042,
+        "q90": 0.2
+      },
+      "fraction_with_nonzero_contact_turnover": 0.3851503537375622,
+      "residue_rows": 491042
+    },
+    "dynamic_range_interpretation": "descriptor ranges include near-small, localized, and broader state changes; no composite severity score or outcome-based threshold was introduced",
+    "global_aligned_ca_rmsd": {
+      "max": 34.24945356680123,
+      "median": 0.8300514596759246,
+      "min": 2.0491171525470467e-14,
+      "n": 1399,
+      "q90": 3.555650808367689
+    },
+    "ligand_relative": {
+      "ligand_distal_local_change": {
+        "max": 48.28777769898898,
+        "median": 0.11757560046908683,
+        "min": 0.0,
+        "n": 429907,
+        "q90": 0.4681908483493153
+      },
+      "ligand_distal_residue_displacement": {
+        "max": 91.78943103233894,
+        "median": 0.5192763297656727,
+        "min": 0.0,
+        "n": 429909,
+        "q90": 3.7655177602201624
+      },
+      "ligand_proximal_local_change": {
+        "max": 34.26599639023856,
+        "median": 0.13256832855469278,
+        "min": 0.0,
+        "n": 61135,
+        "q90": 0.6316817331380296
+      },
+      "ligand_proximal_residue_displacement": {
+        "max": 77.99809437591696,
+        "median": 0.5215267715111828,
+        "min": 4.440892098500626e-16,
+        "n": 61135,
+        "q90": 3.3977530821343502
+      },
+      "ligand_site_rows": 61135,
+      "pair_ligand_distal_median_displacement": {
+        "max": 25.62371971942867,
+        "median": 0.44053480353446867,
+        "min": 8.881784197001252e-15,
+        "n": 1398,
+        "q90": 2.278323344812419
+      },
+      "pair_ligand_proximal_median_displacement": {
+        "max": 25.392242439709445,
+        "median": 0.4787152965995784,
+        "min": 2.8532515735351556e-14,
+        "n": 1267,
+        "q90": 2.5779936680131823
+      },
+      "pairs_with_proximal_residue": 1267,
+      "pairs_with_zero_proximal_residue": 132
+    },
+    "local_pairwise_distance_change": {
+      "max": 2.2594665601183466,
+      "median": 0.11100053825261433,
+      "min": 1.4136839846893661e-15,
+      "n": 1399,
+      "q90": 0.29261957835043456
+    },
+    "median_residue_displacement": {
+      "max": 25.479562365449006,
+      "median": 0.4437097852618725,
+      "min": 1.0048591735576161e-14,
+      "n": 1399,
+      "q90": 2.2872650009540587
+    },
+    "pair_count": 1399,
+    "upper_tail_displacement": {
+      "max": 55.21250569847893,
+      "median": 1.0332075077930352,
+      "min": 2.95110562224397e-14,
+      "n": 1399,
+      "q90": 5.069683591958383
+    }
+  },
+  "state_resolved_protein_count": 12485,
+  "state_resolved_structure_counts": {
+    "apo": 75677,
+    "holo": 20841,
+    "unresolved": 74389
+  },
+  "strict_admission_criteria": {
+    "assembly_comparability": "comparable",
+    "max_construct_mismatch": 0,
+    "min_common_fraction": 0.9,
+    "min_sequence_identity": 0.95,
+    "outcome_blind": true,
+    "state_pair_status": "resolved"
+  },
+  "strictly_excluded_pair_count": 2535,
+  "summary_role": "selective_admission_release_summary",
+  "unique_pdb_entry_count": 6004,
+  "unique_structure_entity_count": 7576,
+  "unresolved_asset_pair_count": 75,
+  "upstream_descriptor_comparison": "unavailable: newly discovered apo/holo proteins do not overlap the frozen PDB/AFDB descriptor cohorts"
+}

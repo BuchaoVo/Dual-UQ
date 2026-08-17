@@ -1,0 +1,60 @@
+{
+  "convergence_sample_counts": [
+    16,
+    32,
+    64
+  ],
+  "cross_model_generation_spearman": {
+    "d_excess_64": 0.7235314836678607,
+    "generative_js_burden": 0.78042013728218
+  },
+  "esm_if1_generation_protein_count": 1359,
+  "esm_if1_only_generation_proteins": [
+    "P0A8I8",
+    "P44868"
+  ],
+  "geometry_valid_protein_count": 1357,
+  "interpretation_boundary": "Protein-level descriptive generative propagation only; no biological fitness, function, stability, causality, or ligand-mechanism claim.",
+  "local_response_observed_n": 1357,
+  "local_response_observed_shared_spearman": 0.7834792418668111,
+  "local_response_reference_spearman": 0.783822,
+  "model_summaries": {
+    "esm_if1": {
+      "d_excess_64": {
+        "median": 0.2464505224500012,
+        "q10": 0.14462565342958356,
+        "q90": 0.37191475581412753
+      },
+      "d_excess_positive_count": 1355,
+      "d_excess_positive_fraction": 0.9985261606484893,
+      "generative_js_burden_bits_64": {
+        "median": 0.29270440283733634,
+        "q10": 0.1700928101266747,
+        "q90": 0.4667197232986421
+      },
+      "protein_count": 1357
+    },
+    "proteinmpnn": {
+      "d_excess_64": {
+        "median": 0.12598214446346334,
+        "q10": 0.04782584641902436,
+        "q90": 0.27567748057979125
+      },
+      "d_excess_positive_count": 1353,
+      "d_excess_positive_fraction": 0.9970523212969786,
+      "generative_js_burden_bits_64": {
+        "median": 0.18909516540901075,
+        "q10": 0.0814472061688277,
+        "q90": 0.40853452296057363
+      },
+      "protein_count": 1357
+    }
+  },
+  "primary_requested_protein_count": 1359,
+  "protein_unit": "protein",
+  "proteinmpnn_generation_protein_count": 1357,
+  "proteinmpnn_only_generation_proteins": [],
+  "schema_version": "apo_holo_generative_cross_model_summary_v1",
+  "shared_generation_protein_count": 1357,
+  "verdict": "LIMITED_PRIMARY_INTERSECTION"
+}

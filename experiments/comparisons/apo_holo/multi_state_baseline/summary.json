@@ -1,0 +1,118 @@
+{
+  "associations": [
+    {
+      "descriptor": "proteinmpnn_d_excess_64",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.3552796346863838,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_d_excess_64",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.47515418939944987,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "proteinmpnn_js_bits_mean_64",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.3624343691568704,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_js_bits_mean_64",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.4983220231317307,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "proteinmpnn_local_burden_mean",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.21745714276686115,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_local_burden_mean",
+      "evaluator": "ESM-IF1",
+      "n_proteins": 1357,
+      "spearman_rho": 0.3589844888238395,
+      "target": "esm_if1_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "proteinmpnn_d_excess_64",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.6753892695324893,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_d_excess_64",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.47786796643391244,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "proteinmpnn_js_bits_mean_64",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.6737152737035621,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_js_bits_mean_64",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.4913098473269972,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "proteinmpnn_local_burden_mean",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.7353335413206289,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    },
+    {
+      "descriptor": "esm_if1_local_burden_mean",
+      "evaluator": "ProteinMPNN",
+      "n_proteins": 1357,
+      "spearman_rho": 0.6168356962826765,
+      "target": "proteinmpnn_multi_minus_best_single_worst"
+    }
+  ],
+  "diversity_definition": "mean marginal pairwise Hamming fraction within protein; between-condition divergence is marginal only",
+  "evaluators": [
+    "ESM-IF1",
+    "ProteinMPNN"
+  ],
+  "input_protein_count": {
+    "ESM_IF1_multi": 1357,
+    "ESM_IF1_single": 1357,
+    "ProteinMPNN_multi": 1357,
+    "ProteinMPNN_single": 1357
+  },
+  "model_level_endpoint_medians": {
+    "esm_if1": {
+      "multi_minus_best_single_worst": -219.7418808586332,
+      "multi_state_gap": 35.812184781631004,
+      "multi_worst_compat": -129.9728829619184
+    },
+    "proteinmpnn": {
+      "multi_minus_best_single_worst": 37.57781635224819,
+      "multi_state_gap": 9.327167347073555,
+      "multi_worst_compat": 166.6805899105966
+    }
+  },
+  "multi_minus_best_single_definition": "MULTI median endpoint minus max(APO median, HOLO median), higher score direction retained without biological interpretation",
+  "output_columns": 105,
+  "output_rows": 1357,
+  "primary_endpoint": "worst_compat",
+  "protein_count": 1357,
+  "q1_divergence_excess_median": 0.12598214446346362,
+  "q1_divergence_excess_positive_fraction": 0.9970523212969786
+}

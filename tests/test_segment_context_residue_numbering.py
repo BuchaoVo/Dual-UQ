@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def segment_script() -> ModuleType:
-    path = ROOT / "scripts" / "11_characterize_disagreement_segments.py"
+    path = ROOT / "scripts" / "analysis" / "characterize_disagreement_segments.py"
     spec = spec_from_file_location("segment_context_script", path)
     assert spec is not None and spec.loader is not None
     module = module_from_spec(spec)

@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from dual_uq.a0_classification import compute_pae_strata
+from dual_uq.dataset.classification import compute_pae_strata
 from dual_uq.geometry import kabsch_align
 from dual_uq.mapped_confidence import (
     build_mapped_confidence_residue_table,

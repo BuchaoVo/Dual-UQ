@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 import yaml
 
-from dual_uq.a0_classification import (
+from dual_uq.dataset.classification import (
     A0Evidence,
     DisagreementSegment,
     PaeStratumStats,

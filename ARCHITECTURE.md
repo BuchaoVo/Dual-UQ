@@ -913,11 +913,29 @@ Potential modules:
 
 ```text
 inference/
-├── runner.py
-├── batching.py
-├── device.py
+├── formal.py
 └── materialization.py
 ```
+
+`dual_uq.inference.formal` owns model-independent formal request inventory,
+deterministic orchestration identities, artifact-binding decisions, derived
+resume/reuse state, fresh-work selection, and scorer-dispatch composition.
+The orchestration identity is deterministically derived from the scientific
+fingerprint, but remains a distinct operational role; artifact paths never
+enter the scientific request identity. Inventory tables are immutable derived
+snapshots, not mutable status databases.
+
+`dual_uq.inference.materialization` exclusively owns validation, discovery,
+atomic persistence, and immutable-conflict handling for normalized formal
+score shards. It delegates record-level correctness to the shared
+`ScoreRequest`/`ScoreRecord` dispatch validator rather than introducing a
+second resume contract.
+
+Workflow adapters may prove exact historical compatibility under an
+authoritative reuse policy. Authorization and per-request compatibility remain
+separate predicates. Accepted historical results are copied through the same
+canonical materializer with source execution/artifact, reuse-contract, and
+compatibility-validation provenance; source artifacts remain immutable.
 
 Model architecture and checkpoint-specific behavior remain owned by model adapters.
 
@@ -1280,6 +1298,16 @@ counterfactual_analysis
 ```
 
 Historical roadmap IDs may remain in metadata.
+
+Dataset construction and release experiments use the semantic namespace
+`experiments/dataset/`.  Its subdirectories separate construction
+(`construction/sampling_frame`, `construction/admission`,
+`construction/full_frame`, `construction/redundancy`, and
+`construction/expansion`) from release material (`releases/cohort`,
+`releases/scoring_protocol`, and `releases/confirmatory`) and derived
+evaluation (`analysis/structural_response` and `analysis/pair_validity`).
+Historical paths such as `scale1a1` and `scale1b_v2` remain read-only inputs
+when frozen manifests bind them; they are not active output namespaces.
 
 ---
 

@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import yaml
 
-from dual_uq.lifecycle import build_candidate_lifecycle
+from dual_uq.lifecycle import build_candidate_lifecycle, write_lifecycle_outputs
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,14 +21,6 @@ def _load_script(filename: str, module_name: str) -> ModuleType:
     module = module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-@pytest.fixture
-def lifecycle_script() -> ModuleType:
-    return _load_script(
-        "21_build_candidate_lifecycle.py",
-        "candidate_lifecycle_script",
-    )
 
 
 @pytest.fixture
@@ -68,7 +60,6 @@ def _write_lifecycle(path: Path, rows: list[dict[str, object]]) -> None:
 
 
 def test_lifecycle_custom_output_paths_do_not_overwrite_each_other(
-    lifecycle_script: ModuleType,
     tmp_path: Path,
 ) -> None:
     original_csv = tmp_path / "original.csv"
@@ -76,13 +67,13 @@ def test_lifecycle_custom_output_paths_do_not_overwrite_each_other(
     replacement_csv = tmp_path / "replacement.csv"
     replacement_audit = tmp_path / "replacement.json"
 
-    lifecycle_script.write_lifecycle_outputs(
+    write_lifecycle_outputs(
         pd.DataFrame([{"screening_index": 1}]),
         {"cohort": "original"},
         output_csv=original_csv,
         output_audit=original_audit,
     )
-    lifecycle_script.write_lifecycle_outputs(
+    write_lifecycle_outputs(
         pd.DataFrame([{"screening_index": 101}]),
         {"cohort": "replacement"},
         output_csv=replacement_csv,
@@ -94,35 +85,6 @@ def test_lifecycle_custom_output_paths_do_not_overwrite_each_other(
     assert '"original"' in original_audit.read_text(encoding="utf-8")
     assert '"replacement"' in replacement_audit.read_text(encoding="utf-8")
     assert not list(tmp_path.glob("*.tmp"))
-
-
-def test_lifecycle_output_argument_defaults_are_backward_compatible(
-    lifecycle_script: ModuleType,
-) -> None:
-    args = lifecycle_script.parse_args(["--project-root", "/project"])
-
-    assert args.output_csv == "reports/candidate_lifecycle.csv"
-    assert args.output_audit == "reports/candidate_lifecycle_audit.json"
-
-
-def test_lifecycle_output_arguments_accept_independent_paths(
-    lifecycle_script: ModuleType,
-) -> None:
-    args = lifecycle_script.parse_args(
-        [
-            "--project-root",
-            "/project",
-            "--output-csv",
-            "reports/replacement_candidate_lifecycle.csv",
-            "--output-audit",
-            "reports/replacement_candidate_lifecycle_audit.json",
-        ]
-    )
-
-    assert args.output_csv.endswith("replacement_candidate_lifecycle.csv")
-    assert args.output_audit.endswith(
-        "replacement_candidate_lifecycle_audit.json"
-    )
 
 
 def test_lifecycle_builder_accepts_pool_with_embedded_preflight_fields(

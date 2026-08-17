@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import re
 import subprocess
+import weakref
 from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import pairwise
@@ -29,6 +30,9 @@ AUTHORIZED_IMPLEMENTATION_COMMIT = "8907e6671bfbfc92303b5f79c4b5e6ce47cdef57"
 AUTHORIZED_CHECKPOINT_SHA256 = (
     "c9cb4a671d79604111231f8dbfc7c590e06f1197453b7a6854ac6661a642f5bd"
 )
+_AUTHORIZED_PROTEINMPNN_ADAPTERS: weakref.WeakValueDictionary[
+    int, ProteinMPNNAdapter
+] = weakref.WeakValueDictionary()
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
@@ -163,6 +167,7 @@ class ProteinMPNNAdapter:
     checkpoint_noise_level: float
     implementation_id: str
     checkpoint_id: str
+    _tied_featurize: Callable[..., Any] | None = None
 
     def score_sequences(
         self,
@@ -173,6 +178,56 @@ class ProteinMPNNAdapter:
         batch_size: int,
     ) -> tuple[ProteinMPNNScore, ...]:
         """Score projected sequences without generation or fresh randomness."""
+        results: list[ProteinMPNNScore] = []
+        for log_probs, target_indices in self._forward_log_probs(
+            structure, sequences, realization, batch_size=batch_size
+        ):
+            results.extend(score_target_log_probs(log_probs, target_indices))
+        return tuple(results)
+
+    def probability_distributions(
+        self,
+        structure: ProteinMPNNStructureInput,
+        sequences: tuple[str, ...],
+        realization: DecodingRealization,
+        *,
+        batch_size: int,
+    ) -> tuple[np.ndarray, ...]:
+        """Return model-native standard-20-AA distributions for each sequence.
+
+        ProteinMPNN exposes a 21-token alphabet including ``X``.  This local
+        response analysis uses the normalized standard-20-AA marginal only;
+        the frozen target-score path remains unchanged.
+        """
+        distributions: list[np.ndarray] = []
+        for log_probs, _target_indices in self._forward_log_probs(
+            structure, sequences, realization, batch_size=batch_size
+        ):
+            values = np.asarray(log_probs, dtype=np.float64)
+            if values.ndim != 3 or values.shape[2] < len(STANDARD_AMINO_ACIDS):
+                raise ProteinMPNNScoringError(
+                    "invalid_log_probs", "ProteinMPNN output lacks standard 20-AA logits"
+                )
+            standard = values[..., : len(STANDARD_AMINO_ACIDS)]
+            maximum = np.max(standard, axis=-1, keepdims=True)
+            weights = np.exp(standard - maximum)
+            normalizer = weights.sum(axis=-1, keepdims=True)
+            if not np.isfinite(weights).all() or not np.isfinite(normalizer).all() or (normalizer <= 0).any():
+                raise ProteinMPNNScoringError(
+                    "nonfinite_distribution", "ProteinMPNN standard-AA distribution is invalid"
+                )
+            distributions.extend(weights / normalizer)
+        return tuple(distributions)
+
+    def _forward_log_probs(
+        self,
+        structure: ProteinMPNNStructureInput,
+        sequences: tuple[str, ...],
+        realization: DecodingRealization,
+        *,
+        batch_size: int,
+    ) -> tuple[tuple[np.ndarray, np.ndarray], ...]:
+        """Run the exact frozen forward path and retain logits plus target indices."""
         validate_structure_input(structure)
         if batch_size <= 0:
             raise ProteinMPNNScoringError(
@@ -198,7 +253,7 @@ class ProteinMPNNAdapter:
             amino_acid: index
             for index, amino_acid in enumerate(PROTEINMPNN_ALPHABET)
         }
-        results: list[ProteinMPNNScore] = []
+        results: list[tuple[np.ndarray, np.ndarray]] = []
         torch = self.torch
         coordinates = np.asarray(structure.coordinates, dtype=np.float32)
         positions = np.asarray(structure.uniprot_positions, dtype=np.int64)
@@ -248,12 +303,21 @@ class ProteinMPNNAdapter:
                     use_input_decoding_order=True,
                     decoding_order=decoding_order,
                 )
-            results.extend(
-                score_target_log_probs(
-                    log_probs.detach().to("cpu").numpy(), target_indices
+            values = np.asarray(log_probs.detach().to("cpu").numpy(), dtype=np.float64)
+            if values.ndim != 3 or values.shape[:2] != target_indices.shape or not np.isfinite(values).all():
+                raise ProteinMPNNScoringError(
+                    "invalid_log_probs", "ProteinMPNN log_probs have invalid shape or values"
                 )
-            )
+            results.append((values, target_indices))
         return tuple(results)
+
+
+def is_authorized_proteinmpnn_adapter(adapter: object) -> bool:
+    """Return whether this exact adapter instance came from the verified loader."""
+    return (
+        isinstance(adapter, ProteinMPNNAdapter)
+        and _AUTHORIZED_PROTEINMPNN_ADAPTERS.get(id(adapter)) is adapter
+    )
 
 
 @dataclass(frozen=True)
@@ -573,6 +637,7 @@ def load_authorized_proteinmpnn_adapter(
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
+        tied_featurize = module.tied_featurize
         checkpoint = torch.load(checkpoint_path, map_location=device_name)
         model = module.ProteinMPNN(
             ca_only=False,
@@ -589,11 +654,11 @@ def load_authorized_proteinmpnn_adapter(
         model.to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.eval()
-    except (OSError, KeyError, RuntimeError, ValueError) as exc:
+    except (AttributeError, OSError, KeyError, RuntimeError, ValueError) as exc:
         raise ProteinMPNNScoringError(
             "model_load_failure", "Authorized ProteinMPNN checkpoint failed to load"
         ) from exc
-    return ProteinMPNNAdapter(
+    adapter = ProteinMPNNAdapter(
         model=model,
         torch=torch,
         device=device,
@@ -601,4 +666,7 @@ def load_authorized_proteinmpnn_adapter(
         checkpoint_noise_level=float(checkpoint["noise_level"]),
         implementation_id=implementation_commit,
         checkpoint_id=checkpoint_id,
+        _tied_featurize=tied_featurize,
     )
+    _AUTHORIZED_PROTEINMPNN_ADAPTERS[id(adapter)] = adapter
+    return adapter

@@ -1,0 +1,15 @@
+{
+  "dynamic_esm_if1_protein_count": 365,
+  "dynamic_esm_if1_sequence_rows": 23360,
+  "dynamic_generation_unavailable_count": 992,
+  "dynamic_generation_unavailable_reasons": {
+    "both_conformations_missing_coordinate": 991,
+    "dynamicmpnn_featurizer_unavailable": 1
+  },
+  "dynamic_pnn_protein_count": 365,
+  "dynamic_pnn_sequence_rows": 23360,
+  "frozen_baseline_protein_count": 1357,
+  "interpretation_scope": "DynamicMPNN-evaluable shared evaluator subset only",
+  "shared_dynamic_protein_count": 365,
+  "verdict": "LIMITED"
+}

@@ -1,0 +1,36 @@
+{
+  "inputs": {
+    "esm_if1_scores": {
+      "path": "runs/analysis/dynamicmpnn_baseline/esm_if1_scores.parquet",
+      "sha256": "ed5e7af7b7beaa56b6b112d874424f7ef4f371247dd50fa35d6f32a94120dcd4"
+    },
+    "frozen_baseline": {
+      "path": "experiments/comparisons/apo_holo/multi_state_baseline/protein_summary.parquet",
+      "sha256": "a9befbafbbd5681bb997dc9ef362a1addbeffc321e971ecb2d7d3b69e0c79f8c"
+    },
+    "generation": {
+      "path": "runs/analysis/dynamicmpnn_baseline",
+      "sequences_sha256": "f30d0dbb5b2a4520cbad5a94f72f56f73ae9a856039fd8586587bbe617530b44"
+    },
+    "proteinmpnn_scores": {
+      "path": "runs/analysis/dynamicmpnn_baseline/proteinmpnn_scores.parquet",
+      "sha256": "42864388839386e4a7dbec43e039f7c857c05c44a1237cbc0a31f66aff395727"
+    }
+  },
+  "schema_version": "dynamicmpnn_baseline_release_v1",
+  "scope": {
+    "dynamic_esm_if1_protein_count": 365,
+    "dynamic_esm_if1_sequence_rows": 23360,
+    "dynamic_generation_unavailable_count": 992,
+    "dynamic_generation_unavailable_reasons": {
+      "both_conformations_missing_coordinate": 991,
+      "dynamicmpnn_featurizer_unavailable": 1
+    },
+    "dynamic_pnn_protein_count": 365,
+    "dynamic_pnn_sequence_rows": 23360,
+    "frozen_baseline_protein_count": 1357,
+    "interpretation_scope": "DynamicMPNN-evaluable shared evaluator subset only",
+    "shared_dynamic_protein_count": 365,
+    "verdict": "LIMITED"
+  }
+}

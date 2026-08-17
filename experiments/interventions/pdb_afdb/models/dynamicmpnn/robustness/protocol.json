@@ -1,0 +1,44 @@
+{
+  "analysis": "dynamicmpnn_baseline_evaluation",
+  "cohort": "frozen_shared_apo_holo_model_evaluable_intersection",
+  "source_repository": "https://github.com/Alex-Abrudan/DynamicMPNN",
+  "source_commit": "1f3e326c0f4d275ee8b3918e4726e19d3eef6c3f",
+  "license": "MIT",
+  "checkpoint_path": "third_party/DynamicMPNN/checkpoints/single_chain_k2.ckpt",
+  "checkpoint_sha256": "7b94e19932cdf5bfb7db0e72e197b57bac32be31609cb9b6f1964d8651e01211",
+  "checkpoint_role": "official_two_conformation_single_chain_inverse_folding",
+  "checkpoint_selection_rationale": "The frozen APO/HOLO input is one aligned chain with exactly two conformations; single_chain_k2 preserves the shared residue axis and jointly pools both conformations without multi-chain or random-conformation selection.",
+  "input_contract": {
+    "canonical_axis": "complete_contiguous_uniprot_axis",
+    "conformations": ["APO", "HOLO"],
+    "backbone_atoms": ["N", "CA", "C"],
+    "missing_coordinates": "virtual_mask_only_no_coordinate_imputation",
+    "sequence_alphabet": "ACDEFGHIKLMNPQRSTVWY",
+    "true_gaps": "never_compressed"
+  },
+  "sampling": {
+    "samples_per_protein": 64,
+    "nested_prefixes": [16, 32, 64],
+    "temperature": 0.1,
+    "seed_derivation": "sha256_semantic_protein_chunk_seed_v1",
+    "training": false
+  },
+  "runtime": {
+    "python_environment": "dual-uq-esm-if1",
+    "torch": "2.12.1+cu130",
+    "torch_geometric": "2.8.0.post1",
+    "torch_scatter": "2.1.2+pt212cu130",
+    "pyg_lib": "0.8.0+pt212cu130",
+    "graphein": "1.7.6",
+    "beartype": "0.22.9",
+    "jaxtyping": "0.3.7",
+    "einops": "0.8.2",
+    "device_policy": "cuda_when_available",
+    "forward_only": true
+  },
+  "comparison_scope": {
+    "evaluators": ["ProteinMPNN", "ESM-IF1"],
+    "outputs": ["MeanCompat", "WorstCompat", "StateGap", "diversity"],
+    "protein_is_primary_unit": true
+  }
+}

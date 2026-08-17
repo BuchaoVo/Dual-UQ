@@ -1,0 +1,32 @@
+{
+  "d_ah_64": {
+    "median": 0.402493427494891,
+    "q10": 0.3066402772690828,
+    "q90": 0.6135898980922667
+  },
+  "d_excess_64": {
+    "median": 0.12598214446346334,
+    "q10": 0.04782584641902436,
+    "q90": 0.27567748057979125
+  },
+  "d_excess_positive_fraction": 0.9970523212969786,
+  "d_excess_positive_proteins": 1353,
+  "generated_record_count": 173696,
+  "generative_js_burden_bits_64": {
+    "median": 0.18909516540901075,
+    "q10": 0.0814472061688277,
+    "q90": 0.40853452296057363
+  },
+  "interpretation": "Hamming distances and position JS describe generated-distribution separation within protein; they are not biological fitness measures.",
+  "model": "ProteinMPNN",
+  "nested_prefixes": [
+    16,
+    32,
+    64
+  ],
+  "position_row_count": 468354,
+  "protein_count": 1357,
+  "sample_count_per_condition": 64,
+  "schema_version": "apo_holo_generative_propagation_summary_v1",
+  "temperature": 0.1
+}

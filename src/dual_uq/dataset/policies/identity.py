@@ -131,3 +131,85 @@ def extract_canonical_sequence(
         "sequence_sha256": prediction["prediction_sequence_sha256"],
         "canonical_sequence_provenance": "full_span_exact_prediction_record",
     }
+
+
+def extract_canonical_sequence_from_source(
+    payload: bytes | str | Sequence[Mapping[str, Any]], accession: str
+) -> dict[str, Any]:
+    """Extract exact canonical sequence from AFDB metadata or UniProtKB JSON."""
+    value: Any
+    if isinstance(payload, bytes):
+        try:
+            value = json.loads(payload)
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise DerivationError(
+                "invalid_metadata", "Canonical sequence source is not valid JSON"
+            ) from exc
+    elif isinstance(payload, str):
+        try:
+            value = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise DerivationError(
+                "invalid_metadata", "Canonical sequence source is not valid JSON"
+            ) from exc
+    else:
+        value = payload
+
+    if not isinstance(value, Mapping) or "primaryAccession" not in value:
+        return extract_canonical_sequence(payload, accession)
+
+    observed_accession = str(value.get("primaryAccession", "")).strip()
+    if observed_accession != accession:
+        raise DerivationError(
+            "exact_identity_mismatch",
+            "UniProtKB primary accession does not match the frozen candidate",
+        )
+    sequence_record = value.get("sequence")
+    if not isinstance(sequence_record, Mapping):
+        raise DerivationError(
+            "missing_canonical_sequence_provenance",
+            "UniProtKB record lacks canonical sequence metadata",
+        )
+    sequence = sequence_record.get("value")
+    declared_length = sequence_record.get("length")
+    if (
+        not isinstance(sequence, str)
+        or not sequence
+        or sequence != sequence.strip()
+        or isinstance(declared_length, bool)
+        or not isinstance(declared_length, int)
+        or declared_length != len(sequence)
+    ):
+        raise DerivationError(
+            "missing_canonical_sequence_provenance",
+            "UniProtKB canonical sequence or declared length is invalid",
+        )
+    source_versions: dict[str, int] = {}
+    entry_audit = value.get("entryAudit")
+    if isinstance(entry_audit, Mapping):
+        for field_name in ("entryVersion", "sequenceVersion"):
+            field_value = entry_audit.get(field_name)
+            if field_value is None:
+                continue
+            if (
+                isinstance(field_value, bool)
+                or not isinstance(field_value, int)
+                or field_value < 1
+            ):
+                raise DerivationError(
+                    "invalid_metadata",
+                    f"UniProtKB {field_name} is invalid",
+                )
+            source_versions[field_name] = field_value
+    return {
+        "accession": accession,
+        "sequence": sequence,
+        "sequence_source_field": "sequence.value",
+        "sequence_length": len(sequence),
+        "sequence_sha256": sha256_bytes(sequence.encode()),
+        "canonical_sequence_provenance": (
+            "exact_uniprotkb_primary_accession_record"
+        ),
+        "source_record_identifier": observed_accession,
+        "source_metadata_versions": source_versions,
+    }

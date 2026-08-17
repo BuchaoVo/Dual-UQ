@@ -1,0 +1,215 @@
+{
+  "admission_contract": {
+    "assembly_comparability": "comparable",
+    "max_construct_mismatch": 0,
+    "min_common_fraction": 0.9,
+    "min_sequence_identity": 0.95,
+    "outcome_blind": true,
+    "state_pair_status": "resolved"
+  },
+  "analysis": "experimental_apo_holo_state_dataset",
+  "artifacts": {
+    "admission_decisions.parquet": "83ad42186abcdac22139cb1b6af588051d0fe27c38abaaeca27b73e87750cd20",
+    "alternative_pairs.parquet": "8818a3b87bfa436ef917eb1c5a1333bda9593060a1d520bc3f155cc4614133e9",
+    "assembly_context.parquet": "c9137ceef7f42afa5185749e7290e8823572c367b42b4429653b5826e5c3efb5",
+    "asset_ledger.parquet": "df5300656b10abd2a77a0fa965d73b6f601c14a8da8a432e6391cb0ec7b55033",
+    "attrition_summary.parquet": "23bc2852ce480343897847c1f1a82f2f6bae4ecc4d2978064d619bd9df85e692",
+    "candidate_pairs.parquet": "83ad42186abcdac22139cb1b6af588051d0fe27c38abaaeca27b73e87750cd20",
+    "candidate_structures.parquet": "cfe07b76f81c7bae9a1079840e33eeb772282c9f49d75bed9445b5e74bee6bed",
+    "cluster_assignments.parquet": "a5017a37b55952cefe720bb73814a5f579ce517d400474babd67dace135b654a",
+    "component_entity_metadata.parquet": "011cef93931aba2163d2468084f1a7ed903b1607f1e4bf79fdd0a3f26c3bddd3",
+    "component_inventory.parquet": "0bafd575ca7e6be9c3410fcdb237bcce8dc9b42b021e58921b48fea69c307f6e",
+    "component_reference.parquet": "a33cabcb7717ed8f8cca48adf8936f51457a05dc41f239234ac7bc299eb4034c",
+    "geometry_failure_diagnosis.parquet": "5c9088a60a22dc6723fd3a9a1bc7d9a5cf6b09170c1734b5e00d2df79aa97d91",
+    "ligand_sites.parquet": "470300a1427ff5100f7af1bfead3164811705de09beeac1ac363bfbaa8c8c947",
+    "metadata_candidate_pairs.parquet": "24f3adab4b593b1973044b12d9332b9235d4806ed2fe4d57d25592952b8a6e76",
+    "model_evaluability.parquet": "821ef2ad1476ef299a71e94495830a09daa63363c466d79ae0fcab4107c3c20b",
+    "non_dominated_pairs.parquet": "0d8b51c99862fd203f0140f7f89471ea1c48ca9b8a7707b4f18f202ea214e829",
+    "pair_structural_descriptors.parquet": "5f399b115ed033510a0c75077bdb4fe5e635ad5fb92eacd534cd01d5c2ec786e",
+    "primary_pairs.parquet": "049a9a191d559f96c4eb85e8814544a97f5e3adf462ab6c7bdd45b6c882ec7a5",
+    "report.md": "8a13e0e0b8845a5ddb39670f5dec5416be7767aabcf01bc3cabc2030733d8f1f",
+    "residue_mappings.parquet": "a8f123c14f236fb26873690f5060cc85813d6d2d66cccd4a915ab47237e4c726",
+    "residue_structural_descriptors.parquet": "0d4541e7aa477a0d4fa701271a8cc0d4c3af3510b124897e98f3d9212ed9360f",
+    "selective_asset_ledger.parquet": "e032c4b36d6871315bf74bdf2cda6daeb16d880b62b39374e97fe322f88e64e3",
+    "selective_summary.json": "4e9dc07a36b1073b8a4437b71ebb1b68021b3baacb259aff10b3df912cbb8be2",
+    "structure_asset_readiness.parquet": "ec8fa81ee9e6dbebf4e13c5d70739c5933d3f374caad94070da4cf91cd81432e",
+    "structure_state_resolution.parquet": "0c9bcc7bfa2e1c3800c03a161a23c4d042e8860b079bebe8088aa9081a344487",
+    "summary.json": "542b3ba5a66c75c07b22d169a43653d7b6207e497831a62f345517c64e12999f",
+    "unique_structure_assets.parquet": "49aaa4671e1f074449e111f55473bbc5983f41ffdb33f93eaadb5c5adfd77b6f"
+  },
+  "cluster_contract": {
+    "cohort_counts_unresolved": true,
+    "identity_threshold": 0.3,
+    "no_inference": true,
+    "status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE"
+  },
+  "cohort_counts": {
+    "GEOMETRY_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1399,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 305.0,
+        "min": 3.0,
+        "n": 1399,
+        "q90": 571.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9976905311778291,
+        "min": 0.9008264462809917,
+        "n": 1399,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 329.0,
+        "min": 9.0,
+        "n": 1399,
+        "q90": 632.4000000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1399,
+      "protein_count": 1399,
+      "unavailable_pair_count": 11
+    },
+    "LIGAND_LOCALIZATION_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1267,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 312.0,
+        "min": 4.0,
+        "n": 1267,
+        "q90": 578.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9972948602344455,
+        "min": 0.9008264462809917,
+        "n": 1267,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 334.0,
+        "min": 10.0,
+        "n": 1267,
+        "q90": 662.8000000000002
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1267,
+      "protein_count": 1267,
+      "unavailable_pair_count": 143
+    },
+    "MODEL_EVALUABLE": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1394,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 303.5,
+        "min": 3.0,
+        "n": 1394,
+        "q90": 570.7
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9975197283848865,
+        "min": 0.9008264462809917,
+        "n": 1394,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 328.5,
+        "min": 9.0,
+        "n": 1394,
+        "q90": 633.4000000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1394,
+      "protein_count": 1394,
+      "unavailable_pair_count": 16
+    },
+    "PRIMARY_ADMITTED": {
+      "cluster_assignment_coverage": true,
+      "cluster_assignment_rows": 1410,
+      "cluster_status": "UNRESOLVED_NO_FROZEN_IDENTITY_SOURCE",
+      "common_coordinate_count": {
+        "max": 3708.0,
+        "median": 305.0,
+        "min": 3.0,
+        "n": 1399,
+        "q90": 571.0
+      },
+      "common_fraction": {
+        "max": 1.0,
+        "median": 0.9981112796303021,
+        "min": 0.9008264462809917,
+        "n": 1410,
+        "q90": 1.0
+      },
+      "common_mapped_count": {
+        "max": 4966.0,
+        "median": 329.0,
+        "min": 7.0,
+        "n": 1410,
+        "q90": 648.700000000001
+      },
+      "independent_30pct_identity_clusters": null,
+      "pair_count": 1410,
+      "protein_count": 1410,
+      "unavailable_pair_count": 0
+    }
+  },
+  "decision": "LIMITED",
+  "geometry_diagnosis": {
+    "admission_validity_concern_count": 0,
+    "failure_class_counts": {
+      "mapping_correspondence_limitation": 11
+    },
+    "final_failure_count": 11,
+    "historical_failure_count_before_repair": 1250,
+    "repair_preserved_admission": true,
+    "repair_preserved_mapping": true
+  },
+  "interpretation_boundary": "experimental structural-state variation only; no inverse-folding, causal, functional, biological, or fitness claim",
+  "provenance": {
+    "census_path": "experiments/interventions/biological_states/apo_holo_full_census_complete/metadata_census.parquet",
+    "inverse_folding_executed": false,
+    "model_execution": false,
+    "outcome_blind_state_and_pair_selection": true,
+    "source_authorities": [],
+    "work_dir_inputs": "experiments/interventions/biological_states/apo_holo_selective_admission_release"
+  },
+  "release_status": "FINALIZED_LIMITED",
+  "row_counts": {
+    "admission_decisions.parquet": 4246,
+    "alternative_pairs.parquet": 226,
+    "assembly_context.parquet": 7576,
+    "asset_ledger.parquet": 37183,
+    "attrition_summary.parquet": 16,
+    "candidate_pairs.parquet": 4246,
+    "candidate_structures.parquet": 7576,
+    "cluster_assignments.parquet": 3047,
+    "component_entity_metadata.parquet": 189487,
+    "component_inventory.parquet": 189487,
+    "component_reference.parquet": 31030,
+    "geometry_failure_diagnosis.parquet": 1410,
+    "ligand_sites.parquet": 61135,
+    "metadata_candidate_pairs.parquet": 411221,
+    "model_evaluability.parquet": 1410,
+    "non_dominated_pairs.parquet": 4244,
+    "pair_structural_descriptors.parquet": 1410,
+    "primary_pairs.parquet": 1410,
+    "residue_mappings.parquet": 553879,
+    "residue_structural_descriptors.parquet": 491044,
+    "selective_asset_ledger.parquet": 18884,
+    "structure_asset_readiness.parquet": 7576,
+    "structure_state_resolution.parquet": 170907,
+    "unique_structure_assets.parquet": 7576
+  }
+}

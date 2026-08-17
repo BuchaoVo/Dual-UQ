@@ -5,28 +5,22 @@ from pathlib import Path
 
 import numpy as np
 
-from dual_uq.core.hashing import sha256_bytes
+from dual_uq.models.proteinmpnn import (
+    PROTEINMPNN_ALPHABET,
+    validate_protein_sequence,
+)
+from dual_uq.models.proteinmpnn import (
+    STANDARD_AMINO_ACIDS as _STANDARD_AMINO_ACIDS,
+)
+from dual_uq.models.proteinmpnn import (
+    sequence_sha256 as _sequence_sha256,
+)
 
-STANDARD_AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
-PROTEINMPNN_ALPHABET = f"{STANDARD_AMINO_ACIDS}X"
+STANDARD_AMINO_ACIDS = _STANDARD_AMINO_ACIDS
+sequence_sha256 = _sequence_sha256
 
 _SCORE_KEYS = frozenset({"score", "global_score", "S", "seq_str"})
 _PROBABILITY_KEYS = frozenset({"log_p", "S", "mask", "design_mask"})
-
-
-def validate_protein_sequence(sequence: object) -> str:
-    """Validate a non-empty uppercase sequence from the standard 20 amino acids."""
-    if type(sequence) is not str:
-        raise TypeError("sequence must be a string.")
-    if not sequence:
-        raise ValueError("sequence must not be empty.")
-    invalid = sorted(set(sequence).difference(STANDARD_AMINO_ACIDS))
-    if invalid:
-        raise ValueError(
-            "sequence contains characters outside the standard uppercase 20-AA "
-            f"alphabet: {invalid}"
-        )
-    return sequence
 
 
 def _validate_candidate_id(candidate_id: object) -> str:
@@ -84,12 +78,6 @@ class ProbabilityResult:
     @property
     def repeat_count(self) -> int:
         return int(self.log_probabilities.shape[0])
-
-
-def sequence_sha256(sequence: str) -> str:
-    """Hash only the validated ASCII sequence, independent of FASTA metadata."""
-    checked = validate_protein_sequence(sequence)
-    return sha256_bytes(checked.encode("ascii"))
 
 
 def _fasta_bytes(record: FastaRecord) -> bytes:

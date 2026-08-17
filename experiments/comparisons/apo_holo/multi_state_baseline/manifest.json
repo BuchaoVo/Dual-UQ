@@ -1,0 +1,45 @@
+{
+  "inputs": {
+    "experiments/comparisons/cross_model/apo_holo/generative_propagation/cross_model_protein_summary.parquet": {
+      "sha256": "55c8180cf2a8d2cb5885c13ffcca731c422f6485715a3d90e809fa4fe6377191",
+      "size": 383879
+    },
+    "runs/analysis/multistate_baseline/generation/manifest.json": {
+      "sha256": "a6328b647f697a821e9927ef8983291717a31fdbc30efac6f931924ce10a163a",
+      "size": 425
+    },
+    "runs/analysis/multistate_baseline/multi_scores_esm_if1.parquet": {
+      "sha256": "8c84e63a02422896e77a3223ec158016a3ef0328fca5eb289b80eb66067da810",
+      "size": 11912924
+    },
+    "runs/analysis/multistate_baseline/multi_scores_proteinmpnn.parquet": {
+      "sha256": "81a4f5e559b9fec2e34b0f38db61446fc4a16a931b811f266e10de1d94eea1a6",
+      "size": 11277120
+    },
+    "runs/analysis/multistate_baseline/single_scores_esm_if1.parquet": {
+      "sha256": "be3f8ebd09d569e0ac256543622341b4beba47cfdb730a4a801f0710122e248c",
+      "size": 22820283
+    },
+    "runs/analysis/multistate_baseline/single_scores_proteinmpnn.parquet": {
+      "sha256": "39fcebd7ba2f9c839b745ebacce7dca57c704ef2113aa8a9b6f06cd6c74c0ae3",
+      "size": 21785006
+    }
+  },
+  "model_semantics": [
+    "ProteinMPNN",
+    "ESM-IF1"
+  ],
+  "no_biological_interpretation": true,
+  "outputs": {
+    "associations.parquet": {
+      "rows": 12,
+      "sha256": "c78a78c5cee98f11183877657de4f506cd8196ac9ae4c0872f79d63b08706e24"
+    },
+    "protein_summary.parquet": {
+      "rows": 1357,
+      "sha256": "a9befbafbbd5681bb997dc9ef362a1addbeffc321e971ecb2d7d3b69e0c79f8c"
+    }
+  },
+  "primary_unit": "protein",
+  "schema_version": "multi_state_baseline_summary_manifest_v1"
+}

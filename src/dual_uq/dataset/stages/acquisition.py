@@ -25,6 +25,12 @@ from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 from dual_uq.core.atomic_io import atomic_write_bytes
 from dual_uq.core.hashing import sha256_bytes, sha256_file
 from dual_uq.core.paths import ProjectPaths
+from dual_uq.dataset.models import DerivationError
+from dual_uq.dataset.policies.identity import (
+    exact_accession_records,
+    extract_canonical_sequence_from_source,
+    metadata_records,
+)
 from dual_uq.dataset.services.afdb import PAEMappingError, validate_pae_matrix
 
 EXPECTED_COMMIT = "bf81c19e085982aa90f28a4de98586586d0b2b4c"
@@ -238,6 +244,57 @@ def validate_payload(
         return None
     if asset_type == "afdb_metadata":
         return _metadata_record(data, expected_identity)
+    if asset_type == "afdb_metadata_collection":
+        try:
+            records = metadata_records(data)
+            exact = exact_accession_records(records, expected_identity)
+        except DerivationError as exc:
+            raise AcquisitionError(exc.code, str(exc)) from exc
+        if not exact:
+            raise AcquisitionError(
+                "exact_identity_mismatch",
+                "AFDB metadata contains no exact frozen accession record",
+            )
+        model_ids: list[str] = []
+        for record in exact:
+            model_id = record.get("modelEntityId") or record.get("entryId")
+            start = record.get("sequenceStart")
+            end = record.get("sequenceEnd")
+            if (
+                not isinstance(model_id, str)
+                or not model_id.strip()
+                or isinstance(start, bool)
+                or isinstance(end, bool)
+                or not isinstance(start, int)
+                or not isinstance(end, int)
+                or start < 1
+                or end < start
+            ):
+                raise AcquisitionError(
+                    "malformed_payload",
+                    "Exact AFDB metadata record lacks model identity or interval",
+                )
+            model_ids.append(model_id.strip())
+        return {
+            "metadata_record_count": len(records),
+            "exact_accession_record_count": len(exact),
+            "nonexact_record_count": len(records) - len(exact),
+            "exact_model_identifiers": sorted(model_ids),
+            "source_metadata_versions": sorted(
+                {
+                    int(record["latestVersion"])
+                    for record in exact
+                    if isinstance(record.get("latestVersion"), int)
+                    and not isinstance(record.get("latestVersion"), bool)
+                }
+            ),
+            "identity_resolution_status": "exact_accession_collection_resolved",
+        }
+    if asset_type == "uniprot_canonical":
+        try:
+            return extract_canonical_sequence_from_source(data, expected_identity)
+        except DerivationError as exc:
+            raise AcquisitionError(exc.code, str(exc)) from exc
     if asset_type == "afdb_structure":
         parsed = _parse_mmcif(data)
         entry = parsed.get("_entry.id")
@@ -307,6 +364,7 @@ def _ledger_base(spec: AssetSpec, timestamp: str) -> dict[str, Any]:
         "local_path": spec.display_path or spec.local_path.as_posix(),
         "timestamp": timestamp,
         "status": "failed",
+        "attempt_count": 0,
         "failure_code": None,
         "response_headers": None,
         "rejected_payload_path": None,
@@ -320,6 +378,7 @@ def _ledger_base(spec: AssetSpec, timestamp: str) -> dict[str, Any]:
         "nonexact_record_count": None,
         "isoform_suffix_record_count": None,
         "identity_resolution_status": None,
+        "source_metadata_version_if_available": None,
     }
 
 
@@ -498,7 +557,7 @@ def acquire_asset(
     if spec.local_path.exists():
         try:
             data = spec.local_path.read_bytes()
-            validate_payload(
+            validation_result = validate_payload(
                 spec.asset_type, data, spec.expected_identity, spec.metadata_record
             )
         except (OSError, AcquisitionError):
@@ -517,11 +576,16 @@ def acquire_asset(
             SHA256=sha256_bytes(data),
             status="reused_valid",
         )
+        if validation_result and validation_result.get("source_metadata_versions"):
+            row["source_metadata_version_if_available"] = json.dumps(
+                validation_result["source_metadata_versions"], separators=(",", ":")
+            )
         return row
 
     last_code = "transport_failure"
     last_status: int | None = None
     for attempt in range(1, max_attempts + 1):
+        row["attempt_count"] = attempt
         try:
             response = transport(spec.source_url, timeout)
         except (TimeoutError, ConnectionResetError, urllib.error.URLError, OSError):
@@ -601,6 +665,10 @@ def acquire_asset(
             failure_code=None,
             response_headers=dict(sorted(response.headers.items())),
         )
+        if validation_result and validation_result.get("source_metadata_versions"):
+            row["source_metadata_version_if_available"] = json.dumps(
+                validation_result["source_metadata_versions"], separators=(",", ":")
+            )
         if spec.asset_type == "afdb_metadata" and validation_result is not None:
             row.update(
                 metadata_record_count=validation_result.get("_metadata_record_count"),

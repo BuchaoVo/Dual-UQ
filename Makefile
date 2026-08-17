@@ -3,14 +3,13 @@ install:
 	pip install -e ".[dev]"
 
 check:
-	python scripts/00_check_environment.py
+	python scripts/maintenance/check_environment.py
 
 init:
-	python scripts/01_init_manifests.py
+	python -c "from dual_uq.manifests import initialize_manifests; initialize_manifests('data/manifests')"
 
 test:
 	pytest -q
 
 lint:
 	ruff check src scripts tests
-

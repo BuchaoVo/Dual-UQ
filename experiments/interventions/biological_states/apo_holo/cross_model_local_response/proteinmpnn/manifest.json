@@ -1,0 +1,22 @@
+{
+  "model": "ProteinMPNN",
+  "outputs": {
+    "position": {
+      "path": "position_local_response.parquet",
+      "rows": 975550,
+      "sha256": "e45126bdd208fa773d92f2a259a9819be86cfcc5e04043ebbf8d68f7969f1cbf"
+    },
+    "protein": {
+      "path": "protein_local_response.parquet",
+      "rows": 1393,
+      "sha256": "92fcc9f906b41a4be4f7382849a0d2bff542938c73948870f4b94d6a0b8afb9f"
+    },
+    "summary": {
+      "path": "summary.json",
+      "rows": null,
+      "sha256": "5fc9b936e0354cb0d515da06e80afbd272279786425b7a3af0edd9b75d68e3c4"
+    }
+  },
+  "protocol": "apo_holo_matched_local_response_v1",
+  "schema_version": "dual-uq.apo-holo-local-response-model-manifest.v1"
+}

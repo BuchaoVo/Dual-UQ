@@ -6,6 +6,10 @@ from typing import Any
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from dual_uq.models.scoring import ScoreRecord as _ScoreRecord
+
+ScoreRecord = _ScoreRecord
+
 RESIDUE_MAPPING_SCHEMA_VERSION = 2
 RESIDUE_NUMBERING_COLUMNS = (
     "auth_asym_id",
@@ -192,18 +196,3 @@ class SequenceRecord(BaseModel):
     sequence: str
     sequence_identity_to_native: float | None = Field(default=None, ge=0.0, le=1.0)
     generation_status: str = "pending"
-
-
-class ScoreRecord(BaseModel):
-    protein_id: str
-    structure_id: str
-    sequence_id: str
-    evaluator_id: str
-    property_id: str
-    score: float | None = None
-    score_mean: float | None = None
-    score_variance: float | None = Field(default=None, ge=0.0)
-    ood_score: float | None = None
-    run_status: str = "pending"
-    error_message: str | None = None
-    runtime: float | None = Field(default=None, ge=0.0)

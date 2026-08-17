@@ -1,0 +1,153 @@
+{
+  "cluster_count": 1017,
+  "cluster_size_quantiles": {
+    "median": 1.0,
+    "q10": 1.0,
+    "q90": 2.0
+  },
+  "largest_clusters": [
+    {
+      "cluster_id": "A0A086RSH0",
+      "protein_count": 38
+    },
+    {
+      "cluster_id": "A0A0J9X1M8",
+      "protein_count": 17
+    },
+    {
+      "cluster_id": "P12612",
+      "protein_count": 15
+    },
+    {
+      "cluster_id": "G0SBE6",
+      "protein_count": 12
+    },
+    {
+      "cluster_id": "I7J7V6",
+      "protein_count": 12
+    },
+    {
+      "cluster_id": "A8BZ95",
+      "protein_count": 10
+    },
+    {
+      "cluster_id": "P08200",
+      "protein_count": 9
+    },
+    {
+      "cluster_id": "P0A6Y8",
+      "protein_count": 9
+    },
+    {
+      "cluster_id": "P01112",
+      "protein_count": 8
+    },
+    {
+      "cluster_id": "P15266",
+      "protein_count": 8
+    }
+  ],
+  "length_by_cluster_size": {
+    "1": {
+      "cluster_count": 847,
+      "length_max": 5206,
+      "length_median": 385.0,
+      "length_min": 70,
+      "protein_count": 847
+    },
+    "10": {
+      "cluster_count": 1,
+      "length_max": 464,
+      "length_median": 359.0,
+      "length_min": 298,
+      "protein_count": 10
+    },
+    "12": {
+      "cluster_count": 2,
+      "length_max": 752,
+      "length_median": 455.0,
+      "length_min": 310,
+      "protein_count": 24
+    },
+    "15": {
+      "cluster_count": 1,
+      "length_max": 568,
+      "length_median": 550.0,
+      "length_min": 527,
+      "protein_count": 15
+    },
+    "17": {
+      "cluster_count": 1,
+      "length_max": 575,
+      "length_median": 501.0,
+      "length_min": 462,
+      "protein_count": 17
+    },
+    "2": {
+      "cluster_count": 105,
+      "length_max": 7096,
+      "length_median": 392.5,
+      "length_min": 92,
+      "protein_count": 210
+    },
+    "3": {
+      "cluster_count": 31,
+      "length_max": 2116,
+      "length_median": 386.0,
+      "length_min": 147,
+      "protein_count": 93
+    },
+    "38": {
+      "cluster_count": 1,
+      "length_max": 304,
+      "length_median": 259.0,
+      "length_min": 244,
+      "protein_count": 38
+    },
+    "4": {
+      "cluster_count": 9,
+      "length_max": 517,
+      "length_median": 351.0,
+      "length_min": 112,
+      "protein_count": 36
+    },
+    "5": {
+      "cluster_count": 6,
+      "length_max": 433,
+      "length_median": 344.0,
+      "length_min": 225,
+      "protein_count": 30
+    },
+    "6": {
+      "cluster_count": 7,
+      "length_max": 1623,
+      "length_median": 336.0,
+      "length_min": 149,
+      "protein_count": 42
+    },
+    "7": {
+      "cluster_count": 2,
+      "length_max": 3432,
+      "length_median": 1837.0,
+      "length_min": 231,
+      "protein_count": 14
+    },
+    "8": {
+      "cluster_count": 2,
+      "length_max": 216,
+      "length_median": 181.0,
+      "length_min": 137,
+      "protein_count": 16
+    },
+    "9": {
+      "cluster_count": 2,
+      "length_max": 682,
+      "length_median": 535.0,
+      "length_min": 334,
+      "protein_count": 18
+    }
+  },
+  "protein_count": 1410,
+  "singleton_cluster_count": 847,
+  "singleton_fraction": 0.8328416912487709
+}

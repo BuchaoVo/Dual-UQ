@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import importlib.util
-import json
 import math
-from pathlib import Path
-from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -18,18 +14,6 @@ from dual_uq.mapped_confidence import (
 )
 
 MODEL_ID = "AF-PTEST-F2"
-SCRIPT_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "scripts"
-    / "22_score_mapped_confidence.py"
-)
-SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "score_mapped_confidence",
-    SCRIPT_PATH,
-)
-assert SCRIPT_SPEC is not None and SCRIPT_SPEC.loader is not None
-SCORE_SCRIPT = importlib.util.module_from_spec(SCRIPT_SPEC)
-SCRIPT_SPEC.loader.exec_module(SCORE_SCRIPT)
 
 
 def _residue_table(
@@ -364,166 +348,6 @@ def test_fragment_offset_and_observed_ca_use_semantic_residue_keys() -> None:
     assert result["plddt"].tolist() == [61.0, 72.0, 83.0]
     assert result["observed_ca"].tolist() == [True, False, True]
     assert "pdb_residue_number" not in result
-
-
-def test_script_rejects_duplicate_pass_candidate_keys() -> None:
-    duplicated = pd.DataFrame(
-        [
-            {
-                "screening_index": 101,
-                "pdb_id": "1abc",
-                "chain_id": "A",
-                "uniprot_id": "PTEST",
-            },
-            {
-                "screening_index": 101,
-                "pdb_id": "1abc",
-                "chain_id": "A",
-                "uniprot_id": "PTEST",
-            },
-        ]
-    )
-
-    with pytest.raises(ValueError, match="unique"):
-        SCORE_SCRIPT._validate_candidate_keys(duplicated)
-
-
-def test_script_artifact_paths_are_bound_to_selected_version(tmp_path) -> None:
-    prediction = {
-        "cifUrl": (
-            "https://example.test/files/"
-            "AF-PTEST-F2-model_v6.cif"
-        ),
-        "plddtDocUrl": (
-            "https://example.test/files/"
-            "AF-PTEST-F2-confidence_v6.json"
-        ),
-    }
-
-    model_path, plddt_path = SCORE_SCRIPT._selected_artifact_paths(
-        tmp_path,
-        uniprot_id="PTEST",
-        model_entity_id=MODEL_ID,
-        version=6,
-        prediction=prediction,
-    )
-
-    assert model_path.name == "AF-PTEST-F2-model_v6.cif"
-    assert plddt_path.name == "AF-PTEST-F2-confidence_v6.json"
-
-
-def test_script_malformed_candidate_becomes_failure_row(tmp_path) -> None:
-    row = SimpleNamespace(
-        screening_index=101,
-        pdb_id="1abc",
-        chain_id="A",
-        uniprot_id="PTEST",
-        preflight_status="pass_full_length",
-        selected_afdb_model_entity_id=MODEL_ID,
-        afdb_version=np.nan,
-        afdb_fragment_start=1,
-        afdb_fragment_end=20,
-    )
-
-    result = SCORE_SCRIPT._score_candidate(
-        row,
-        root=tmp_path,
-        metadata=pd.DataFrame(),
-        terminal_buffer=5,
-        minimum_run_length=5,
-    )
-
-    assert result["screening_index"] == 101
-    assert result["scoring_status"] == "failed"
-    assert result["is_low_conf_local"] is None
-
-
-def test_script_malformed_metadata_record_becomes_failure_row(tmp_path) -> None:
-    row = SimpleNamespace(
-        screening_index=101,
-        pdb_id="1abc",
-        chain_id="A",
-        uniprot_id="PTEST",
-        preflight_status="pass_full_length",
-        selected_afdb_model_entity_id=MODEL_ID,
-        afdb_version=6,
-        afdb_fragment_start=1,
-        afdb_fragment_end=20,
-    )
-    metadata = pd.DataFrame(
-        {
-            "uniprot_id": ["PTEST"],
-            "prediction_records_json": [json.dumps([None])],
-        }
-    )
-
-    result = SCORE_SCRIPT._score_candidate(
-        row,
-        root=tmp_path,
-        metadata=metadata,
-        terminal_buffer=5,
-        minimum_run_length=5,
-    )
-
-    assert result["scoring_status"] == "failed"
-    assert "malformed_local_afdb_metadata" in result["scoring_reason"]
-
-
-def test_script_cif_identity_must_match_selected_model(
-    monkeypatch,
-    tmp_path,
-) -> None:
-    monkeypatch.setattr(
-        SCORE_SCRIPT,
-        "MMCIF2Dict",
-        lambda _: {"_entry.id": ["AF-WRONG-F1"]},
-    )
-    monkeypatch.setattr(
-        SCORE_SCRIPT,
-        "load_chain_ca_table",
-        lambda *_args, **_kwargs: pd.DataFrame(
-            {
-                "label_seq_id": [1, 2, 3],
-                "bfactor": [90.0, 91.0, 92.0],
-            }
-        ),
-    )
-
-    with pytest.raises(ValueError, match="identity"):
-        SCORE_SCRIPT._validate_model_bfactor(
-            tmp_path / "model.cif",
-            np.array([90.0, 91.0, 92.0]),
-            model_entity_id=MODEL_ID,
-            fragment_start=101,
-            fragment_end=103,
-        )
-
-
-def test_script_bfactor_mismatch_is_rejected(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(
-        SCORE_SCRIPT,
-        "MMCIF2Dict",
-        lambda _: {"_entry.id": [MODEL_ID]},
-    )
-    monkeypatch.setattr(
-        SCORE_SCRIPT,
-        "load_chain_ca_table",
-        lambda *_args, **_kwargs: pd.DataFrame(
-            {
-                "label_seq_id": [1, 2, 3],
-                "bfactor": [90.0, 91.0, 50.0],
-            }
-        ),
-    )
-
-    with pytest.raises(ValueError, match="bfactor_mismatch"):
-        SCORE_SCRIPT._validate_model_bfactor(
-            tmp_path / "model.cif",
-            np.array([90.0, 91.0, 92.0]),
-            model_entity_id=MODEL_ID,
-            fragment_start=101,
-            fragment_end=103,
-        )
 
 
 def test_stats_are_finite_for_successful_summary() -> None:

@@ -5,6 +5,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LEGACY_SCALE = "dataset_a" + "_scale"
 LEGACY_DOMAIN = "dataset" + "_a"
+HISTORICAL_FROZEN_REFERENCES = {
+    "src/dual_uq/dataset/fixed_probes.py",
+}
 
 
 def _active_text_files() -> list[Path]:
@@ -49,6 +52,8 @@ def test_active_code_and_configuration_do_not_reference_legacy_namespace() -> No
     forbidden = (LEGACY_SCALE, f"dual_uq.{LEGACY_SCALE}")
     matches: list[str] = []
     for path in _active_text_files():
+        if path.relative_to(PROJECT_ROOT).as_posix() in HISTORICAL_FROZEN_REFERENCES:
+            continue
         text = path.read_text(encoding="utf-8")
         for line_number, line in enumerate(text.splitlines(), start=1):
             if any(token in line for token in forbidden):

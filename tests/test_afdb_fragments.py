@@ -10,6 +10,7 @@ from dual_uq import pairing
 from dual_uq.afdb import (
     UnsupportedAFDBFragment,
     fetch_afdb_prediction,
+    get_afdb_prediction_metadata,
     select_prediction_for_interval,
 )
 from dual_uq.preflight import (
@@ -118,6 +119,23 @@ def test_1ake_real_metadata_still_selects_f1() -> None:
 
     assert selected["modelEntityId"] == "AF-P69441-F1"
     assert selected["latestVersion"] == 6
+
+
+def test_unmapped_metadata_selection_prefers_f1(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        _record("AF-X-F2", 1, 100),
+        _record("AF-X-F1", 1, 100),
+    ]
+    monkeypatch.setattr(
+        "dual_uq.afdb.get_afdb_prediction_records",
+        lambda accession: records,
+    )
+
+    selected = get_afdb_prediction_metadata("P00001")
+
+    assert selected["modelEntityId"] == "AF-X-F1"
 
 
 def test_fetch_downloads_only_selected_fragment_assets(

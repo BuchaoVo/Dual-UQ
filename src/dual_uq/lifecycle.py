@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 import pandas as pd
@@ -9,6 +10,40 @@ import pandas as pd
 from .screening_runner import SEGMENT_CONTEXT, reduce_status_history
 
 TERMINAL_SEGMENT_STATUSES = {"complete", "successful_no_segments"}
+
+
+def _atomic_path(destination: Path) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(
+        dir=destination.parent,
+        prefix=f".{destination.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        return Path(handle.name)
+
+
+def write_lifecycle_outputs(
+    lifecycle: pd.DataFrame,
+    audit: dict[str, object],
+    *,
+    output_csv: Path,
+    output_audit: Path,
+) -> None:
+    """Atomically persist a lifecycle table and its audit sidecar."""
+    csv_temporary = _atomic_path(output_csv)
+    audit_temporary = _atomic_path(output_audit)
+    try:
+        lifecycle.to_csv(csv_temporary, index=False)
+        audit_temporary.write_text(
+            json.dumps(audit, indent=2),
+            encoding="utf-8",
+        )
+        csv_temporary.replace(output_csv)
+        audit_temporary.replace(output_audit)
+    finally:
+        csv_temporary.unlink(missing_ok=True)
+        audit_temporary.unlink(missing_ok=True)
 
 
 def _read_json(path: Path) -> dict[str, Any]:

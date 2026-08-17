@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def robust_script() -> ModuleType:
-    path = ROOT / "scripts" / "09_robust_pair_diagnostics.py"
+    path = ROOT / "scripts" / "analysis" / "diagnose_pair_robustness.py"
     spec = spec_from_file_location("robust_pair_diagnostics_script", path)
     assert spec is not None and spec.loader is not None
     module = module_from_spec(spec)

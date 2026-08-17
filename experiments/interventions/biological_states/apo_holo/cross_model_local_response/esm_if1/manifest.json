@@ -1,0 +1,22 @@
+{
+  "model": "ESM-IF1",
+  "outputs": {
+    "position": {
+      "path": "position_local_response.parquet",
+      "rows": 1041024,
+      "sha256": "e9fd192b46a0611e21fa55f1000cb515255a28edfbb41264bab6765ffb1a1f84"
+    },
+    "protein": {
+      "path": "protein_local_response.parquet",
+      "rows": 1359,
+      "sha256": "87e536509f8017ad800234406d4a75cb3136ebd0b8725b5866efd6ec101a72d2"
+    },
+    "summary": {
+      "path": "summary.json",
+      "rows": null,
+      "sha256": "b5de247b19ebc649b6745ee6d95460f706bfa142c7ba04ad048fada0cdd2ca00"
+    }
+  },
+  "protocol": "apo_holo_matched_local_response_v1",
+  "schema_version": "dual-uq.apo-holo-local-response-model-manifest.v1"
+}

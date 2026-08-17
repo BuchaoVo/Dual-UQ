@@ -1,0 +1,30 @@
+{
+  "artifact_sha256": {
+    "convergence": "407b48abc65c68acff03ce900e94665fec0de5ead07e5d74d01475c38818ab17",
+    "position_shift": "80ff52d96b51a5840ce8707c4749e49770c894f4f11a02a3b95c46102cde9b53",
+    "protein_summary": "d478576253c9c8486d3bf494df92d40f1b08fb160c66631d3d5c93c5f03630a4",
+    "report": "3d9bcf54d02ad79b9cef83dddd00fd301dd8185ea8b77acad4c9a4bcee29b494",
+    "summary": "a6544ed9b86c41cd9a2131b11ef1eda9bc3f51ce72af59cc674c7c7dee78b1c7"
+  },
+  "counts": {
+    "position_row_count": 468354,
+    "protein_count": 1357,
+    "record_count": 173696
+  },
+  "generation_root": "runs/analysis/apo_holo_generation/proteinmpnn",
+  "model": "ProteinMPNN",
+  "output_root": "experiments/interventions/biological_states/apo_holo/models/proteinmpnn/generation_propagation",
+  "protocol": {
+    "distance": "normalized Hamming",
+    "nested_prefixes": [
+      16,
+      32,
+      64
+    ],
+    "position_divergence": "Jensen-Shannon bits over standard 20-AA empirical distributions",
+    "sample_count_per_condition": 64,
+    "statistical_unit": "protein",
+    "temperature": 0.1
+  },
+  "schema_version": "apo_holo_generative_propagation_manifest_v1"
+}

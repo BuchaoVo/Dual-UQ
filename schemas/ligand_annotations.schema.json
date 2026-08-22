@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/ligand_annotations.schema.json",
+  "title": "LigandAnnotations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pair_id",
+    "canonical_position",
+    "ligand_id",
+    "ligand_class",
+    "ligand_contact",
+    "ligand_distance",
+    "pocket_membership",
+    "annotation_method",
+    "annotation_version"
+  ],
+  "properties": {
+    "pair_id": {
+      "type": "string"
+    },
+    "canonical_position": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ligand_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ligand_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ligand_contact": {
+      "type": "boolean"
+    },
+    "ligand_distance": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pocket_membership": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "annotation_method": {
+      "type": "string"
+    },
+    "annotation_version": {
+      "type": "string"
+    }
+  },
+  "x-primary-key": [
+    "pair_id",
+    "canonical_position",
+    "ligand_id"
+  ],
+  "x-foreign-keys": [
+    {
+      "field": "pair_id",
+      "references": "condition_pairs.pair_id"
+    }
+  ]
+}

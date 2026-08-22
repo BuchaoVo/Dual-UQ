@@ -1895,3 +1895,232 @@ duplicated scientific definitions
 The architectural objective is not maximum abstraction.
 
 It is the minimum stable architecture required to make protein-design research software scientifically correct, reproducible, reusable, extensible, and auditable.
+
+## 37. Canonical Execution Framework
+
+The canonical benchmark framework separates three workflows:
+
+```text
+model-independent construction
+    → canonical benchmark tables
+
+canonical tables + model adapter + Task
+    → primitive model outputs + canonical metrics
+
+method development checkpoint + ordinary adapter
+    → the same canonical evaluation path
+```
+
+The active package boundaries are:
+
+| Package | Owns | Must not own |
+| --- | --- | --- |
+| `benchmark/` | frozen schema registry, canonical IDs, condition semantics, table contracts, relational validation, provenance, generic instances | model execution or historical experiment orchestration |
+| `construction/` | asset/protein/structure normalization, mapping, comparability, admission, annotations, generic eligibility, functional-state policy | model scores or evaluator behavior |
+| `models/` | adapter interfaces, capabilities, registries, and concrete model behavior | benchmark identity, pair orientation, canonical metric equations |
+| `tasks/` | semantic operations: local sensitivity, generative propagation, sequence scoring, multistate generation | model-specific invocation or table construction |
+| `metrics/` | deterministic canonical metric equations | filesystem orchestration or model loading |
+| `runners/` | thin construction/evaluation/release composition boundaries | a second private evaluation path for a method |
+| `reporting/` | multidimensional report-card presentation | redefining metrics or admission |
+
+The frozen JSON files under `schemas/` are the single machine-readable schema authority.
+Canonical table writers derive required fields, column order, primary keys, and prohibited
+fields from those schemas. Canonical condition orientation is semantic and immutable; it is
+never inferred from input order, geometry, timestamps, or model output. Historical PDB/AFDB,
+Apo/Holo, and functional-state orchestration remains read-only input/provenance until an
+explicit semantic converter is authorized. No canonical execution step creates a release
+manifest by implication.
+
+## 38. Research Software Engineering Boundaries
+
+Dual-UQ is research software. Engineering rigor should protect scientific semantics
+and reproducibility, not reproduce production-platform process complexity.
+
+The default standard for an ordinary research task is:
+
+```text
+scientific definition unique
+implementation owner unique
+inputs and outputs clear
+key results reproducible
+freeze only when scientifically necessary
+```
+
+More hashes, smoke tests, manifests, and release gates are not inherently more
+scientific. Validation must be proportional to scientific risk. A specific frozen
+cohort, protocol, checkpoint, or formal release contract may impose stricter
+requirements; those requirements must be explicit and local to that scientific
+contract rather than silently becoming the default for every analysis.
+
+### 38.1 SHA256 policy
+
+SHA256 is required only when content identity is itself part of the scientific
+contract. Valid default uses include:
+
+* frozen cohorts and protocols;
+* external model checkpoints;
+* formal benchmark releases;
+* critical inputs whose identity cannot be established by another stable identity.
+
+Do not calculate or validate SHA256 by default for ordinary analysis Parquet,
+summary JSON, figures, Markdown reports, temporary manifests, derived tables,
+source files, or regenerable experiment intermediates. Git history is the default
+source-version record. Experiment provenance should prefer semantic metadata such as
+cohort, configuration, model/checkpoint version, seed, software version, and data
+source.
+
+Do not create SHA chains such as:
+
+```text
+input SHA → output SHA → manifest SHA → release SHA → manifest-of-manifest SHA
+```
+
+For a frozen release, one top-level manifest should identify the scientifically
+relevant frozen inputs and release identity. Ordinary experiments should not acquire
+release machinery merely because they produce files.
+
+### 38.2 Smoke-test policy
+
+Smoke tests are required only at execution boundaries with meaningful runtime risk,
+such as:
+
+* external model invocation;
+* GPU execution;
+* external binaries;
+* network-dependent acquisition;
+* newly changed CLI or runtime integration.
+
+Do not create or run smoke tests for deterministic Python data transformations,
+statistical analysis, schema validation, path adjustments, or report generation when
+focused tests already exercise the changed behavior.
+
+### 38.3 Validation levels
+
+Validation has three proportional levels:
+
+```text
+LEVEL 1 — ordinary research development (default)
+focused pytest
++ Ruff when Python code changes
+
+LEVEL 2 — shared scientific contract change
+focused and relevant integration/regression tests
++ Ruff
++ import or compile checks when module boundaries change
+
+LEVEL 3 — frozen benchmark or formal release
+relevant scientific regression
++ canonical schema validation
++ frozen-input identity verification
++ release-level provenance
+```
+
+Do not mechanically run `compileall`, import smoke, JSON validation, exhaustive SHA
+validation, full regression, or release-manifest validation for every task. A low-cost
+check such as `git diff --check` may be useful, but it is a code-quality check, not a
+scientific validation result. Every scientific invariant should have one authoritative
+validator; do not stack several equivalent validators around the same fact.
+
+### 38.4 Scientific tests over implementation tests
+
+Tests should protect scientific semantics and stable contracts, including:
+
+* residue mapping and condition pairing;
+* admission and structured exclusion reasons;
+* metric equations and score signs;
+* aggregation and pairing units;
+* deterministic identifiers;
+* schema primary/foreign keys;
+* cardinality and coverage invariants where scientifically meaningful.
+
+Internal helper order, CLI wrappers, file movement, log text, and trivial parameter
+pass-through generally do not require dedicated tests. By default, run focused tests
+for the changed owner. Run broader regression only when a shared scientific contract,
+canonical schema, scorer semantics, frozen construction, or formal release is changed.
+
+### 38.5 Proportional provenance and artifacts
+
+Provenance should record what can affect scientific interpretation: input cohort,
+structural conditions, model/checkpoint, important parameters, seed, software
+version, and relevant data sources. It should not record every helper version,
+directory timestamp, or hash of every incidental file.
+
+Large regenerable derived artifacts do not belong in Git and do not need per-file
+hashes. Git should contain source, configuration, frozen protocols, small summaries,
+and necessary manifests. Large Parquet outputs, generated sequence collections,
+predictions, and intermediate structures should live in experiment storage and be
+reconstructed from an explicit command plus semantic provenance.
+
+### 38.6 Architecture and historical-code restraint
+
+One scientific concept should have one active implementation. When mapping,
+admission, propagation, scoring, or another concept has multiple active
+implementations, prefer consolidating ownership or deleting duplication over adding
+hashes, manifests, validators, or regression machinery to keep implementations in
+sync. Do not add engineering machinery solely to make validation more systematic.
+
+The first caller of a capability should normally remain a clear domain
+implementation. Extract a shared abstraction after a second independent scientific
+caller demonstrates real repeated semantics. Do not create a framework on the first
+use merely because future reuse is imaginable.
+
+Historical frozen pipelines may remain for reproduction, but should not be further
+engineered with wrappers, SHA migration, or new test matrices unless an active
+scientific contract requires it. Ordinary research workflows should use plain
+Python, configuration, explicit experiment directories, and small runners; do not
+introduce workflow engines, artifact registries, state databases, release services,
+automatic migration frameworks, or schedulers without a demonstrated scientific
+need.
+
+When a scientific operation is available through the canonical `construction/`
+boundary, new scientific work MUST use that path rather than importing historical
+`dataset/` construction implementations. Historical code may remain as a deterministic
+reproduction owner until a real canonical conversion or benchmark-release need exists.
+
+### 38.7 Error classes and completion standard
+
+Use three default error classes:
+
+* scientific invariant violation: fail immediately;
+* scientific exclusion: record a structured reason;
+* infrastructure failure: report clearly and permit retry where appropriate.
+
+A normal analysis is complete when its inputs are correct, core scientific formulas
+are validated, important cardinality or coverage is reasonable, focused tests pass,
+the result is readable, and frozen upstream artifacts are unchanged. It does not
+automatically require SHA verification, smoke tests, compile checks, full regression,
+or a release manifest.
+
+## 39. StructCal v1 Benchmark Boundary
+
+`StructCal` is the public benchmark identity; `Dual-UQ` remains the repository and
+Python package identity. The canonical release is `artifacts/releases/structcal_v1/`.
+
+StructCal evaluates invariance–sensitivity calibration under structural conditions.
+Arm identifies the source of structural variation; Track identifies the scientific
+evaluation objective. They are not interchangeable.
+
+```text
+TRACK_I_STRUCTURAL_INVARIANCE
+    frozen clean PDB/AFDB representation-variation pairs
+
+TRACK_II_FUNCTIONAL_SENSITIVITY
+    frozen Apo/Holo PRIMARY + functional-state PRIMARY pairs
+
+TRACK_III_INVARIANCE_SENSITIVITY_CALIBRATION
+    joint Track-I × Track-II evaluation; no duplicated third cohort
+```
+
+StructCal v1 has one global 30%-identity clustering and one authoritative split across
+the complete formal protein universe. `splits.parquet` owns cluster and split identity;
+Arm-specific and historical method-development splits are provenance only.
+
+The public model-independent Core contains exactly proteins, structures,
+condition-pairs, residue-mappings, benchmark-instances, and splits. Public Core does
+not contain SHA/checksum fields, model-specific eligibility, model scores, or model
+responses. Generic instance eligibility is combined with model capability metadata at
+execution time. Structural annotations remain a separate release layer.
+
+Formal release conversion may project immutable historical cohorts into this contract,
+but it must not rerun or revise discovery, admission, PRIMARY selection, orientation,
+mapping, descriptor calculation, controlled intervention construction, or model work.

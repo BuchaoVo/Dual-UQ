@@ -1,0 +1,45 @@
+{
+  "arms": [
+    "representation_variation",
+    "ligand_state",
+    "functional_state",
+    "controlled_perturbation"
+  ],
+  "benchmark_name": "StructCal",
+  "benchmark_version": "1.0.0",
+  "controlled_confirmatory_role": "Core structural calibration resource; intentionally excluded from Track-I because its frozen tiers manipulate relational geometry rather than establish nuisance invariance",
+  "release_id": "structcal_v1",
+  "scientific_scope": "invariance-sensitivity calibration across structural conditions",
+  "statistical_units": {
+    "aggregation_order": [
+      "residue",
+      "pair",
+      "protein",
+      "identity_cluster_30",
+      "cohort"
+    ],
+    "biological_aggregation": "PROTEIN",
+    "inferential_independence": "IDENTITY_CLUSTER_30",
+    "measurement": "PAIR"
+  },
+  "status": "FROZEN",
+  "tracks": {
+    "TRACK_III_INVARIANCE_SENSITIVITY_CALIBRATION": {
+      "contract": "joint Track-I x Track-II Pareto/multidimensional evaluation",
+      "materialized_view": null,
+      "question": "joint nuisance invariance and functional sensitivity retention",
+      "scalar_weighted_score": false
+    },
+    "TRACK_II_FUNCTIONAL_SENSITIVITY": {
+      "materialized_view": "tracks/track_ii_sensitivity.parquet",
+      "membership": "Apo/Holo PRIMARY plus functional-state PRIMARY",
+      "question": "selective response to biologically meaningful structural-state variation"
+    },
+    "TRACK_I_STRUCTURAL_INVARIANCE": {
+      "materialized_view": "tracks/track_i_invariance.parquet",
+      "membership": "frozen clean PDB/AFDB representation-variation subset",
+      "primary_role": "INVARIANCE_NATURALISTIC",
+      "question": "stability under nuisance or representation-level structural variation"
+    }
+  }
+}

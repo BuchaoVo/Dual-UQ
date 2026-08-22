@@ -1,0 +1,8 @@
+{
+  "benchmark_id": "StructCal",
+  "benchmark_version": "1.0.0",
+  "status": "RELEASED",
+  "core_schema_family": "2.0.0",
+  "release_id": "structcal_v1",
+  "legacy_ids": ["dual_uq_benchmark"]
+}

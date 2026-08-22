@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/residue_mappings.schema.json",
+  "title": "ResidueMappings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pair_id",
+    "protein_id",
+    "canonical_position",
+    "canonical_aa",
+    "condition_1_residue_id",
+    "condition_2_residue_id",
+    "condition_1_aa",
+    "condition_2_aa",
+    "condition_1_mapped",
+    "condition_2_mapped",
+    "condition_1_coordinate_visible",
+    "condition_2_coordinate_visible",
+    "common_mapped",
+    "common_coordinate_visible",
+    "condition_1_missing_reason",
+    "condition_2_missing_reason",
+    "mapping_status"
+  ],
+  "properties": {
+    "pair_id": {
+      "type": "string"
+    },
+    "protein_id": {
+      "type": "string"
+    },
+    "canonical_position": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "canonical_aa": {
+      "type": "string"
+    },
+    "condition_1_residue_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "condition_2_residue_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "condition_1_aa": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "condition_2_aa": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "condition_1_mapped": {
+      "type": "boolean"
+    },
+    "condition_2_mapped": {
+      "type": "boolean"
+    },
+    "condition_1_coordinate_visible": {
+      "type": "boolean"
+    },
+    "condition_2_coordinate_visible": {
+      "type": "boolean"
+    },
+    "common_mapped": {
+      "type": "boolean"
+    },
+    "common_coordinate_visible": {
+      "type": "boolean"
+    },
+    "condition_1_missing_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "condition_2_missing_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mapping_status": {
+      "type": "string"
+    }
+  },
+  "x-primary-key": [
+    "pair_id",
+    "canonical_position"
+  ],
+  "x-version": "2.0.0",
+  "x-foreign-keys": [
+    {
+      "field": "pair_id",
+      "references": "condition_pairs.pair_id"
+    },
+    {
+      "field": "protein_id",
+      "references": "proteins.protein_id"
+    }
+  ],
+  "x-prohibited-fields": [
+    "ca_displacement",
+    "aligned_rmsd",
+    "local_pairwise_distance_change",
+    "neighborhood_geometry_change",
+    "contact_change",
+    "ligand_distance",
+    "model_score",
+    "model_probability",
+    "model_response",
+    "D_excess",
+    "generative_js"
+  ]
+}

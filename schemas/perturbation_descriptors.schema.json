@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/perturbation_descriptors.schema.json",
+  "title": "PerturbationDescriptors",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pair_id",
+    "perturbation_family",
+    "requested_dose",
+    "requested_dose_unit",
+    "realized_ca_rmsd",
+    "realized_pairwise_distance_change",
+    "realized_contact_change",
+    "random_seed",
+    "perturbation_method",
+    "perturbation_version"
+  ],
+  "properties": {
+    "pair_id": {
+      "type": "string"
+    },
+    "perturbation_family": {
+      "type": "string"
+    },
+    "requested_dose": {
+      "type": "number",
+      "minimum": 0
+    },
+    "requested_dose_unit": {
+      "type": "string"
+    },
+    "realized_ca_rmsd": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "realized_pairwise_distance_change": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "realized_contact_change": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "random_seed": {
+      "type": "integer"
+    },
+    "perturbation_method": {
+      "type": "string"
+    },
+    "perturbation_version": {
+      "type": "string"
+    }
+  },
+  "x-primary-key": [
+    "pair_id"
+  ],
+  "x-foreign-keys": [
+    {
+      "field": "pair_id",
+      "references": "condition_pairs.pair_id"
+    }
+  ],
+  "x-invariants": [
+    "requested dose and realized structural change are separate fields"
+  ]
+}

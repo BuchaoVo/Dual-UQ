@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/condition_pairs.schema.json",
+  "title": "ConditionPairs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pair_id",
+    "protein_id",
+    "arm",
+    "condition_1_structure_id",
+    "condition_2_structure_id",
+    "condition_1_label",
+    "condition_2_label",
+    "pair_role",
+    "admission_status",
+    "sequence_comparable",
+    "construct_comparable",
+    "assembly_comparable",
+    "mapping_comparable",
+    "pair_provenance"
+  ],
+  "properties": {
+    "pair_id": {
+      "type": "string"
+    },
+    "protein_id": {
+      "type": "string"
+    },
+    "arm": {
+      "type": "string",
+      "enum": [
+        "representation_variation",
+        "ligand_state",
+        "functional_state",
+        "controlled_perturbation"
+      ]
+    },
+    "condition_1_structure_id": {
+      "type": "string"
+    },
+    "condition_2_structure_id": {
+      "type": "string"
+    },
+    "condition_1_label": {
+      "type": "string"
+    },
+    "condition_2_label": {
+      "type": "string"
+    },
+    "pair_role": {
+      "type": "string",
+      "enum": [
+        "PRIMARY",
+        "ALTERNATIVE"
+      ]
+    },
+    "admission_status": {
+      "type": "string",
+      "enum": [
+        "ADMITTED",
+        "EXCLUDED",
+        "UNRESOLVED"
+      ]
+    },
+    "sequence_comparable": {
+      "type": "boolean"
+    },
+    "construct_comparable": {
+      "type": "boolean"
+    },
+    "assembly_comparable": {
+      "type": "boolean"
+    },
+    "mapping_comparable": {
+      "type": "boolean"
+    },
+    "pair_provenance": {
+      "type": "string"
+    },
+    "state_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "admission_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "common_mapped_count": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "common_mapped_fraction": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "common_coordinate_visible_count": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "common_coordinate_visible_fraction": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ligand_context_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "perturbation_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "perturbation_dose": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "perturbation_dose_unit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "x-primary-key": [
+    "pair_id"
+  ],
+  "x-version": "2.0.0",
+  "x-foreign-keys": [
+    {
+      "field": "protein_id",
+      "references": "proteins.protein_id"
+    },
+    {
+      "field": "condition_1_structure_id",
+      "references": "structures.structure_id"
+    },
+    {
+      "field": "condition_2_structure_id",
+      "references": "structures.structure_id"
+    }
+  ],
+  "x-invariants": [
+    "model outcomes do not determine admission_status or pair_role",
+    "structural response magnitude does not determine admission",
+    "requested perturbation dose is distinct from realized change"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/release_manifest.schema.json",
+  "title": "ReleaseManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release_id", "benchmark_name", "benchmark_version", "schema_version",
+    "protocol_versions", "artifact_relative_paths", "row_counts",
+    "source_release_identities", "code_revision", "creation_metadata", "release_status"
+  ],
+  "properties": {
+    "release_id": {"type": "string"},
+    "benchmark_name": {"type": "string", "enum": ["StructCal"]},
+    "benchmark_version": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "protocol_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "artifact_relative_paths": {"type": "array", "items": {"type": "string"}},
+    "row_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "source_release_identities": {"type": "array", "items": {"type": "string"}},
+    "code_revision": {"type": "string"},
+    "creation_metadata": {"type": "object", "additionalProperties": true},
+    "release_status": {"type": "string", "enum": ["STAGING", "VALIDATED", "RELEASED", "REJECTED"]},
+    "outcome_leakage_audit": {"type": "object", "additionalProperties": true},
+    "summary": {"type": "object", "additionalProperties": true},
+    "validation": {"type": "object", "additionalProperties": true}
+  }
+}

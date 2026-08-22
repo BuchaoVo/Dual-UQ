@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/schema_version.schema.json",
+  "title": "SchemaVersion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_family",
+    "schema_version",
+    "schemas"
+  ],
+  "properties": {
+    "schema_family": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

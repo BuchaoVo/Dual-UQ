@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/benchmark_version.schema.json",
+  "title": "BenchmarkVersion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "benchmark_version",
+    "status",
+    "core_schema_family"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "type": "string"
+    },
+    "benchmark_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "SPECIFICATION_ONLY",
+        "RELEASED",
+        "DEPRECATED"
+      ]
+    },
+    "core_schema_family": {
+      "type": "string"
+    },
+    "release_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "legacy_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

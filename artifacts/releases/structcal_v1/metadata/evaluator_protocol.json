@@ -1,0 +1,30 @@
+{
+  "canonical_scoring_concepts": [
+    "sequence_id",
+    "generator_model_id",
+    "evaluator_model_id",
+    "pair_id",
+    "target_condition_structure_id",
+    "raw_score",
+    "score_direction",
+    "reference_score",
+    "baseline_adjusted_score"
+  ],
+  "generator_equals_evaluator_required": false,
+  "interpretation": "model-based sequence-structure compatibility",
+  "not_direct_measurements_of": [
+    "physical_stability",
+    "experimental_fitness",
+    "biological_function"
+  ],
+  "raw_scores_may_be_averaged_across_evaluators": false,
+  "reference_panel": [
+    "ProteinMPNN",
+    "ESM-IF1"
+  ],
+  "roles": [
+    "SELF",
+    "CROSS_PROTEINMPNN",
+    "CROSS_ESM_IF1"
+  ]
+}

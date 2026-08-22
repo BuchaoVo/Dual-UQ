@@ -1,0 +1,10 @@
+{
+  "annotation_family": "dual_uq.structural_annotations",
+  "annotation_version": "1.0.0",
+  "definitions": {
+    "pair_structural_descriptors": "pair-level structural descriptor contract",
+    "residue_structural_descriptors": "residue-level geometry descriptor contract",
+    "ligand_annotations": "ligand localization annotation contract",
+    "perturbation_descriptors": "requested-dose and realized-change contract"
+  }
+}

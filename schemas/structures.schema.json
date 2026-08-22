@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/structures.schema.json",
+  "title": "Structures",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "structure_id", "source_structure_id", "protein_id", "arm", "condition_type",
+    "condition_label", "state_family", "source_type", "source_accession", "chain_id",
+    "entity_id", "assembly_id", "experimental_method", "source_file_ref",
+    "state_evidence_tier", "state_evidence_source", "parent_structure_id"
+  ],
+  "properties": {
+    "structure_id": {"type": "string", "minLength": 1},
+    "source_structure_id": {"type": "string", "minLength": 1},
+    "protein_id": {"type": "string", "minLength": 1},
+    "arm": {"type": "string", "enum": ["representation_variation", "ligand_state", "functional_state", "controlled_perturbation"]},
+    "condition_type": {"type": "string", "minLength": 1},
+    "condition_label": {"type": "string", "minLength": 1},
+    "state_family": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "source_type": {"type": "string", "enum": ["PDB", "AFDB", "CONTROLLED_PERTURBATION", "OTHER"]},
+    "source_accession": {"type": "string", "minLength": 1},
+    "chain_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "entity_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "assembly_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "experimental_method": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "source_file_ref": {"type": "string", "minLength": 1},
+    "state_evidence_tier": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "state_evidence_source": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    "parent_structure_id": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+  },
+  "x-primary-key": ["structure_id"],
+  "x-version": "2.0.0",
+  "x-foreign-keys": [{"field": "protein_id", "references": "proteins.protein_id"}]
+}

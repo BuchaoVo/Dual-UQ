@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/proteins.schema.json",
+  "title": "Proteins",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protein_id", "uniprot_id", "canonical_sequence", "canonical_length", "canonical_sequence_status"],
+  "properties": {
+    "protein_id": {"type": "string", "minLength": 1},
+    "uniprot_id": {"type": "string", "minLength": 1},
+    "canonical_sequence": {"type": "string", "minLength": 1},
+    "canonical_length": {"type": "integer", "minimum": 1},
+    "canonical_sequence_status": {"type": "string", "enum": ["STANDARD_20AA", "NONSTANDARD"]}
+  },
+  "x-primary-key": ["protein_id"],
+  "x-version": "2.0.0",
+  "x-invariants": [
+    "canonical_length equals canonical_sequence length",
+    "one protein_id has one canonical sequence within a release",
+    "split assignment belongs only to splits.parquet"
+  ]
+}

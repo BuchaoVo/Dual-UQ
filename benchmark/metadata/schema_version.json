@@ -1,0 +1,22 @@
+{
+  "schema_family": "structcal.benchmark",
+  "schema_version": "2.0.0",
+  "schemas": {
+    "proteins": "2.0.0",
+    "structures": "2.0.0",
+    "condition_pairs": "2.0.0",
+    "residue_mappings": "2.0.0",
+    "benchmark_instances": "2.0.0",
+    "splits": "2.0.0",
+    "model_capabilities": "1.0.0",
+    "model_instance_eligibility": "1.0.0",
+    "local_scores": "1.0.0",
+    "generated_sequences": "1.0.0",
+    "sequence_scores": "1.0.0",
+    "report_card": "1.0.0",
+    "pair_structural_descriptors": "1.0.0",
+    "residue_structural_descriptors": "1.0.0",
+    "ligand_annotations": "1.0.0",
+    "perturbation_descriptors": "1.0.0"
+  }
+}

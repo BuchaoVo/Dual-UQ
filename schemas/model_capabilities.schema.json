@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/model_capabilities.schema.json",
+  "title": "ModelCapabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_id",
+    "model_version",
+    "checkpoint_id",
+    "source_revision",
+    "LOCAL_SCORING",
+    "GENERATION",
+    "SEQUENCE_SCORING",
+    "MULTISTATE_GENERATION",
+    "local_score_semantics",
+    "generation_semantics",
+    "sequence_score_semantics",
+    "supported_structure_requirements",
+    "missing_coordinate_behavior",
+    "sequence_gap_behavior",
+    "nonstandard_residue_behavior"
+  ],
+  "properties": {
+    "model_id": {
+      "type": "string"
+    },
+    "model_version": {
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "type": "string"
+    },
+    "source_revision": {
+      "type": "string"
+    },
+    "LOCAL_SCORING": {
+      "type": "boolean"
+    },
+    "GENERATION": {
+      "type": "boolean"
+    },
+    "SEQUENCE_SCORING": {
+      "type": "boolean"
+    },
+    "MULTISTATE_GENERATION": {
+      "type": "boolean"
+    },
+    "local_score_semantics": {
+      "type": "string"
+    },
+    "generation_semantics": {
+      "type": "string"
+    },
+    "sequence_score_semantics": {
+      "type": "string"
+    },
+    "supported_structure_requirements": {
+      "type": "string"
+    },
+    "missing_coordinate_behavior": {
+      "type": "string"
+    },
+    "sequence_gap_behavior": {
+      "type": "string"
+    },
+    "nonstandard_residue_behavior": {
+      "type": "string"
+    }
+  },
+  "x-primary-key": [
+    "model_id",
+    "model_version",
+    "checkpoint_id"
+  ]
+}

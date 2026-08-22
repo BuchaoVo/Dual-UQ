@@ -1,0 +1,10 @@
+{
+  "metric_family": "dual_uq.canonical_metrics",
+  "metric_version": "1.0.0",
+  "definitions": {
+    "local_sensitivity": "central evaluator definition to be bound by a future release",
+    "generative_propagation": "central evaluator definition to be bound by a future release",
+    "sequence_scoring": "MeanCompat, WorstCompat, and StateGap definitions to be bound by a future release",
+    "multistate_generation": "WorstCompat comparison definition to be bound by a future release"
+  }
+}

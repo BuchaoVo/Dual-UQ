@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/report_card.schema.json",
+  "title": "ReportCard",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_identity",
+    "capability_coverage",
+    "structural_condition_coverage",
+    "local_sensitivity",
+    "generative_propagation",
+    "cross_condition_compatibility",
+    "multistate_robustness",
+    "structural_grounding",
+    "controlled_perturbation_response",
+    "cross_evaluator_agreement",
+    "model_specific_unavailable_cases"
+  ],
+  "properties": {
+    "model_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "model_version",
+        "checkpoint_id",
+        "source_revision"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string"
+        },
+        "model_version": {
+          "type": "string"
+        },
+        "checkpoint_id": {
+          "type": "string"
+        },
+        "source_revision": {
+          "type": "string"
+        }
+      }
+    },
+    "capability_coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability",
+          "declared",
+          "evaluated_instances",
+          "unavailable_reason"
+        ],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "enum": [
+              "LOCAL_SCORING",
+              "GENERATION",
+              "SEQUENCE_SCORING",
+              "MULTISTATE_GENERATION"
+            ]
+          },
+          "declared": {
+            "type": "boolean"
+          },
+          "evaluated_instances": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "structural_condition_coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "structural_condition_semantics",
+          "tasks_evaluated",
+          "primary_cohort",
+          "unavailable_cases"
+        ],
+        "properties": {
+          "structural_condition_semantics": {
+            "type": "string",
+            "enum": [
+              "representation_variation",
+              "ligand_state",
+              "functional_state",
+              "controlled_perturbation"
+            ]
+          },
+          "tasks_evaluated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "primary_cohort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unavailable_cases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "local_sensitivity": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "generative_propagation": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "cross_condition_compatibility": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "multistate_robustness": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "structural_grounding": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "controlled_perturbation_response": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "cross_evaluator_agreement": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "model_specific_unavailable_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task",
+          "reason"
+        ],
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x-forbidden-top-level-fields": [
+    "scalar_score",
+    "leaderboard_score"
+  ],
+  "x-semantic": "multidimensional model profile"
+}

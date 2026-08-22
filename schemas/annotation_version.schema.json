@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/annotation_version.schema.json",
+  "title": "AnnotationVersion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "annotation_family",
+    "annotation_version",
+    "definitions"
+  ],
+  "properties": {
+    "annotation_family": {
+      "type": "string"
+    },
+    "annotation_version": {
+      "type": "string"
+    },
+    "definitions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

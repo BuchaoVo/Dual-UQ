@@ -1,0 +1,10 @@
+{
+  "bootstrap_replicates": 10000,
+  "cluster_weighting": "equal_cluster_contribution",
+  "confidence_level": 0.95,
+  "inferential_resampling_unit": "identity_cluster_30",
+  "interval": "percentile_bootstrap",
+  "pair_measurement_unit": "PAIR",
+  "primary_biological_aggregation_unit": "PROTEIN",
+  "system_comparison": "paired_cluster_bootstrap"
+}

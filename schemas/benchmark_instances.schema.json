@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/benchmark_instances.schema.json",
+  "title": "BenchmarkInstances",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "instance_id", "pair_id", "protein_id", "arm", "local_sensitivity_eligible",
+    "generation_eligible", "compatibility_eligible", "multistate_eligible",
+    "geometry_evaluable", "ligand_evaluable", "eligibility_reason"
+  ],
+  "properties": {
+    "instance_id": {"type": "string", "minLength": 1},
+    "pair_id": {"type": "string", "minLength": 1},
+    "protein_id": {"type": "string", "minLength": 1},
+    "arm": {"type": "string", "enum": ["representation_variation", "ligand_state", "functional_state", "controlled_perturbation"]},
+    "local_sensitivity_eligible": {"type": "boolean"},
+    "generation_eligible": {"type": "boolean"},
+    "compatibility_eligible": {"type": "boolean"},
+    "multistate_eligible": {"type": "boolean"},
+    "geometry_evaluable": {"type": "boolean"},
+    "ligand_evaluable": {"type": "boolean"},
+    "eligibility_reason": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+  },
+  "x-primary-key": ["instance_id"],
+  "x-version": "2.0.0",
+  "x-foreign-keys": [
+    {"field": "pair_id", "references": "condition_pairs.pair_id"},
+    {"field": "protein_id", "references": "proteins.protein_id"}
+  ],
+  "x-invariants": ["generic eligibility is independent of model capabilities and outcomes"]
+}

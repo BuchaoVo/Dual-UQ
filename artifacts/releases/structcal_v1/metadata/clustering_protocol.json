@@ -1,0 +1,13 @@
+{
+  "cluster_interpretation": "connected_components",
+  "command_semantics": "easy-search all-vs-all followed by connected components",
+  "coverage_mode": 0,
+  "coverage_threshold": 0.8,
+  "input_unit": "one canonical sequence per StructCal protein_id",
+  "max_sequences_per_query": 100000,
+  "minimum_sequence_identity": 0.3,
+  "self_matches": true,
+  "stderr_tail": "",
+  "tool": "MMseqs2",
+  "version": "18.8cc5c"
+}

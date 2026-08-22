@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structcal.org/schemas/splits.schema.json",
+  "title": "Splits",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protein_id", "identity_cluster_id", "split", "identity_threshold",
+    "coverage_threshold", "coverage_mode", "clustering_method", "clustering_tool",
+    "clustering_version", "split_seed", "split_protocol_version"
+  ],
+  "properties": {
+    "protein_id": {"type": "string", "minLength": 1},
+    "identity_cluster_id": {"type": "string", "minLength": 1},
+    "split": {"type": "string", "enum": ["TRAIN", "VALIDATION", "LOCKED_TEST"]},
+    "identity_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "coverage_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "coverage_mode": {"type": "integer", "minimum": 0},
+    "clustering_method": {"type": "string", "enum": ["connected_components"]},
+    "clustering_tool": {"type": "string", "enum": ["MMseqs2"]},
+    "clustering_version": {"type": "string", "enum": ["18.8cc5c"]},
+    "split_seed": {"type": "integer", "minimum": 0},
+    "split_protocol_version": {"type": "string", "minLength": 1}
+  },
+  "x-primary-key": ["protein_id"],
+  "x-version": "2.0.0",
+  "x-foreign-keys": [{"field": "protein_id", "references": "proteins.protein_id"}],
+  "x-frozen-contract": {
+    "tool": "MMseqs2",
+    "version": "18.8cc5c",
+    "identity_threshold": 0.3,
+    "coverage_threshold": 0.8,
+    "coverage_mode": 0,
+    "components": "connected"
+  }
+}

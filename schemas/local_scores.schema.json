@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/local_scores.schema.json",
+  "title": "LocalScores",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_id",
+    "model_version",
+    "checkpoint_id",
+    "pair_id",
+    "condition_structure_id",
+    "canonical_position",
+    "aa",
+    "score_type",
+    "score",
+    "probability"
+  ],
+  "properties": {
+    "model_id": {
+      "type": "string"
+    },
+    "model_version": {
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "type": "string"
+    },
+    "pair_id": {
+      "type": "string"
+    },
+    "condition_structure_id": {
+      "type": "string"
+    },
+    "canonical_position": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "aa": {
+      "type": "string"
+    },
+    "score_type": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "probability": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "x-primary-key": [
+    "model_id",
+    "checkpoint_id",
+    "pair_id",
+    "condition_structure_id",
+    "canonical_position",
+    "aa"
+  ],
+  "x-foreign-keys": [
+    {
+      "field": "pair_id",
+      "references": "condition_pairs.pair_id"
+    },
+    {
+      "field": "condition_structure_id",
+      "references": "structures.structure_id"
+    }
+  ],
+  "x-semantic": "one long-form row per position x amino acid"
+}

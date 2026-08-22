@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/metric_version.schema.json",
+  "title": "MetricVersion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metric_family",
+    "metric_version",
+    "definitions"
+  ],
+  "properties": {
+    "metric_family": {
+      "type": "string"
+    },
+    "metric_version": {
+      "type": "string"
+    },
+    "definitions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

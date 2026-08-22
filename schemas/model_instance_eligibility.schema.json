@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dual-uq.org/schemas/model_instance_eligibility.schema.json",
+  "title": "ModelInstanceEligibility",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "instance_id",
+    "model_id",
+    "capability",
+    "eligible",
+    "reason"
+  ],
+  "properties": {
+    "instance_id": {
+      "type": "string"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "capability": {
+      "type": "string",
+      "enum": [
+        "LOCAL_SCORING",
+        "GENERATION",
+        "SEQUENCE_SCORING",
+        "MULTISTATE_GENERATION"
+      ]
+    },
+    "eligible": {
+      "type": "boolean"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "x-primary-key": [
+    "instance_id",
+    "model_id",
+    "capability"
+  ],
+  "x-foreign-keys": [
+    {
+      "field": "instance_id",
+      "references": "benchmark_instances.instance_id"
+    }
+  ]
+}

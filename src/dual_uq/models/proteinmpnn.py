@@ -30,6 +30,21 @@ AUTHORIZED_IMPLEMENTATION_COMMIT = "8907e6671bfbfc92303b5f79c4b5e6ce47cdef57"
 AUTHORIZED_CHECKPOINT_SHA256 = (
     "c9cb4a671d79604111231f8dbfc7c590e06f1197453b7a6854ac6661a642f5bd"
 )
+AUTHORIZED_VANILLA_CHECKPOINTS = {
+    "v_48_002.pt": (
+        "925f2ca1007bf9b02e0e7f420ff00eb91f50fcc2722f64b42e644ae95adaa131",
+        0.02,
+    ),
+    "v_48_010.pt": (
+        "db866fae956a28661f926053d630610c55e9fc4bc03922f2aeeb98a37435ccce",
+        0.10,
+    ),
+    "v_48_020.pt": (AUTHORIZED_CHECKPOINT_SHA256, 0.20),
+    "v_48_030.pt": (
+        "c34b7bfb38418ea30989fda3314f4781ac4e3920f9825731cf555f1fed44ac66",
+        0.30,
+    ),
+}
 _AUTHORIZED_PROTEINMPNN_ADAPTERS: weakref.WeakValueDictionary[
     int, ProteinMPNNAdapter
 ] = weakref.WeakValueDictionary()
@@ -614,11 +629,20 @@ def load_authorized_proteinmpnn_adapter(
         raise ProteinMPNNScoringError(
             "checkpoint_unavailable", "Authorized ProteinMPNN checkpoint is unavailable"
         ) from exc
-    if checkpoint_id != AUTHORIZED_CHECKPOINT_SHA256:
+    authorized = next(
+        (
+            (filename, training_noise)
+            for filename, (digest, training_noise) in AUTHORIZED_VANILLA_CHECKPOINTS.items()
+            if digest == checkpoint_id
+        ),
+        None,
+    )
+    if authorized is None:
         raise ProteinMPNNScoringError(
             "checkpoint_hash_mismatch",
             "ProteinMPNN checkpoint differs from the authorization",
         )
+    authorized_filename, authorized_training_noise = authorized
     try:
         import torch
     except ImportError as exc:
@@ -639,6 +663,16 @@ def load_authorized_proteinmpnn_adapter(
         spec.loader.exec_module(module)
         tied_featurize = module.tied_featurize
         checkpoint = torch.load(checkpoint_path, map_location=device_name)
+        if not np.isclose(
+            float(checkpoint["noise_level"]),
+            authorized_training_noise,
+            rtol=0.0,
+            atol=1e-12,
+        ):
+            raise ProteinMPNNScoringError(
+                "checkpoint_metadata_mismatch",
+                f"ProteinMPNN {authorized_filename} training-noise metadata is invalid",
+            )
         model = module.ProteinMPNN(
             ca_only=False,
             num_letters=21,

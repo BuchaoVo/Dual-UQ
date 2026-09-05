@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shlex
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +41,8 @@ def _clean_text(value: Any) -> str | pd.NA:
     return pd.NA if cleaned in {"", ".", "?"} else cleaned
 
 
-def load_atom_site_table(cif_path: str | Path) -> pd.DataFrame:
+@lru_cache(maxsize=8)
+def _load_atom_site_table_cached(cif_path: str) -> pd.DataFrame:
     """Read the atom_site loop without collapsing auth and label namespaces."""
     path = Path(cif_path)
     data = MMCIF2Dict(str(path))
@@ -94,6 +97,146 @@ def load_atom_site_table(cif_path: str | Path) -> pd.DataFrame:
         table["model_number"], errors="coerce"
     ).fillna(1).astype(int)
     return table
+
+
+def clear_atom_site_table_cache() -> None:
+    """Release cached raw atom-site tables after a bounded batch."""
+
+    _load_atom_site_table_cached.cache_clear()
+
+
+def load_atom_site_table(cif_path: str | Path) -> pd.DataFrame:
+    """Read atom_site rows, reusing the immutable parse for repeated chains."""
+
+    return _load_atom_site_table_cached(str(Path(cif_path).resolve())).copy(deep=True)
+
+
+def load_backbone_atom_records(
+    cif_path: str | Path,
+    chain_id: str,
+    atom_names: tuple[str, ...],
+) -> dict[tuple[int, str], dict[str, tuple[str, np.ndarray]]]:
+    """Stream only requested backbone atoms from the author-selected chain.
+
+    This preserves the residue/altloc/model semantics used by the full atom-site
+    reader while avoiding materialization of unrelated ligand and solvent rows.
+    """
+
+    if not atom_names:
+        raise ValueError("atom_names must not be empty")
+    path = Path(cif_path)
+    required = {
+        "_atom_site.label_atom_id",
+        "_atom_site.label_comp_id",
+        "_atom_site.Cartn_x",
+        "_atom_site.Cartn_y",
+        "_atom_site.Cartn_z",
+        "_atom_site.auth_seq_id",
+        "_atom_site.auth_asym_id",
+    }
+    result: dict[tuple[int, str], dict[str, tuple[str, np.ndarray]]] = {}
+    selected_model: int | None = None
+    headers: list[str] = []
+    in_loop = False
+    reading_headers = False
+    atom_loop = False
+    tokens: list[str] = []
+    found_atom_loop = False
+
+    def consume(row: list[str], indices: dict[str, int]) -> None:
+        nonlocal selected_model
+        def value(name: str, default: str) -> str:
+            return row[indices[name]] if name in indices else default
+
+        atom = value("_atom_site.label_atom_id", "?").strip().upper()
+        if atom not in atom_names:
+            return
+        chain = value("_atom_site.auth_asym_id", "?").strip()
+        if chain != str(chain_id):
+            return
+        try:
+            model = int(value("_atom_site.pdbx_PDB_model_num", "1"))
+            auth_seq = int(value("_atom_site.auth_seq_id", "?"))
+            coordinates = np.asarray(
+                [
+                    float(value("_atom_site.Cartn_x", "nan")),
+                    float(value("_atom_site.Cartn_y", "nan")),
+                    float(value("_atom_site.Cartn_z", "nan")),
+                ],
+                dtype=np.float32,
+            )
+            occupancy = float(value("_atom_site.occupancy", "1"))
+        except (TypeError, ValueError):
+            return
+        if selected_model is None:
+            selected_model = model
+        if model != selected_model or not np.isfinite(coordinates).all():
+            return
+        insertion = value("_atom_site.pdbx_PDB_ins_code", "").strip()
+        if insertion in {"", ".", "?"}:
+            insertion = ""
+        residue_name = value("_atom_site.label_comp_id", "?").strip()
+        alt_id = value("_atom_site.label_alt_id", "").strip().upper()
+        rank = 0 if alt_id in {"", ".", "?", "A"} else 1
+        key = (auth_seq, insertion.upper())
+        residue = result.setdefault(key, {})
+        candidate = (rank, -occupancy)
+        existing = residue.get(atom)
+        if existing is None or candidate < existing[2]:
+            residue[atom] = (residue_name, coordinates, candidate)
+
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not in_loop:
+                if line.lower() == "loop_":
+                    in_loop = True
+                    reading_headers = True
+                    headers = []
+                    atom_loop = False
+                    tokens = []
+                continue
+            if reading_headers:
+                if line.startswith("_"):
+                    headers.append(line.split()[0])
+                    continue
+                reading_headers = False
+                atom_loop = bool(required.issubset(headers))
+                if not atom_loop:
+                    if line.startswith("#"):
+                        in_loop = False
+                    continue
+                found_atom_loop = True
+                if line.startswith("#"):
+                    break
+            if not atom_loop:
+                if line.startswith("#"):
+                    in_loop = False
+                continue
+            if line.startswith("#") or line.lower() == "loop_":
+                break
+            if not line:
+                continue
+            width = len(headers)
+            indices = {header: index for index, header in enumerate(headers)}
+            fast_tokens = line.split()
+            if len(fast_tokens) % width == 0 and not any(char in line for char in "'\""):
+                for start in range(0, len(fast_tokens), width):
+                    consume(fast_tokens[start : start + width], indices)
+                continue
+            tokens.extend(shlex.split(line, comments=False))
+            while len(tokens) >= width:
+                row, tokens = tokens[:width], tokens[width:]
+                consume(row, indices)
+    if not found_atom_loop:
+        raise ValueError(f"No _atom_site loop found in {path}.")
+    return {
+        key: {
+            atom: (residue_name, coordinate)
+            for atom, (residue_name, coordinate, _candidate) in atoms.items()
+        }
+        for key, atoms in result.items()
+    }
 
 
 def load_chain_ca_table(

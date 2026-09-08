@@ -44,7 +44,7 @@ def _build_evaluability_comparison(project_root: Path, screen_path: Path, output
     status = pd.read_csv(screen_path, sep="\t", usecols=["protein_id", "evoef2_status"])
     tables = {
         "pair_validity": (
-            project_root / "experiments/p2_design_baseline/scale1b-v2/pair_validity/pair_validity.parquet",
+            project_root / "experiments/dataset/analysis/pair_validity/pair_validity.parquet",
             ["protein_id", "canonical_sequence_length", "common_mask_count_x", "common_mask_fraction", "paired_sequence_identity", "afdb_global_plddt_median", "afdb_global_pae_median"],
         ),
         "remodeling": (

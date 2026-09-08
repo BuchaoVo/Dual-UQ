@@ -90,56 +90,28 @@ def _sha256_file(path: Path) -> str:
 
 def load_physical_conditions(project_root: Path, protein_ids: Iterable[str]) -> tuple[PhysicalCondition, ...]:
     """Load exact frozen PDB/AFDB projections without recomputing mappings."""
-    from dual_uq.workflows.final_confirmatory_protocol import (
-        _load_v2_formal_inputs,
-        build_final_confirmatory_projection_resolver,
-        load_final_confirmatory_formal_bundle,
-    )
+    from dual_uq.evaluation.operational_pairs import load_operational_conditions
 
     root = Path(project_root).expanduser().resolve()
     requested = tuple(dict.fromkeys(str(value) for value in protein_ids))
     if not requested:
         raise PhysicalEvaluationError("at least one protein is required")
-    cohort, _masks, _probes, _plan, _protocol, _manifest, _bindings = _load_v2_formal_inputs(root)
-    cohort_by_id = {str(row.protein_id): row._asdict() for row in cohort.itertuples(index=False)}
-    bundle = load_final_confirmatory_formal_bundle(root)
-    resolver = build_final_confirmatory_projection_resolver(root)
-    conditions: list[PhysicalCondition] = []
-    for protein_id in requested:
-        if protein_id not in cohort_by_id:
-            raise PhysicalEvaluationError(f"protein is absent from frozen cohort: {protein_id}")
-        row = cohort_by_id[protein_id]
-        for condition in ("PDB", "AFDB"):
-            definition = next(
-                (
-                    item for item in bundle.definitions
-                    if item.request.protein_id == protein_id
-                    and item.request.condition.condition_id == condition
-                    and item.request.repeat_index == 0
-                ),
-                None,
-            )
-            if definition is None:
-                raise PhysicalEvaluationError(f"frozen projection is absent: {protein_id}/{condition}")
-            projection = resolver(definition.request)
-            path_key = "pdb_structure_ref" if condition == "PDB" else "afdb_structure_ref"
-            sha_key = "pdb_structure_sha256" if condition == "PDB" else "afdb_structure_sha256"
-            source_path = root / str(row[path_key])
-            expected_sha = str(row[sha_key])
-            if not source_path.is_file() or _sha256_file(source_path) != expected_sha:
-                raise PhysicalEvaluationError(f"frozen structure hash mismatch: {protein_id}/{condition}")
-            conditions.append(
-                PhysicalCondition(
-                    protein_id=protein_id,
-                    condition=condition,
-                    source_path=source_path,
-                    source_sha256=expected_sha,
-                    source_chain_id=(str(row["pdb_chain"]) if condition == "PDB" else "A"),
-                    projection_coordinates=projection.coordinates,
-                    wt_sequence=projection.wt_sequence_projection,
-                )
-            )
-    return tuple(conditions)
+    try:
+        frozen = load_operational_conditions(root, protein_ids=requested)
+    except ValueError as exc:
+        raise PhysicalEvaluationError(str(exc)) from exc
+    return tuple(
+        PhysicalCondition(
+            protein_id=item.protein_id,
+            condition=item.condition,
+            source_path=item.source_path,
+            source_sha256=item.source_sha256,
+            source_chain_id=item.source_chain_id,
+            projection_coordinates=item.coordinates,
+            wt_sequence=item.wt_sequence_projection,
+        )
+        for item in frozen
+    )
 
 
 def parse_energy_terms(stdout: str) -> dict[str, float]:
@@ -905,9 +877,21 @@ def manifest_payload(protocol: EvoEF2Protocol, *, cohort: str, row_count: int) -
 
 
 __all__ = [
-    "ESMFOLD_SAMPLE_INDICES", "EvoEF2Protocol", "PhysicalEvaluationError", "build_mutant", "evaluate_structure",
-    "load_physical_conditions", "manifest_payload", "parse_energy_terms",
-    "paired_sequence_effects", "preference_effects", "prepare_inputs", "render_common_mask_pdb", "repair_structure",
-    "screen_prepared_inputs", "_mutation_spec_from_pdb",
-    "score_prepared_inputs", "summarize_protein_effects",
+    "ESMFOLD_SAMPLE_INDICES",
+    "EvoEF2Protocol",
+    "PhysicalEvaluationError",
+    "_mutation_spec_from_pdb",
+    "build_mutant",
+    "evaluate_structure",
+    "load_physical_conditions",
+    "manifest_payload",
+    "paired_sequence_effects",
+    "parse_energy_terms",
+    "preference_effects",
+    "prepare_inputs",
+    "render_common_mask_pdb",
+    "repair_structure",
+    "score_prepared_inputs",
+    "screen_prepared_inputs",
+    "summarize_protein_effects",
 ]

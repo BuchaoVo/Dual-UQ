@@ -1,0 +1,121 @@
+{
+  "analysis": "pdb_afdb_pair_validity_v1",
+  "input_provenance": {
+    "admission_sources": {
+      "rows": 105,
+      "sources": [
+        {
+          "path": "experiments/p2_design_baseline/scale1/scale1a1/scale1_formal_admission_census.parquet",
+          "rows": 72,
+          "sha256": "ca01e17f55637d0f4584aa7bbb8940e50ea4aaf25b9c7ee7f741bb51a4095a7f"
+        },
+        {
+          "path": "experiments/p2_design_baseline/scale1/expansion_wave1/scale1_expansion_wave1_admission.parquet",
+          "rows": 95,
+          "sha256": "2d627182e1342bb84d66317fdfe556edf2cf115a790147ffe884cb5d0ddb13de"
+        },
+        {
+          "path": "experiments/p2_design_baseline/scale1/expansion_wave2/scale1_expansion_wave2_admission.parquet",
+          "rows": 23,
+          "sha256": "813030cadaf3d5c3d1ba826880b22f4ba7be1632e3e3447a23b553e5a939181a"
+        }
+      ]
+    },
+    "cohort": {
+      "path": "experiments/dataset/releases/confirmatory/primary_cohort.parquet",
+      "rows": 127,
+      "sha256": "105d7cab10ea530055b011f600021516aa991edaf4d38c44a49eb5f911b7f793"
+    },
+    "common_masks": {
+      "rows": 40248,
+      "selection": "source_stratum-specific existing complete-mask artifact",
+      "sources": [
+        {
+          "path": "experiments/p2_design_baseline/scale1/scale1a2/scale1_full_frame_common_masks.parquet",
+          "rows": 99329,
+          "sha256": "4a6d89a9368c3349f0598616e3dda670b17164fe6dff7fd37e131a71e4acaae0"
+        },
+        {
+          "path": "experiments/p2_design_baseline/scale1/expansion_wave1/scale1_expansion_wave1_common_masks.parquet",
+          "rows": 15882,
+          "sha256": "56a66bd8ff1185876846918552bfa174c5b31467b268b32f814e18f2e8aa7a5a"
+        },
+        {
+          "path": "experiments/p2_design_baseline/scale1/expansion_wave2/scale1_expansion_wave2_common_masks.parquet",
+          "rows": 3925,
+          "sha256": "e54f9064e1de22f6ecd9d20e67b25c15030738c4b04b15fc6b5e31054530aae1"
+        }
+      ]
+    },
+    "protein_response": {
+      "path": "experiments/p2_design_baseline/scale1b-v2/structural_response/protein_summary.parquet",
+      "rows": 127,
+      "sha256": "33829fc6e53542e7f44575b75c7d5dedd20ad3c24f4dcaed802592f0a40284ec"
+    }
+  },
+  "outputs": {
+    "pair_validity": {
+      "path": "pair_validity.parquet",
+      "rows": 127,
+      "sha256": "74a76a20fbc9bb3a6fec83ab528aaf3ff3ba9a1f1b214e20d8601d719ae5898d"
+    },
+    "response_comparison": {
+      "path": "protein_response_comparison.parquet",
+      "rows": 127,
+      "sha256": "cd09d300823f085933d88f70d0522a0969331d878ba469a79ce6b401a853688f"
+    }
+  },
+  "status": "COMPLETE",
+  "summary": {
+    "admission_evidence_conflict_count": 1,
+    "afdb_confidence_status_counts": {
+      "global_descriptors_available": 59,
+      "unavailable": 68
+    },
+    "analysis": "PDB/AFDB pair validity and protein-level structural response",
+    "common_mask_fraction_of_canonical_observed_median": 0.9032258064516129,
+    "common_mask_fraction_of_canonical_observed_q25": 0.7531512605042017,
+    "common_mask_fraction_of_canonical_observed_q75": 0.9901438895341335,
+    "common_mask_fraction_of_mapped_median": 0.9979899314758549,
+    "common_mask_fraction_of_mapped_q25": 0.9813684022399619,
+    "common_mask_fraction_of_mapped_q75": 1.0,
+    "context_metadata_status_counts": {
+      "pdb_context_observed_afdb_context_unavailable": 127
+    },
+    "group_counts": {
+      "highly_comparable_identity_mapping": 68,
+      "potentially_confounded_coverage_or_mapping": 36,
+      "unresolved": 23
+    },
+    "high_comparability_count": 68,
+    "high_comparability_criterion": "FORMALLY_ADMITTED + exact identity + mapped_residue_count/canonical_sequence_length >= 0.90; descriptive sensitivity only",
+    "identity_status_counts": {
+      "exact": 104,
+      "unresolved": 23
+    },
+    "mapping_status_counts": {
+      "formally_admitted": 104,
+      "unresolved": 23
+    },
+    "no_position_or_repeat_as_independent_unit": true,
+    "no_weighted_pair_validity_score": true,
+    "protein_count": 127,
+    "response_clean_median": 0.0012478368553101304,
+    "response_clean_q25": 0.0008387110312217116,
+    "response_clean_q75": 0.002184086274065661,
+    "response_clean_vs_full_median_difference": -0.0004654903078992467,
+    "response_full_median": 0.0017133271632093772,
+    "response_full_q25": 0.0010316596268454825,
+    "response_full_q75": 0.0027945068477605584,
+    "response_median_by_comparability_group": {
+      "highly_comparable_identity_mapping": 0.0012478368553101304,
+      "potentially_confounded_coverage_or_mapping": 0.0025328696678694196,
+      "unresolved": 0.0016604471285986966
+    },
+    "response_metric": "existing structural_response.protein_summary.median_abs_d",
+    "response_spearman_vs_afdb_global_pae_q90": 0.3020626828829283,
+    "response_spearman_vs_afdb_global_plddt_median": -0.7142652591094252,
+    "response_spearman_vs_common_mask_fraction_of_canonical_observed": -0.16722596304265472,
+    "response_spearman_vs_mapped_fraction_of_canonical_observed": -0.18850758070845644
+  }
+}

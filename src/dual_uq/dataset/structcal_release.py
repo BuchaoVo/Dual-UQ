@@ -303,16 +303,13 @@ class StructCalSourcePaths:
     """Frozen model-independent source identities for StructCal v1."""
 
     representation_pairs: str = (
-        "experiments/p2_design_baseline/scale1/scale1b_v2/"
-        "scale1b_v2_primary_cohort.parquet"
+        "experiments/dataset/releases/confirmatory/primary_cohort.parquet"
     )
     representation_mappings: str = (
-        "experiments/p2_design_baseline/scale1/scale1b_v2/"
-        "scale1b_v2_primary_common_masks.parquet"
+        "experiments/dataset/releases/confirmatory/primary_common_masks.parquet"
     )
     representation_validity: str = (
-        "experiments/p2_design_baseline/scale1b-v2/pair_validity/"
-        "pair_validity.parquet"
+        "experiments/dataset/analysis/pair_validity/pair_validity.parquet"
     )
     apo_holo_root: str = (
         "experiments/interventions/biological_states/"

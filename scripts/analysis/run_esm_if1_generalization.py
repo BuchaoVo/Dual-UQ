@@ -53,8 +53,8 @@ def _immutable_json(path: Path, payload: object) -> str:
 
 def _paths(project_root: Path) -> dict[str, Path]:
     return {
-        "pairs": project_root / "experiments/p2_design_baseline/scale1b-v2/pair_validity/pair_validity.parquet",
-        "masks": project_root / "experiments/p2_design_baseline/scale1/scale1b_v2/scale1b_v2_primary_common_masks.parquet",
+        "pairs": project_root / "experiments/dataset/analysis/pair_validity/pair_validity.parquet",
+        "masks": project_root / "experiments/dataset/releases/confirmatory/primary_common_masks.parquet",
         "remodeling": project_root / "experiments/dataset/analysis/inverse_folding_remodeling/protein_remodeling.parquet",
         "generation": project_root / "experiments/dataset/analysis/generative_propagation/protein_generation_summary.parquet",
         "cross_structure": project_root / "experiments/dataset/analysis/cross_structure_compatibility/protein_cross_structure_summary.parquet",
@@ -240,8 +240,6 @@ def main() -> int:
     if args.cohort == "primary":
         cases = build_frozen_common_cases(
             project_root,
-            paths["pairs"],
-            paths["masks"],
             subset=args.subset,
             exclude_true_gap_proteins=True,
         )

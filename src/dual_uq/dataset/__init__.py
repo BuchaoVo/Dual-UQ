@@ -17,7 +17,6 @@ __all__ = [
     "CandidateContext",
     "CandidateDerivationResult",
     "DatasetPaths",
-    "DatasetExperimentPaths",
     "DatasetRelease",
     "DatasetTask",
     "DerivationConfig",
@@ -70,8 +69,6 @@ def __getattr__(name: str) -> Any:
     if name in _MODEL_EXPORTS:
         value = getattr(import_module("dual_uq.dataset.models"), name)
     elif name == "DatasetPaths":
-        value = getattr(import_module("dual_uq.dataset.paths"), name)
-    elif name == "DatasetExperimentPaths":
         value = getattr(import_module("dual_uq.dataset.paths"), name)
     elif name in _PIPELINE_EXPORTS:
         value = getattr(import_module("dual_uq.dataset.pipeline"), name)

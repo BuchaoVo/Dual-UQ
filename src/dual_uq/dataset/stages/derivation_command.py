@@ -592,20 +592,15 @@ def _run_pilot(paths: ProjectPaths) -> dict[str, Any]:
         int(row["candidate_index"]): row for row in acquisition_rows
     }
     assets = _successful_assets(paths, inputs["state"])
-    observability = yaml.safe_load(
-        (
-            paths.repository_root
-            / "configs/legacy/a0_screening/a0_selection.yaml"
-        ).read_text(encoding="utf-8")
+    config = yaml.safe_load(
+        (paths.repository_root / "configs/dataset/derivation.yaml").read_text(
+            encoding="utf-8"
+        )
     )
-    preflight_config = yaml.safe_load(
-        (
-            paths.repository_root
-            / "configs/legacy/a0_screening/screening_preflight.yaml"
-        ).read_text(encoding="utf-8")
-    )
+    preflight_thresholds = config["preflight_thresholds"]
+    observability_thresholds = config["observability_thresholds"]
     protocol_binding = _protocol_binding(
-        preflight_config["thresholds"], observability["thresholds"]
+        preflight_thresholds, observability_thresholds
     )
     contexts = [
         _candidate_context(
@@ -621,8 +616,8 @@ def _run_pilot(paths: ProjectPaths) -> dict[str, Any]:
     config = DerivationConfig(
         protocol_version="dataset-a.derive-pilot.v1",
         protocol_binding=protocol_binding,
-        preflight_thresholds=preflight_config["thresholds"],
-        observability_thresholds=observability["thresholds"],
+        preflight_thresholds=preflight_thresholds,
+        observability_thresholds=observability_thresholds,
         schema_version="dataset-a.derive-pilot.v1",
         preflight=preflight,
         scope={

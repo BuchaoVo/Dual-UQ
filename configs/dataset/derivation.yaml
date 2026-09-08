@@ -1,0 +1,33 @@
+preflight_thresholds:
+  min_full_length_mapping_coverage: 0.90
+  min_entity_mapping_coverage: 0.90
+  min_sequence_identity: 0.95
+  min_observed_ca_fraction: 0.90
+  warn_full_length_mapping_coverage: 0.70
+  max_internal_unmapped_fraction: 0.05
+
+observability_thresholds:
+  easy_control:
+    mapped_plddt_median_min: 90.0
+    ca_disagreement_p90_max: 1.0
+    high_conf_segment_max_length: 2
+    median_plddt_min: 90.0
+    p90_disagreement_max: 1.0
+  low_confidence_local:
+    internal_below_80_min_length: 5
+  high_pae_long_range:
+    minimum_sequence_separation: 48
+    q90_threshold: 10.0
+    above_10_fraction_threshold: 0.20
+    above_15_fraction_threshold: 0.10
+    rule: any
+    pae_q90_min: 10.0
+    pae_above_10_fraction_min: 0.20
+  high_confidence_state_disagreement:
+    minimum_segment_length: 5
+    minimum_segment_median_plddt: 90.0
+    minimum_segment_disagreement: 1.0
+  high_conf_state_disagreement:
+    min_contiguous_length: 5
+    plddt_min: 90.0
+    disagreement_threshold: 1.0

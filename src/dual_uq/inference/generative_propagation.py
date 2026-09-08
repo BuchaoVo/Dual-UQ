@@ -339,77 +339,42 @@ def _full_chain_generation_structure(
 
 def load_generation_inputs(project_root: Path) -> GenerationInputs:
     """Resolve exactly the existing clean cohort and its authoritative structures."""
-    from dual_uq.evaluation.pair_validity import (
-        build_pair_validity_table,
-        load_pair_validity_inputs,
-        select_high_comparability,
-    )
-    from dual_uq.workflows.final_confirmatory_protocol import (
-        _load_v2_formal_inputs,
-        build_final_confirmatory_projection_resolver,
-        load_final_confirmatory_formal_bundle,
+    from dual_uq.core.hashing import sha256_file
+    from dual_uq.evaluation.operational_pairs import (
+        frozen_operational_paths,
+        load_operational_conditions,
     )
 
     root = Path(project_root).expanduser().resolve()
-    validity = load_pair_validity_inputs(root)
-    clean = select_high_comparability(build_pair_validity_table(validity))
-    if len(clean) != _CLEAN_PROTEIN_COUNT:
-        raise GenerationExecutionError("clean cohort does not contain exactly 68 proteins")
-    clean_ids = tuple(clean["protein_id"].astype(str))
-    bundle = load_final_confirmatory_formal_bundle(root)
-    definitions = [
-        definition
-        for definition in bundle.definitions
-        if definition.request.protein_id in set(clean_ids)
-        and definition.request.repeat_index == 0
-    ]
-    keyed = {(item.request.protein_id, item.request.condition.condition_id): item for item in definitions}
-    if set(keyed) != {(protein, condition) for protein in clean_ids for condition in ("PDB", "AFDB")}:
-        raise GenerationExecutionError("frozen scoring plan does not bind the clean PDB/AFDB grid")
-    resolver = build_final_confirmatory_projection_resolver(root)
-    # The frozen projection resolver remains the semantic owner of pairing and
-    # mapping.  Only its already-bound source paths are used to materialize the
-    # full chain required by the generation model.
-    cohort_frame, _masks, _probes, _plan, _protocol, _manifest, _bindings = (
-        _load_v2_formal_inputs(root)
-    )
-    cohort_by_id = {
-        str(row.protein_id): row._asdict()
-        for row in cohort_frame.itertuples(index=False)
-    }
+    frozen = load_operational_conditions(root)
     conditions = tuple(
         GenerationCondition.from_structure(
             _full_chain_generation_structure(
-                resolver(keyed[key].request),
-                structure_path=root
-                / str(
-                    cohort_by_id[keyed[key].request.protein_id][
-                        "pdb_structure_ref"
-                        if key[1] == "PDB"
-                        else "afdb_structure_ref"
-                    ]
+                ProteinMPNNStructureInput(
+                    protein_id=item.protein_id,
+                    backbone_condition=item.condition,
+                    uniprot_positions=item.canonical_positions,
+                    wt_sequence_projection=item.wt_sequence_projection,
+                    coordinates=item.coordinates,
+                    structure_sha256=item.source_sha256,
                 ),
-                source_id=(
-                    keyed[key].request.protein_id
-                    if key[1] == "PDB"
-                    else str(cohort_by_id[keyed[key].request.protein_id]["afdb_model_id"])
-                ),
-                chain_id=(
-                    str(cohort_by_id[keyed[key].request.protein_id]["pdb_chain"])
-                    if key[1] == "PDB"
-                    else None
-                ),
+                structure_path=item.source_path,
+                source_id=item.source_id,
+                chain_id=item.source_chain_id,
+                projection_chain_auth_keys=item.auth_keys,
             )
         )
-        for key in sorted(keyed)
+        for item in frozen
     )
+    paths = frozen_operational_paths(root)
     return GenerationInputs(
         conditions,
         input_provenance={
-            "cohort_owner": "dual_uq.evaluation.pair_validity",
-            "structure_owner": "dual_uq.workflows.final_confirmatory_protocol",
-            "clean_protein_count": len(clean_ids),
-            "frozen_request_aggregate_sha256": bundle.frozen_request_aggregate_sha256,
+            "owner": "dual_uq.evaluation.operational_pairs",
+            "clean_protein_count": len({item.protein_id for item in frozen}),
+            "cohort_sha256": sha256_file(paths["cohort"]),
+            "mask_sha256": sha256_file(paths["masks"]),
+            "validity_sha256": sha256_file(paths["validity"]),
         },
     )
 

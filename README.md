@@ -36,9 +36,9 @@ mkdir -p configs/local
 cp configs/examples/paths.example.yaml configs/local/paths.yaml
 ```
 
-Legacy A0 configuration is preserved under `configs/legacy/a0_screening/`. Machine-specific absolute paths must not be committed.
+Machine-specific absolute paths must not be committed.
 
-## Dataset-A pipeline
+## Dataset pipeline
 
 - Reusable dataset logic: `src/dual_uq/dataset/`
 - Dataset stage and contract tests: `tests/dataset/`
@@ -46,7 +46,8 @@ Legacy A0 configuration is preserved under `configs/legacy/a0_screening/`. Machi
 - Design and protocol context: `docs/design/` and `docs/protocols/`
 - Current collaboration handoff: `docs/handoff/`
 
-The layout migration does not rerun P0/P1, census, pair, geometry, confidence, or screening computations.
+Current code consumes published benchmark releases; retired Dataset-A and
+Stage0/Scale1 exploration entrypoints remain available through Git history.
 
 ## Experiments and runs
 
@@ -64,20 +65,6 @@ ruff check src scripts tests
 ## Third-party ProteinMPNN
 
 The canonical checkout is `third_party/ProteinMPNN`; `third_party/ProteinMPNN.version` records its commit, weights, checksums, and license. Historical root-level compatibility links are no longer part of the repository. New model output must go to `runs/`, not the dependency checkout.
-
-## Legacy A0 pipeline
-
-The retained A0 reproduction entrypoints are limited to frozen-regression,
-summary, and discovery surfaces. The environment check lives under the
-maintenance namespace at `scripts/maintenance/check_environment.py`;
-historical analysis and discovery surfaces remain:
-`scripts/analysis/diagnose_pair_robustness.py`,
-`scripts/analysis/characterize_disagreement_segments.py`,
-`scripts/12_build_a0_candidate_summary.py`, and
-`scripts/13_discover_screening_pool.py`. Removed numbered execution surfaces
-are archived by Git history, not by compatibility copies. See
-`scripts/legacy/a0_screening/README.md`. These historical entrypoints receive
-severe bug fixes only and are not the extension point for Dataset-A stages.
 
 ## Data and Git policy
 

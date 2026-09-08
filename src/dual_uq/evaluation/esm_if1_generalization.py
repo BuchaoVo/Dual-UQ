@@ -21,6 +21,12 @@ from scipy.stats import spearmanr
 
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_bytes
+from dual_uq.evaluation.operational_pairs import (
+    find_true_gap_proteins as _find_true_gap_proteins,
+)
+from dual_uq.evaluation.operational_pairs import (
+    load_operational_conditions,
+)
 from dual_uq.models.esm_if1 import STANDARD_AMINO_ACIDS_TUPLE, ESMIF1ContractError
 
 ESM_IF1_ANALYSIS_PROTOCOL = "esm_if1_cross_model_generalization_v1"
@@ -75,106 +81,44 @@ def find_true_gap_proteins(
     protein_ids: Iterable[str] | None = None,
 ) -> tuple[str, ...]:
     """Return proteins whose frozen common-mask axis contains an internal gap."""
-    required = {"protein_id", "canonical_position", "common_mask"}
-    missing = sorted(required - set(masks.columns))
-    if missing:
-        raise ESMIF1ContractError(f"common mask missing columns: {missing}")
-    selected = {str(value) for value in protein_ids} if protein_ids is not None else None
-    gap_proteins: list[str] = []
-    for protein_id, group in masks.loc[masks["common_mask"].eq(True)].groupby(
-        "protein_id", sort=True
-    ):
-        if selected is not None and str(protein_id) not in selected:
-            continue
-        positions = tuple(sorted(int(value) for value in group["canonical_position"]))
-        if any(right != left + 1 for left, right in pairwise(positions)):
-            gap_proteins.append(str(protein_id))
-    return tuple(gap_proteins)
+    try:
+        return _find_true_gap_proteins(masks, protein_ids)
+    except ValueError as exc:
+        raise ESMIF1ContractError(str(exc)) from exc
 
 
 def build_frozen_common_cases(
     project_root: Path,
-    pair_validity_path: Path,
-    common_mask_path: Path,
     *,
     subset: int | None = None,
     exclude_true_gap_proteins: bool = False,
 ) -> pd.DataFrame:
     """Build exactly the frozen clean PDB/AFDB common-mask input table."""
-    project_root = Path(project_root)
-    pairs = pd.read_parquet(pair_validity_path)
-    masks = pd.read_parquet(common_mask_path)
-    clean = pairs.loc[pairs["high_comparability_eligible"].eq(True)].copy()
-    if len(clean) != 68:
-        raise ESMIF1ContractError(f"frozen clean cohort must contain 68 proteins, got {len(clean)}")
-    clean = clean.sort_values("protein_id", kind="mergesort").reset_index(drop=True)
-    if exclude_true_gap_proteins:
-        gap_proteins = set(find_true_gap_proteins(masks, clean["protein_id"]))
-        clean = clean.loc[~clean["protein_id"].astype(str).isin(gap_proteins)].reset_index(drop=True)
-    if subset is not None:
-        maximum = len(clean)
-        if type(subset) is not int or not 0 < subset <= maximum:
-            raise ESMIF1ContractError(f"subset must be between 1 and {maximum}")
-        clean = clean.iloc[:subset].copy()
     rows: list[dict[str, Any]] = []
-    for source in clean.itertuples(index=False):
-        protein_masks = masks.loc[
-            masks["protein_id"].eq(source.protein_id) & masks["common_mask"].eq(True)
-        ].sort_values("canonical_position", kind="mergesort")
-        if protein_masks.empty:
-            raise ESMIF1ContractError(f"common mask is empty: {source.protein_id}")
-        canonical_positions = tuple(int(value) for value in protein_masks["canonical_position"])
-        validate_contiguous_common_positions(canonical_positions)
-        wt_sequence = "".join(
-            str(source.canonical_sequence)[position - 1] for position in canonical_positions
+    try:
+        conditions = load_operational_conditions(
+            project_root,
+            subset=subset,
+            exclude_true_gaps=exclude_true_gap_proteins,
         )
-        pdb_path = project_root / str(source.pdb_structure_ref)
-        afdb_path = project_root / str(source.afdb_structure_ref)
-        pdb_coords, pdb_ids, pdb_names = _load_structure_rows(pdb_path, str(source.pdb_chain))
-        afdb_coords, afdb_ids, afdb_names = _load_structure_rows(afdb_path, "A")
-        pdb_lookup = {(int(residue_id), code): index for index, (residue_id, code) in enumerate(pdb_ids)}
-        afdb_lookup = {(int(residue_id), code): index for index, (residue_id, code) in enumerate(afdb_ids)}
-        selected_pdb: list[np.ndarray] = []
-        selected_afdb: list[np.ndarray] = []
-        for mask_row in protein_masks.itertuples(index=False):
-            insertion_code = "" if pd.isna(mask_row.insertion_code) else str(mask_row.insertion_code)
-            pdb_key = (int(mask_row.auth_seq_id), insertion_code)
-            # AFDB model author numbering is the frozen canonical residue
-            # namespace; the mask's label_seq_id belongs to the PDB mmCIF
-            # namespace and is never used as an AFDB offset heuristic.
-            afdb_key = (int(mask_row.canonical_position), "")
-            if pdb_key not in pdb_lookup or afdb_key not in afdb_lookup:
-                raise ESMIF1ContractError(f"common mask residue is absent from backbone: {source.protein_id}")
-            pdb_index = pdb_lookup[pdb_key]
-            afdb_index = afdb_lookup[afdb_key]
-            expected_aa = str(mask_row.canonical_aa)
-            if pdb_names[pdb_index] != expected_aa or afdb_names[afdb_index] != expected_aa:
-                raise ESMIF1ContractError(
-                    f"backbone residue identity differs from the frozen common mask: {source.protein_id}"
-                )
-            selected_pdb.append(pdb_coords[pdb_index])
-            selected_afdb.append(afdb_coords[afdb_index])
-        selected_pdb_array = np.asarray(selected_pdb, dtype=np.float32)
-        selected_afdb_array = np.asarray(selected_afdb, dtype=np.float32)
-        if not np.isfinite(selected_pdb_array).all() or not np.isfinite(selected_afdb_array).all():
-            raise ESMIF1ContractError(f"common-mask backbone contains missing atoms: {source.protein_id}")
-        for condition, coordinates, structure_sha256 in (
-            ("PDB", selected_pdb_array, str(source.pdb_structure_sha256)),
-            ("AFDB", selected_afdb_array, str(source.afdb_structure_sha256)),
-        ):
-            for position in canonical_positions:
-                rows.append(
-                    {
-                        "protein_id": str(source.protein_id),
-                        "condition": condition,
-                        "position": position,
-                        "wt_sequence": wt_sequence,
-                        "coordinates": coordinates,
-                        "canonical_positions": canonical_positions,
-                        "structure_sha256": structure_sha256,
-                        "common_mask_sha256": None,
-                    }
-                )
+    except ValueError as exc:
+        raise ESMIF1ContractError(str(exc)) from exc
+    for source in conditions:
+        validate_contiguous_common_positions(source.canonical_positions)
+        coordinates = source.coordinates[:, :3]
+        for position in source.canonical_positions:
+            rows.append(
+                {
+                    "protein_id": source.protein_id,
+                    "condition": source.condition,
+                    "position": position,
+                    "wt_sequence": source.wt_sequence_projection,
+                    "coordinates": coordinates,
+                    "canonical_positions": source.canonical_positions,
+                    "structure_sha256": source.source_sha256,
+                    "common_mask_sha256": None,
+                }
+            )
     cases = pd.DataFrame(rows)
     validate_common_backbone(cases)
     return cases

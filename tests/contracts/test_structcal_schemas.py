@@ -27,6 +27,12 @@ RAW_SCHEMAS = {
     "generated_sequences.schema.json",
     "sequence_scores.schema.json",
 }
+SEQUENCE_ENSEMBLE_SCHEMAS = {
+    "sequence_ensemble_coverage.schema.json",
+    "sequence_ensemble_exclusions.schema.json",
+    "sequence_ensemble_manifest.schema.json",
+    "sequence_ensemble_readiness.schema.json",
+}
 OTHER_SCHEMAS = {
     "model_capabilities.schema.json",
     "model_instance_eligibility.schema.json",
@@ -37,7 +43,13 @@ OTHER_SCHEMAS = {
     "annotation_version.schema.json",
     "release_manifest.schema.json",
 }
-ALL_SCHEMAS = CORE_SCHEMAS | ANNOTATION_SCHEMAS | RAW_SCHEMAS | OTHER_SCHEMAS
+ALL_SCHEMAS = (
+    CORE_SCHEMAS
+    | ANNOTATION_SCHEMAS
+    | RAW_SCHEMAS
+    | SEQUENCE_ENSEMBLE_SCHEMAS
+    | OTHER_SCHEMAS
+)
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -439,7 +451,7 @@ def test_structcal_core_keeps_arm_only_where_structural_condition_membership_liv
 
 def test_metadata_schemas_are_independently_versioned() -> None:
     benchmark = {"benchmark_id": "dual_uq_benchmark", "benchmark_version": "0.1.0", "status": "SPECIFICATION_ONLY", "core_schema_family": "1.0.0", "release_id": None, "legacy_ids": []}
-    schema = {"schema_family": "dual_uq.benchmark", "schema_version": "1.0.0", "schemas": {"proteins": "1.0.0", "structures": "1.0.0"}}
+    schema = {"schema_family": "dual_uq.structcal", "schema_version": "1.0.0", "schemas": {"proteins": "1.0.0", "structures": "1.0.0"}}
     metric = {"metric_family": "dual_uq.canonical_metrics", "metric_version": "1.0.0", "definitions": {"local_js": "central evaluator definition"}}
     annotation = {"annotation_family": "dual_uq.structural_annotations", "annotation_version": "1.0.0", "definitions": {"residue": "descriptor contract"}}
     _assert_valid("benchmark_version.schema.json", benchmark)
@@ -450,7 +462,7 @@ def test_metadata_schemas_are_independently_versioned() -> None:
 
 
 def test_initial_metadata_definitions_match_the_metadata_schemas() -> None:
-    metadata_root = SCHEMA_ROOT.parent / "benchmark" / "metadata"
+    metadata_root = SCHEMA_ROOT.parent / "structcal" / "metadata"
     for filename, schema_name in (
         ("benchmark_version.json", "benchmark_version.schema.json"),
         ("schema_version.json", "schema_version.schema.json"),
@@ -467,11 +479,11 @@ def test_initial_metadata_definitions_match_the_metadata_schemas() -> None:
 def test_canonical_names_do_not_use_development_stage_labels() -> None:
     forbidden = {"v1", "v2", "a1", "a2", "stage1", "final", "new", "latest", "test2"}
     canonical_paths = [
-        "benchmark/core",
-        "benchmark/annotations",
-        "benchmark/results/proteinmpnn/local_sensitivity",
-        "benchmark/results/esm_if1/generative_propagation",
-        "benchmark/metadata",
+        "structcal/core",
+        "structcal/annotations",
+        "structcal/results/proteinmpnn/local_sensitivity",
+        "structcal/results/esm_if1/generative_propagation",
+        "structcal/metadata",
     ]
     for path in canonical_paths:
         assert not any(part.lower() in forbidden for part in Path(path).parts)

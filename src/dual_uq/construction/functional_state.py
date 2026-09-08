@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from dual_uq.benchmark.condition_semantics import orientation_for
+from dual_uq.structcal.condition_semantics import orientation_for
 
 
 def normalize_functional_state(state_family: str, state_label: str) -> tuple[str, str]:

@@ -19,14 +19,6 @@ from typing import Any
 
 import pandas as pd
 
-from dual_uq.benchmark.ids import structure_id as canonical_structure_id
-from dual_uq.benchmark.schema_registry import SchemaRegistry
-from dual_uq.benchmark.tables import (
-    canonical_columns,
-    validate_frame,
-    write_parquet_bundle_transactional,
-)
-from dual_uq.benchmark.validation import validate_frame_contract, validate_pair_orientation
 from dual_uq.construction.eligibility import build_generic_eligibility
 from dual_uq.construction.functional_state import close_candidate_attrition
 from dual_uq.construction.proteins import normalize_protein
@@ -34,6 +26,14 @@ from dual_uq.construction.structures import normalize_structure
 from dual_uq.core.atomic_io import atomic_write_json, atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_file
 from dual_uq.dataset.services.mapping import parse_sifts_mapping_with_explicit_labels
+from dual_uq.structcal.ids import structure_id as canonical_structure_id
+from dual_uq.structcal.schema_registry import SchemaRegistry
+from dual_uq.structcal.tables import (
+    canonical_columns,
+    validate_frame,
+    write_parquet_bundle_transactional,
+)
+from dual_uq.structcal.validation import validate_frame_contract, validate_pair_orientation
 from dual_uq.structure_io import (
     join_residue_mapping_to_ca,
     load_chain_ca_table,

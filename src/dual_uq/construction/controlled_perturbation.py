@@ -17,14 +17,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from dual_uq.benchmark.ids import pair_id as canonical_pair_id
-from dual_uq.benchmark.schema_registry import SchemaRegistry
-from dual_uq.benchmark.tables import validate_frame
 from dual_uq.construction.admission import AdmissionPolicy, evaluate_pair
 from dual_uq.construction.comparability import compare_mapped_pair
 from dual_uq.construction.mapping import CANONICAL_PAIR_MAPPING_COLUMNS, map_condition_pair
 from dual_uq.construction.structures import normalize_structure
 from dual_uq.geometry import kabsch_align, obvious_geometry_counts, rmsd
+from dual_uq.structcal.ids import pair_id as canonical_pair_id
+from dual_uq.structcal.schema_registry import SchemaRegistry
+from dual_uq.structcal.tables import validate_frame
 
 CONTROLLED_PERTURBATION = "controlled_perturbation"
 REFERENCE = "REFERENCE"

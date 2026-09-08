@@ -7,6 +7,7 @@ Dual-UQ studies structure-conditioned protein sequence design under backbone and
 | Path | Responsibility |
 | --- | --- |
 | `src/` | reusable Python implementation |
+| `structcal/` | canonical StructCal tables, annotations, and metadata |
 | `configs/` | declarative defaults, examples, local overrides, experiment, and legacy configuration |
 | `data/` | raw/interim/processed assets, manifests, and small fixtures |
 | `experiments/` | scientific protocols and entrypoint definitions, not run output |

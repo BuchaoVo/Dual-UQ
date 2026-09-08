@@ -7,7 +7,6 @@ import pandas as pd
 import pytest
 
 import dual_uq.dataset.functional_state_canonical as canonical_module
-from dual_uq.benchmark.schema_registry import SchemaRegistry
 from dual_uq.dataset.functional_state_canonical import (
     FunctionalStateCanonicalConfig,
     FunctionalStateCanonicalError,
@@ -18,6 +17,7 @@ from dual_uq.dataset.functional_state_canonical import (
     repair_primary_residue_mapping_identity,
     validate_canonical_tables,
 )
+from dual_uq.structcal.schema_registry import SchemaRegistry
 
 REPO_ROOT = Path(__file__).parents[2]
 

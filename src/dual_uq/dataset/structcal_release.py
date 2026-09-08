@@ -21,14 +21,14 @@ from typing import Any
 
 import pandas as pd
 
-from dual_uq.benchmark.ids import structure_id as canonical_structure_id
-from dual_uq.benchmark.schema_registry import SchemaRegistry
-from dual_uq.benchmark.validation import (
+from dual_uq.dataset.controlled_relational_geometry_sources import ApoHoloParentSource
+from dual_uq.dataset.identity_split import build_connected_identity_assignments
+from dual_uq.structcal.ids import structure_id as canonical_structure_id
+from dual_uq.structcal.schema_registry import SchemaRegistry
+from dual_uq.structcal.validation import (
     validate_core_relationships,
     validate_frame_contract,
 )
-from dual_uq.dataset.controlled_relational_geometry_sources import ApoHoloParentSource
-from dual_uq.dataset.identity_split import build_connected_identity_assignments
 
 
 class StructCalReleaseError(ValueError):
@@ -323,8 +323,8 @@ class StructCalSourcePaths:
         "experiments/interventions/controlled_perturbations/"
         "relational_geometry_confirmatory"
     )
-    functional_core_root: str = "benchmark/core"
-    functional_annotation_root: str = "benchmark/annotations"
+    functional_core_root: str = "structcal/core"
+    functional_annotation_root: str = "structcal/annotations"
     apo_sequence_table: str = (
         "experiments/comparisons/method_design/identity_split/"
         "cluster_assignments.parquet"

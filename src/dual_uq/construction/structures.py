@@ -1,7 +1,7 @@
 """Structural-condition instance normalization."""
 
-from dual_uq.benchmark.condition_semantics import orientation_for
-from dual_uq.benchmark.ids import structure_id
+from dual_uq.structcal.condition_semantics import orientation_for
+from dual_uq.structcal.ids import structure_id
 
 
 def normalize_structure(

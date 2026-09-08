@@ -6,12 +6,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dual_uq.benchmark.condition_semantics import orient_pair
-from dual_uq.benchmark.ids import canonical_id, pair_id, protein_id
-from dual_uq.benchmark.instances import BenchmarkInstance
-from dual_uq.benchmark.schema_registry import SchemaRegistry
-from dual_uq.benchmark.tables import canonical_columns, validate_frame, write_parquet_transactional
-from dual_uq.benchmark.validation import validate_primary_key
+from dual_uq.structcal.condition_semantics import orient_pair
+from dual_uq.structcal.ids import canonical_id, pair_id, protein_id
+from dual_uq.structcal.instances import BenchmarkInstance
+from dual_uq.structcal.schema_registry import SchemaRegistry
+from dual_uq.structcal.tables import canonical_columns, validate_frame, write_parquet_transactional
+from dual_uq.structcal.validation import validate_primary_key
 
 ROOT = Path(__file__).parents[2]
 

@@ -47,7 +47,7 @@ def _require_columns(frame: pd.DataFrame, required: set[str], label: str) -> Non
 
 @dataclass(frozen=True, slots=True)
 class CoreParentSource:
-    """Adapter retaining the original benchmark/core construction owner."""
+    """Adapter retaining the original StructCal Core construction owner."""
 
     repository_root: Path
 

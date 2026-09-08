@@ -13,7 +13,7 @@ from Bio.PDB import MMCIFIO, MMCIFParser, PDBParser
 from Bio.PDB.PDBExceptions import PDBException
 from Bio.PDB.Polypeptide import is_aa
 
-from dual_uq.benchmark.ids import canonical_id
+from dual_uq.structcal.ids import canonical_id
 from dual_uq.construction.annotations import annotate_aligned_pair
 from dual_uq.construction.controlled_perturbation import (
     SUPPORTED_PERTURBATION_DOSES,
@@ -809,7 +809,7 @@ def _validate_pilot_request(
 
 @lru_cache(maxsize=8)
 def _load_core_inputs(repository_root: Path) -> _CoreInputs:
-    core = repository_root / "benchmark/core"
+    core = repository_root / "structcal/core"
     required_paths = {
         "proteins": core / "proteins.parquet",
         "structures": core / "structures.parquet",

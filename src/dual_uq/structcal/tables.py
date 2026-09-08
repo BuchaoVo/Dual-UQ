@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from dual_uq.benchmark.schema_registry import SchemaRegistry
-from dual_uq.benchmark.validation import validate_frame_contract
 from dual_uq.core.atomic_io import atomic_write_new_bytes
+from dual_uq.structcal.schema_registry import SchemaRegistry
+from dual_uq.structcal.validation import validate_frame_contract
 
 
 def canonical_columns(table: str, registry: SchemaRegistry) -> tuple[str, ...]:

@@ -7,8 +7,8 @@ from numbers import Integral, Real
 
 import pandas as pd
 
-from dual_uq.benchmark.condition_semantics import orientation_for
-from dual_uq.benchmark.schema_registry import SchemaRegistry
+from dual_uq.structcal.condition_semantics import orientation_for
+from dual_uq.structcal.schema_registry import SchemaRegistry
 
 
 def _is_null(value: object) -> bool:

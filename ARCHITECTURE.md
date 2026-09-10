@@ -2,138 +2,274 @@
 
 ## 1. Purpose
 
-Dual-UQ is a long-lived scientific software repository for computational protein design and uncertainty-aware evaluation.
+Dual-UQ is a scientific software repository for computational protein design, sequence/structure modeling, uncertainty analysis, and reproducible evaluation.
 
-The repository supports capabilities including:
+Its architecture exists to make scientific questions easier to formulate, test, compare, reproduce, and revise.
 
-* protein sequence and structure processing;
-* dataset construction and scientific release;
-* PDB / AlphaFold DB integration;
-* structure-conditioned protein design;
-* sequence scoring;
-* model inference and comparison;
-* structure uncertainty;
-* evaluator uncertainty;
-* joint uncertainty;
-* calibration and reliability analysis;
-* mechanism analysis;
-* counterfactual analysis.
+The repository should support work such as:
 
-The architecture follows one principle:
+- protein sequence and structure processing;
+- dataset and cohort construction;
+- PDB / AlphaFold DB integration;
+- structure-conditioned protein design;
+- sequence scoring and model inference;
+- structure, evaluator, and joint uncertainty;
+- calibration and reliability analysis;
+- mechanism and counterfactual analysis;
+- StructCal benchmark construction and evaluation;
+- ReSC method development and evaluation.
 
-> Stable scientific concepts live in reusable modules; experiment specifications configure and compose those capabilities; execution state and frozen scientific artifacts have explicit lifecycles.
+The architectural objective is not maximal abstraction, release engineering, or platform-like governance.
 
-This document defines:
+The objective is the smallest stable structure that protects scientific meaning while enabling informative experiments and reuse.
 
-```text
-module ownership
-dependency direction
-cross-package contracts
-configuration boundaries
-I/O boundaries
-artifact lifecycle
-extension rules
-migration strategy
-```
-
-It does not define Agent execution behavior.
-
-Agent behavior belongs in `AGENTS.md`.
-
-This is a target architecture, not a requirement for a Big-Bang rewrite.
+`AGENTS.md` defines how an agent should reason and act. This file defines where scientific responsibilities live, how data and computation flow, and which dependency boundaries should remain stable.
 
 ---
 
-## 2. Architectural Principles
+## 2. Research-First Architecture
 
-The repository is organized primarily by stable scientific capability rather than experiment chronology.
-
-Reusable code should encode concepts such as:
+Architecture should follow the scientific reasoning loop used by the repository:
 
 ```text
-admission
+scientific question
+    ↓
+hypothesis / competing explanations
+    ↓
+scientific objects + controlled comparison
+    ↓
+model or analysis operation
+    ↓
+measurement
+    ↓
+aggregation / uncertainty analysis
+    ↓
+interpretation
+    ↓
+next experiment or revised hypothesis
+```
+
+Each architectural layer should make one or more of these transitions explicit.
+
+For non-trivial experiments, the architecture should make it possible to recover the key assumptions, plausible confounders, and the evidence that discriminates competing explanations. These do not require a heavyweight metadata system; a typed experiment specification, concise protocol note, and preserved primitive outputs are often sufficient.
+
+A useful boundary is one that prevents scientifically different concepts from being silently mixed, for example:
+
+- sequence index vs structure-array index;
+- PDB condition vs AFDB condition;
+- model score vs derived metric;
+- per-residue observation vs per-protein estimand;
+- missing data vs scientific exclusion;
+- exploratory analysis vs confirmatory evaluation;
+- structure uncertainty vs evaluator uncertainty;
+- data construction vs model eligibility;
+- observation vs interpretation.
+
+Do not create architectural machinery merely because a system could theoretically be more formal.
+
+Prefer direct scientific clarity over additional wrappers, registries, schemas, hashes, manifests, or lifecycle states unless they solve a demonstrated problem.
+
+---
+
+## 3. Core Architectural Principles
+
+### 3.1 Organize by scientific capability
+
+Reusable code should be named and organized around stable scientific or computational responsibilities such as:
+
+```text
 mapping
-acquisition
+comparability
+admission
 redundancy
-candidate selection
-sequence design
-sequence scoring
+selection
+structure conditioning
+design
+scoring
 uncertainty
 metrics
 evaluation
-provenance
-release validation
+calibration
+reporting
 ```
 
-rather than historical identifiers such as:
+Do not organize reusable implementation around experiment chronology such as:
 
 ```text
-P2
-Stage0
-Scale1A2
-Scale1A3
-Scale1B
+stage1
+stage2
+scale1a
+scale1b
+step3
+p2
 ```
 
-Historical identifiers remain valid as:
+Historical identifiers may remain in experiment metadata, output metadata, or reproduction-only paths.
 
-* experiment identities;
-* release identities;
-* provenance metadata;
-* compatibility aliases;
-* protocol history.
+### 3.2 One active owner per scientific concept
 
-They should not determine reusable package architecture.
+A reusable scientific concept should have one clear active implementation.
 
-The goal is not maximum abstraction.
+Before adding new logic:
 
-The goal is the smallest stable architecture that preserves scientific meaning while allowing future experiments to reuse existing capabilities.
+```text
+find current owner
+→ reuse
+→ extend
+→ adapt at an existing boundary
+→ create only if scientifically distinct
+```
+
+Do not maintain multiple active implementations of mapping, admission, scoring, metrics, aggregation, or uncertainty definitions merely for different experiments.
+
+A second implementation is justified when it is deliberately used as an independent reference or oracle.
+
+### 3.3 Dependencies point toward more stable meaning
+
+High-level experiment composition may depend on lower-level scientific capabilities.
+
+Low-level scientific modules must not depend on:
+
+- CLI code;
+- report rendering;
+- run directories;
+- historical experiment names;
+- task-specific orchestration.
+
+External source and model details should remain behind adapters.
+
+### 3.4 Preserve information before summarizing it
+
+When computationally reasonable, preserve information-rich intermediate results so later scientific questions do not require unnecessary recomputation.
+
+For example, prefer preserving per-candidate or per-residue model outputs when downstream metrics may change, rather than persisting only one aggregate score.
+
+Summaries belong after the primitive scientific measurements they summarize.
+
+### 3.5 Engineering effort should be proportional to scientific risk
+
+Ordinary research iteration should use ordinary Python modules, focused tests, explicit configurations, clear experiment directories, and semantic provenance.
+
+Do not default to:
+
+- preflight or readiness phases;
+- repository-wide audits before execution;
+- dry-run or validation gates that duplicate evidence available from real execution;
+- release services;
+- artifact registries;
+- immutable-write frameworks;
+- workflow engines;
+- state databases;
+- checksum chains;
+- broad compatibility layers;
+- schema frameworks for transient internal objects.
+
+Use stronger machinery only when the scientific or external interface genuinely requires it.
+
+### 3.6 Continuity over task-local code
+
+The repository should evolve by extending existing scientific capabilities, not by accumulating one-off files and directories for each requested task. A task name is not an architectural boundary.
+
+Before writing new processing logic, inspect the relevant existing code path with targeted searches: the current scientific owner, nearby functions, callers, tasks/runners, metrics/evaluators, configuration, and tests when they are directly relevant. The purpose is to find existing logic that can be reused or extended, not to create a separate preflight phase.
+
+For a new experiment or analysis, prefer:
+
+```text
+find existing scientific owner
+→ reuse existing function/module
+→ extend its coherent interface if needed
+→ reuse the existing task/runner/CLI
+→ express experiment-specific variation in arguments or configuration
+```
+
+over:
+
+```text
+new task
+→ new folder
+→ new Python script
+→ copied or slightly modified logic
+→ another folder/script for the next task
+```
+
+Do **not** create a new directory merely because a new task, experiment, figure, cohort, ablation, threshold, model checkpoint, or comparison is requested. Create a directory only when it represents a durable scientific namespace, a genuinely distinct reusable subsystem, or a real storage boundary that cannot be expressed cleanly in an existing location.
+
+Do **not** create a new `.py` file merely because the requested operation is new to the current task. First determine whether the behavior belongs in an existing module. Prefer adding a focused function, method, policy field, task option, runner branch, or evaluator operation to the existing owner when the scientific responsibility is unchanged.
+
+Experiment directories should primarily contain scientific intent, configuration, compact notes when needed, and outputs. They must not become parallel source trees containing their own copies of processing, scoring, filtering, plotting, or evaluation logic.
+
+A one-off exploratory script is acceptable only when the work is genuinely disposable and has no reusable scientific logic. Once logic is scientifically meaningful or likely to be reused, place it in the existing canonical owner; keep invocation thin.
+
+Do not create a new metric, task, evaluator, model wrapper, parser, or helper merely to give one experiment a new name. Different datasets, thresholds, subsets, arms, checkpoints, output locations, or presentation names normally reuse the same implementation.
+
+When an existing implementation is close but incomplete, **extend it rather than clone it**. Duplication is not an acceptable way to isolate tasks.
+
+### 3.7 Parameterize real experimental variation
+
+Do not hard-code values that are expected to vary across scientifically meaningful runs. Prefer explicit function arguments or small typed experiment specifications for values such as:
+
+- dataset or cohort identity;
+- model and checkpoint choice;
+- structural condition or comparison arm;
+- thresholds and perturbation magnitudes;
+- sampling budget and decoding settings;
+- seeds or seed policy;
+- evaluation subset;
+- aggregation or resampling choices when they are part of the analysis;
+- input/output locations;
+- device, batch size, and worker count.
+
+Avoid branches such as `if experiment == "scale1b"` or hidden constants embedded in task-specific code when the difference is actually a parameter or scientific choice.
+
+Parameterization does **not** mean moving every constant into YAML. Stable scientific definitions should remain explicit in their canonical owner. Examples include amino-acid ordering, residue-index semantics, score sign conventions, and a metric equation whose definition is intended to be fixed.
+
+Use the following distinction:
+
+```text
+scientific invariant        → canonical code owner
+scientifically varying choice → typed experiment specification / explicit argument
+runtime-only choice         → runtime configuration
+```
+
+Do not replace hard-coded values with an unstructured global configuration dictionary. Expose only variation that is real and useful.
 
 ---
 
-## 3. Conceptual Composition vs Code Dependencies
+## 4. Scientific Composition vs Python Dependencies
 
-Do not confuse scientific workflow composition with code dependency direction.
+Scientific workflow composition and Python import direction are different concepts.
 
-### 3.1 Conceptual Composition
-
-Scientific execution generally looks like:
+A typical scientific execution path is:
 
 ```text
 experiment specification
         ↓
-workflow
+runner / workflow composition
         ↓
-scientific capabilities + adapters + policies
+scientific capabilities + source/model adapters
         ↓
-validated scientific artifacts
+primitive scientific outputs
+        ↓
+metrics / aggregation / uncertainty analysis
+        ↓
+figures, tables, interpretation-ready results
 ```
 
-This diagram describes how scientific work is composed.
+This does not imply that every downstream stage owns the objects it consumes.
 
-It is not a Python import graph.
+For example:
 
-### 3.2 Code Dependency Principle
-
-Dependencies should point toward more stable concepts.
-
-High-level orchestration may depend on lower-level scientific capabilities.
-
-Reusable scientific capabilities must not depend on:
-
-* workflows;
-* CLI;
-* reporting;
-* experiment directories;
-* historical experiment identities.
-
-Project-level scientific contracts must not depend on concrete source/model adapters.
-
-Adapters translate external systems into project-level contracts.
+- a model adapter may produce model-native outputs;
+- a normalized scientific representation may live outside the model adapter;
+- metrics consume outputs but do not own model execution;
+- evaluation consumes metrics but does not redefine them;
+- reporting presents evaluation results but does not alter scientific meaning.
 
 ---
 
-## 4. Target Repository Layout
+## 5. Target Repository Layout
+
+The following is a target organization, not a requirement to create empty directories or perform a large rewrite.
 
 ```text
 repository/
@@ -142,8 +278,6 @@ repository/
 ├── ARCHITECTURE.md
 ├── README.md
 ├── pyproject.toml
-├── LICENSE
-├── CITATION.cff
 │
 ├── configs/
 │   ├── datasets/
@@ -152,45 +286,37 @@ repository/
 │   ├── runtime/
 │   └── local/
 │
-├── schemas/
-│
 ├── data/
 │   ├── raw/
 │   ├── interim/
-│   ├── processed/
-│   └── manifests/
+│   └── processed/
 │
 ├── experiments/
 ├── runs/
-│
 ├── artifacts/
-│   ├── releases/
-│   └── checkpoints/
 │
 ├── src/
 │   └── dual_uq/
 │       ├── core/
 │       ├── structure/
-│       ├── dataset/
+│       ├── construction/
+│       ├── benchmark/
 │       ├── design/
 │       ├── models/
-│       ├── inference/
+│       ├── tasks/
 │       ├── uncertainty/
 │       ├── metrics/
 │       ├── evaluation/
-│       ├── workflows/
 │       ├── reporting/
+│       ├── runners/
 │       └── cli/
 │
 ├── tests/
 │   ├── unit/
 │   ├── integration/
-│   ├── regression/
-│   ├── contracts/
 │   └── fixtures/
 │
 ├── docs/
-│   ├── architecture/
 │   ├── scientific/
 │   ├── protocols/
 │   ├── decisions/
@@ -199,88 +325,94 @@ repository/
 └── third_party/
 ```
 
-This is a target state.
+Historical packages may remain while active work migrates toward these boundaries.
 
-Do not create empty directories merely to conform to the diagram.
+Do not mechanically move files simply to match this tree. Migrate when active scientific work exposes a concrete ownership or duplication problem.
 
-Existing code should migrate incrementally as active work justifies it.
+### 5.1 `dataset/` vs `construction/`
+
+New reusable dataset-construction work should prefer `construction/` when that is the active canonical owner.
+
+Historical `dataset/` implementations may remain for reproduction or until their behavior is understood well enough to migrate safely.
+
+Do not maintain both as competing active implementations of the same scientific operation.
+
+### 5.2 `workflows/` / `inference/` vs `runners/` / `tasks/`
+
+If historical `workflows/` or `inference/` modules exist, preserve them when needed for current callers, but new architecture should separate:
+
+- semantic scientific operations in `tasks/`;
+- model-specific behavior in `models/`;
+- thin experiment composition in `runners/`;
+- statistical interpretation in `evaluation/`.
+
+Do not create a second private evaluation or scoring path merely to support a new experiment.
 
 ---
 
-## 5. Dependency Rules
+## 6. Dependency Direction
 
 A practical default dependency model is:
 
-| Package       | May depend on                                                        |
-| ------------- | -------------------------------------------------------------------- |
-| `core`        | foundational libraries                                               |
-| `structure`   | `core`                                                               |
-| `dataset`     | `core`, `structure`                                                  |
-| `design`      | `core`, `structure`                                                  |
-| `models`      | `core`, `structure`, stable design/contracts where required          |
-| `inference`   | `core`, `structure`, `design`, `models`, stable prediction contracts |
-| `uncertainty` | `core`, stable prediction/scientific contracts                       |
-| `metrics`     | `core`, stable scientific contracts                                  |
-| `evaluation`  | `core`, `metrics`, `uncertainty`, stable data contracts              |
-| `reporting`   | `metrics`, `uncertainty`, `evaluation`                               |
-| `workflows`   | required lower-level capabilities                                    |
-| `cli`         | `workflows`, configuration/application boundaries                    |
+| Package | May depend on |
+| --- | --- |
+| `core` | foundational libraries |
+| `structure` | `core` |
+| `construction` | `core`, `structure` |
+| `benchmark` | `core`, `structure`, selected construction-level scientific representations |
+| `design` | `core`, `structure` |
+| `models` | `core`, `structure`, `design` where required |
+| `tasks` | scientific capabilities and model adapters required for the operation |
+| `uncertainty` | `core`, normalized scientific/model outputs |
+| `metrics` | `core`, stable scientific representations |
+| `evaluation` | `metrics`, `uncertainty`, normalized scientific results |
+| `reporting` | `metrics`, `uncertainty`, `evaluation` |
+| `runners` | the lower-level capabilities required by a concrete experiment |
+| `cli` | `runners` and boundary-level configuration |
 
 This table is guidance, not blanket permission for arbitrary imports.
 
-Before introducing a dependency between top-level packages, verify:
+Before introducing a new top-level dependency, ask:
 
-1. the dependency follows the intended direction;
-2. the depended-on package owns the required concept;
-3. the dependency does not create a cycle;
-4. importing a smaller stable contract would not create a cleaner boundary.
+1. Which package scientifically owns the concept being imported?
+2. Does this dependency move toward more stable meaning?
+3. Would it create peer-package coupling or a cycle?
+4. Is the shared object truly common, or is one package leaking orchestration into another?
 
-A new top-level import is an architectural decision.
-
-Avoid peer-package dependency drift such as:
+Avoid cycles such as:
 
 ```text
-dataset ↔ evaluation
+metrics ↔ evaluation
+construction ↔ reporting
 design ↔ models
 uncertainty ↔ evaluation
 ```
 
-When two peer packages appear to require one another, first determine whether a stable lower-level contract has unclear ownership.
+When a cycle appears, inspect ownership before using dynamic imports, monkey-patching, service locators, or moving arbitrary code into `core/`.
 
 ---
 
-## 6. `core/`
+## 7. `core/`
 
-`core/` contains genuinely cross-cutting primitives only when no scientific package naturally owns them.
+`core/` contains only genuinely cross-cutting primitives with no natural scientific owner.
 
-A concept belongs in `core/` only when:
+A concept belongs in `core/` when:
 
-1. no scientific/domain package is its natural owner;
-2. at least two independent top-level capabilities require it;
+1. no scientific package naturally owns it;
+2. multiple independent packages need it;
 3. its semantics are stable independently of those callers;
-4. placing it in `core/` improves dependency direction.
+4. moving it there improves dependency direction.
 
-Typical candidates include:
-
-```text
-identity
-provenance primitives
-stable hashing
-shared invariant/error types
-artifact identity
-```
-
-Possible modules:
+Possible examples include:
 
 ```text
-core/
-├── identity.py
-├── provenance.py
-├── hashing.py
-└── errors.py
+shared identifiers
+small error/result primitives
+portable provenance primitives
+common typed metadata
 ```
 
-Do not create dumping-ground modules such as:
+Do not create dumping grounds such as:
 
 ```text
 core/utils.py
@@ -288,21 +420,15 @@ core/helpers.py
 core/common.py
 ```
 
-Scientific logic belongs to its scientific owner.
+Do not create a hashing subsystem for ordinary research code. Stable scientific identifiers and semantic metadata are the default; hash-based validation is reserved only for an explicit external requirement.
 
 ---
 
-## 7. I/O Boundary
+## 8. Scientific Objects and Data Boundaries
 
-Reusable scientific computation should normally operate on:
+Scientific computations should operate on meaningful scientific objects, typed specifications, arrays/tensors with explicit semantics, or iterables of such objects.
 
-* domain/scientific objects;
-* typed policies/specifications;
-* arrays/tensors with explicit contracts;
-* iterables;
-* stable data contracts;
-
-rather than repository directory layouts.
+They should not depend unnecessarily on repository path layouts.
 
 Prefer:
 
@@ -314,7 +440,7 @@ value = sequence_recovery(
 )
 ```
 
-over:
+rather than:
 
 ```python
 value = sequence_recovery(
@@ -324,159 +450,83 @@ value = sequence_recovery(
 )
 ```
 
-Filesystem layout, serialization, remote retrieval, and artifact placement belong at boundary/orchestration layers unless persistence is itself the responsibility of the capability.
+Filesystem discovery, serialization, remote retrieval, and output placement belong near runners, adapters, or persistence boundaries.
 
-Scientific computation should remain independently testable from repository paths where practical.
+### 8.1 Identity
 
-Source adapters may naturally perform remote/file I/O.
+Keep identity semantic and inspectable.
 
-Artifact/release modules may naturally own serialization or persistence.
-
-The I/O boundary rule prevents arbitrary I/O from leaking into unrelated scientific logic.
-
----
-
-## 8. Configuration Boundary
-
-Configuration files are external representations, not domain APIs.
-
-Preferred flow:
+Useful fields may include:
 
 ```text
-YAML / JSON / CLI
-        ↓
-parse + validate
-        ↓
-typed policy/specification
-        ↓
-scientific implementation
+protein_id
+structure_id
+candidate_id
+condition
+backbone_source
+generation_source
+scoring_source
+model_id
+checkpoint_id
+seed
+replicate
 ```
 
-Prefer:
+Do not encode a large Cartesian product of scientific attributes into opaque path names.
 
-```python
-policy = AdmissionPolicy(
-    max_mismatch=3,
-    min_identity=0.99,
-)
+Opaque IDs are acceptable when metadata clearly defines their meaning.
 
-decision = evaluate_admission(
-    record,
-    policy,
-)
+### 8.2 Missingness and exclusions
+
+Keep distinct:
+
+```text
+missing
+invalid
+masked
+unavailable
+scientifically excluded
+operationally failed
+unobserved
 ```
 
-over:
+A downstream metric must not infer these states from numeric sentinels when an explicit representation is feasible.
 
-```python
-decision = evaluate_admission(
-    record,
-    global_config,
-)
+### 8.3 Observation unit
+
+Scientific objects should make the observation unit explicit when aggregation depends on it.
+
+Possible units include:
+
+```text
+residue
+mutation/probe
+candidate sequence
+structure
+condition pair
+protein
+family/cluster
+cohort
 ```
 
-Do not pass repository-wide unstructured dictionaries deep into reusable scientific modules.
-
-Configuration has four conceptual categories.
-
-### Scientific Definitions
-
-Define scientific meaning.
-
-Examples:
-
-* amino-acid alphabet;
-* mask semantics;
-* metric equation;
-* normalization semantics;
-* mutation semantics.
-
-### Experiment Configuration
-
-Defines a scientific experiment.
-
-Examples:
-
-* dataset release;
-* cohort;
-* checkpoint;
-* thresholds;
-* metrics;
-* seed.
-
-### Runtime Configuration
-
-Controls execution.
-
-Examples:
-
-* device;
-* batch size;
-* workers;
-* cache location;
-* output location;
-* log level.
-
-Runtime configuration should not intentionally change scientific meaning.
-
-### Local Configuration
-
-Machine-specific settings.
-
-Usually gitignored.
-
-Do not move canonical scientific definitions into configuration files merely to make them adjustable.
+Do not let dataframe row structure silently define the scientific unit.
 
 ---
 
-## 9. Behavioral Variation
-
-Do not model independent scientific behaviors through accumulating boolean flags or generic mode strings.
-
-Avoid:
-
-```python
-evaluate(
-    strict=True,
-    legacy=False,
-    scale2=True,
-    use_afdb=False,
-)
-```
-
-when those flags encode coherent scientific policies or fundamentally distinct capabilities.
-
-Prefer typed policy/specification objects for coherent scientific variation.
-
-For example:
-
-```python
-decision = evaluate_admission(
-    record,
-    policy=admission_policy,
-)
-```
-
-Prefer separate cohesive capabilities when behaviors are fundamentally different.
-
-A function whose behavior is dominated by combinations of boolean flags is a signal that its abstraction boundary should be reconsidered.
-
----
-
-## 10. `structure/`
+## 9. Structure and Residue Mapping
 
 `structure/` owns protein structural representation and residue-coordinate semantics.
 
-Potential responsibilities include:
+Responsibilities may include:
 
-* PDB/mmCIF parsing;
-* chain representation;
-* residue identity;
-* missing-residue representation;
-* sequence/structure mapping;
-* coordinate validation;
-* geometry;
-* structure confidence.
+- PDB/mmCIF parsing;
+- chain representation;
+- residue identity;
+- missing-residue handling;
+- sequence/structure mapping;
+- coordinate validation;
+- geometry;
+- structure confidence.
 
 Potential modules:
 
@@ -490,11 +540,9 @@ structure/
 └── validation.py
 ```
 
-### Residue Mapping Contract
-
 Residue identity is an explicit mapping problem.
 
-Relevant spaces may include:
+Relevant coordinate spaces may include:
 
 ```text
 author/PDB residue identifier
@@ -504,198 +552,89 @@ model/tensor index
 alignment index
 ```
 
-Conversions between these spaces must be centralized.
+Conversions between these spaces should be centralized.
 
-Dataset, model, metric, uncertainty, and evaluation code must not independently reconstruct residue-mapping semantics.
+Dataset construction, model adapters, metrics, uncertainty, and evaluation code must not independently reconstruct residue mapping semantics.
 
-A stable `ResidueMapping` contract is appropriate when multiple capabilities share these transformations.
+Mapping representations should preserve enough information to diagnose insertions, deletions, missing coordinates, chain mismatches, and masking differences.
 
-Round-trip and boundary invariants should be tested.
+Round-trip and boundary cases should be directly tested.
 
 ---
 
-## 11. `dataset/`
+## 10. Construction
 
-`dataset/` owns reusable scientific dataset-construction capabilities.
+`construction/` owns reusable scientific operations that determine what objects enter an analysis and how those objects are normalized and compared.
 
-Expected conceptual ownership:
+Typical responsibilities include:
 
 ```text
-dataset/
+source acquisition
+normalization
+scientific validity checks
+sequence/structure comparability
+admission
+redundancy / clustering
+candidate or cohort selection
+structural annotations
+functional-state pairing
+model-independent eligibility
+```
+
+Potential organization:
+
+```text
+construction/
 ├── records.py
 ├── acquisition.py
-├── validation.py
+├── normalization.py
+├── comparability.py
 ├── admission.py
 ├── redundancy.py
 ├── selection.py
-├── manifests.py
-├── audits.py
-└── releases.py
+└── annotations.py
 ```
 
-Source adapters may initially live under:
+### 10.1 Acquisition
+
+Acquisition coordinates source retrieval and source-specific status.
+
+External API or filesystem details belong in source adapters, for example:
 
 ```text
-dataset/sources/
+construction/sources/
 ├── rcsb.py
 ├── afdb.py
 └── uniprot.py
 ```
 
-when their current primary responsibility is dataset construction and source-specific complexity warrants separation.
+A network or source failure is operational failure, not scientific rejection.
 
-Historical experiment stages should normally be represented through:
+### 10.2 Scientific validity and admission
 
-```text
-policy/configuration
-release specification
-provenance
-workflow orchestration
-```
+Parsing answers whether an artifact can be interpreted.
 
-rather than new stage-named reusable modules.
+Scientific validity asks whether the interpreted object is usable for the intended scientific operation.
 
-Avoid reusable modules such as:
+Admission asks whether it belongs in a particular scientific population or analysis under an explicit policy.
 
-```text
-scale1a1.py
-scale1a2.py
-scale1a3.py
-stage2.py
-```
+Keep these distinctions visible.
 
-when their actual responsibilities are admission, redundancy, selection, acquisition, etc.
+Admission results should retain the candidate/protein identity, decision, reason, and relevant evidence.
 
----
+### 10.3 Redundancy and leakage control
 
-## 11.1 Source Adapter Ownership
+Redundancy logic owns clustering and related biological dependence calculations.
 
-Source-adapter ownership follows the stable project-level contract produced by the adapter, not merely the first workflow that uses it.
+For train/validation/test or benchmark construction, biological homology and cluster structure matter more than row-level duplication alone.
 
-For example, an adapter whose stable output is a project-level structure contract may ultimately belong with structure-facing infrastructure even if its first consumer is dataset construction.
+Do not duplicate clustering logic for each experiment.
 
-Do not move an adapter solely because another workflow starts using it.
+### 10.4 Selection
 
-Reconsider ownership only when the stable output contract and dependency direction justify the change.
+Selection should expose the scientific policy explicitly.
 
-Do not introduce a generic top-level `sources/` package until multiple scientific domains require a genuinely shared source abstraction.
-
----
-
-## 11.2 Dataset Records
-
-Dataset-level records may encode stable scientific boundaries.
-
-Examples may include:
-
-```text
-ProteinRecord
-DatasetRecord
-AdmissionDecision
-RejectionReason
-ProvenanceRecord
-```
-
-Do not introduce a dedicated type for every scalar.
-
-A type should normally:
-
-* enforce an invariant;
-* prevent category errors;
-* distinguish incompatible index spaces;
-* define a stable boundary;
-* group coherent scientific state.
-
----
-
-## 11.3 Acquisition
-
-Acquisition owns:
-
-```text
-source binding
-retrieval coordination
-acquisition provenance
-cache semantics
-source-level operational status
-```
-
-Source retrieval failure is not scientific rejection.
-
-Source-specific API and filesystem conventions belong in adapters rather than downstream admission/evaluation logic.
-
----
-
-## 11.4 Validation
-
-Validation owns scientific/data validity after parsing or normalization.
-
-Parsing answers:
-
-```text
-Can this artifact be interpreted?
-```
-
-Validation answers:
-
-```text
-Does the interpreted scientific object satisfy the required contract?
-```
-
-These are different responsibilities.
-
----
-
-## 11.5 Admission
-
-Admission owns reusable formal admission semantics.
-
-Preferred conceptual API:
-
-```python
-decision = evaluate_admission(
-    record,
-    policy,
-)
-```
-
-Results should preserve:
-
-```text
-candidate/protein identity
-terminal decision
-structured reason
-supporting evidence
-policy/version
-```
-
-Policies may vary while canonical evaluation machinery remains reusable when scientific semantics permit.
-
-Do not create experiment-specific classifiers that duplicate an existing canonical evaluator.
-
----
-
-## 11.6 Redundancy
-
-Redundancy owns:
-
-```text
-cluster binding
-redundancy assessment
-cluster census
-representative precedence/ranking
-non-redundant capacity
-```
-
-Do not duplicate clustering logic because a later experiment uses the same clustering convention.
-
-Thresholds or conventions that vary belong in explicit policy/release specifications.
-
----
-
-## 11.7 Selection
-
-Selection owns reusable prospective selection mechanisms such as:
+Examples include:
 
 ```text
 cluster-first selection
@@ -705,61 +644,51 @@ reserve selection
 cohort selection
 ```
 
-Selection policy must remain explicit.
-
-Do not encode scientific selection rules through stage names or hidden dataframe filters.
+Avoid hiding selection policy in stage-specific scripts or ad hoc dataframe filters.
 
 ---
 
-## 11.8 Audits
+## 11. Benchmark Architecture
 
-Audits own reusable census and integrity calculations.
+`benchmark/` owns model-independent benchmark semantics that are genuinely shared across benchmark construction and evaluation.
 
-Examples:
+It may own:
 
-```text
-sampling-frame completeness
-redundancy diagnostics
-attrition
-provenance completeness
-data-quality census
-```
+- benchmark identities;
+- semantic condition names and orientation;
+- benchmark instance definitions;
+- split and cluster assignments when they are part of benchmark meaning;
+- normalized benchmark tables required by downstream evaluation;
+- relational checks needed to interpret those tables.
 
-Frozen historical expectations belong in release/contract specifications, not generic audit implementations.
+It must not own:
 
----
+- concrete model invocation;
+- checkpoint loading;
+- method-specific private evaluation paths;
+- report-specific metric redefinitions;
+- historical orchestration merely because it produced the first dataset.
 
-## 11.9 Releases
+Do not turn `benchmark/` into a general governance package.
 
-Release utilities own generic:
+Use schemas only where stable persisted benchmark tables benefit materially from machine-readable validation.
 
-```text
-manifest validation
-membership verification
-hash verification
-release identity
-compatibility checks
-promotion validation
-```
-
-Generic release code must not hard-code one historical Scale/Stage release.
-
-Release-specific scientific expectations belong in experiment/release specifications or contract fixtures.
+Do not create a schema for every transient Python object.
 
 ---
 
-## 12. `design/`
+## 12. Design
 
 `design/` owns model-independent protein-design concepts.
 
-Potential responsibilities:
+Responsibilities may include:
 
-* candidate sequence representation;
-* mutation/probe definitions;
-* allowed/fixed positions;
-* Hamming-distance constraints;
-* sampling policy;
-* design constraints.
+- candidate sequence representation;
+- mutation and probe definitions;
+- allowed and fixed positions;
+- sequence-distance constraints;
+- design constraints;
+- model-independent sampling specifications.
 
 Potential modules:
 
@@ -771,237 +700,131 @@ design/
 └── sampling.py
 ```
 
-Model-native tensor manipulation, checkpoint semantics, or vendor-specific file formats do not belong here.
+Model-native tensor manipulation, vendor-specific file formats, checkpoint layout, and model execution do not belong here.
 
 ---
 
-## 13. `models/`
+## 13. Models and Third-Party Boundaries
 
-`models/` owns model-facing adapters and model-specific behavior.
+`models/` owns model-specific behavior and adapters.
 
 Examples may include:
 
-* ProteinMPNN;
-* LigandMPNN;
-* MoMPNN;
-* DynamicMPNN;
-* ESM;
-* RFdiffusion.
+- ProteinMPNN;
+- LigandMPNN;
+- MoMPNN;
+- DynamicMPNN;
+- ESM-family models;
+- RFdiffusion-family models.
 
-Do not create a universal model framework prematurely.
+Do not create a universal model framework before multiple concrete models demonstrate the same substitutable capability.
 
-Treat model capabilities independently.
+Treat capabilities separately. A model may implement both sequence design and sequence scoring without making those two operations the same abstraction.
 
-For example:
+Model adapters should localize:
 
-```text
-SequenceScorer
-SequenceDesigner
-```
+- checkpoint loading;
+- native vocabulary/alphabet;
+- model-native input/output formats;
+- tensor conversion;
+- device invocation;
+- model-specific batching;
+- third-party directory assumptions.
 
-are different capabilities even when implemented by the same external model.
+Vendored code under `third_party/` is an implementation detail and should not leak throughout the repository.
 
-Only introduce Protocols/interfaces when concrete substitution value exists.
+### 13.1 ProteinMPNN scoring
 
-External-model assumptions should be localized:
+`dual_uq.models.proteinmpnn` is the active owner of concrete ProteinMPNN scoring behavior.
 
-* checkpoint loading/layout;
-* native vocabulary;
-* native input/output formats;
-* tensor conversion;
-* device-specific invocation;
-* vendor directory structure.
+It owns ProteinMPNN-specific:
 
-### 13.1 ProteinMPNN Scoring Boundary
+- amino-acid ordering used by the adapter;
+- structure and candidate tensor construction;
+- sequence projection into model coordinates;
+- decoding-order / realization interpretation;
+- model loading and checkpoint binding;
+- model-native batching;
+- target-amino-acid log-probability extraction;
+- score aggregation over the declared valid residue mask.
 
-`dual_uq.models.proteinmpnn` is the canonical concrete ProteinMPNN scoring
-adapter. It owns the frozen ProteinMPNN alphabet, checkpoint and implementation
-identity, explicit decoding-realization interpretation, native structure and
-candidate tensors, model-native batching, model loading, target-amino-acid
-log-probability extraction, and the precise ProteinMPNN score aggregation.
+When the scientific analysis uses both summed and mean masked log-probability, keep their meanings explicit, e.g. `score_sum_logp_mask`, `score_mean_logp_mask`, and `scored_residue_count`. Do not collapse them into an ambiguous generic `score`.
 
-Dataset services may retain historical PDB/AFDB projection compatibility,
-request adaptation, shard handling, and persistence, but they delegate model
-behavior to this adapter. The adapter treats the condition label as opaque and
-does not own paired-intervention policy or common-mask construction.
+WT and mutated/probe candidates should remain semantically distinguishable. WT records should not require fake mutation sentinels merely to share a table representation.
 
-`dual_uq.models.scoring.ScoreRecord` is the normalized successful-score
-envelope. It preserves condition and structure identity, explicit WT or PROBE
-variant semantics, repeat/seed/realization identity, scorer implementation and
-checkpoint identity, score-contract identity, and the contract-specific fields
-`score_sum_logp_mask`, `score_mean_logp_mask`, and
-`scored_residue_count`. WT measurements carry no mutation sentinels.
+The model adapter does **not** own PDB/AFDB pair policy, functional-state pairing, common-mask policy, cohort membership, or population-level comparison. Those are construction/task/evaluation concerns.
 
-`dual_uq.models.scoring.ScoreRequest` is one logical, collection-level,
-model-independent scientific scoring request. It binds a concrete
-`StructureCondition`, the external comparable residue domain, one WT plus its
-fixed candidate collection, repeat/seed/realization identity, and the required
-score contract. Scorer implementation/checkpoint identity remains an external
-`ScorerBinding`; dataset grouping, filesystem, worker, device, and persistence
-metadata are excluded.
+A logical scoring request should identify the structure condition, comparable residue domain, candidate collection, stochastic realization when relevant, and score meaning. Worker IDs, shard paths, output directories, and device assignments are execution details rather than scientific identity.
 
-`dual_uq.models.scoring.SequenceScorer` consumes one `ScoreRequest` and returns
-a normalized `tuple[ScoreRecord, ...]`: one WT record followed by one record
-per fixed candidate. This logical cardinality is independent of model-native
-batching. `ProteinMPNNScorer` implements the capability while retaining
-ProteinMPNN-specific sequence projection, decoding-order interpretation,
-tensors, batching, and invocation behind the adapter.
-Resolved coordinate projections must carry and match the request's immutable
-structure SHA. A ProteinMPNN scorer reports implementation/checkpoint identity
-from its concrete verified adapter; it must not attach authorized constants to
-an arbitrary injected runtime.
+The adapter should return project-level scientific outputs rich enough for downstream comparison without forcing evaluation code to understand ProteinMPNN internals.
 
-Historical Scale-1B-v2 plan interpretation remains workflow/compatibility
-ownership in `dual_uq.workflows.final_confirmatory_protocol`. Its adapter maps
-frozen PDB/AFDB schema and provenance to the generic request/scorer contracts;
-the reusable model contracts contain no Scale, Stage, PDB/AFDB pairing, or
-frozen-Parquet assumptions.
-
-Formal scoring retains its historical planning, shard, resume, atomic-write,
-consolidation, and persisted-schema contracts. At the worker seam, a
-compatibility adapter turns the historical runtime request into
-`ScoreRequest` objects, `execute_score_request` invokes a `SequenceScorer` and
-validates normalized `ScoreRecord` results, and a persistence adapter maps
-those records back to the authoritative shard representation. Operational
-shard names, output paths, device data, and resume state remain outside the
-scientific request/result identity. Model-native batching remains scorer-owned;
-this integration does not introduce a scheduler or execution framework.
-Legacy formal-request v1 artifacts remain immutable but cannot be promoted to
-`ScoreRequest` because they lack canonical full-sequence mutation identity;
-missing work is rebuilt as the explicitly enriched v2 request from the frozen
-plan rather than by inferring scientific identity from projected sequences.
-
-Do not scatter vendor imports throughout dataset, uncertainty, metrics, evaluation, or reporting code.
+Historical ProteinMPNN scoring paths may remain when needed to reproduce earlier results, but new work should use the active scoring owner rather than adding another versioned wrapper.
 
 ---
 
-## 14. Third-Party Boundaries
+## 14. Tasks
 
-Vendored implementation directories such as:
+`tasks/` owns semantic scientific operations that compose one or more lower-level capabilities around a clear estimand or intervention.
+
+Examples may include:
 
 ```text
-third_party/ProteinMPNN/
+local sensitivity
+generative propagation
+sequence scoring
+multistate generation
+controlled intervention evaluation
 ```
 
-are external implementation details.
+A task should express what scientific operation is being performed, not which model implements it and not which experiment first requested it.
 
-Dedicated adapters should be the primary code that knows:
+Tasks may depend on model capability interfaces when real substitution exists.
 
-* third-party internal paths;
-* native JSONL formats;
-* native output layout;
-* checkpoint organization;
-* model-specific alphabet/tensor conventions.
+Tasks should not own:
 
-Other packages should consume project-level contracts.
+- model-specific invocation details;
+- dataset construction;
+- report formatting;
+- alternative private metric equations.
+
+A new experiment should normally configure an existing task rather than create a near-identical new task module. Changing a threshold, cohort, checkpoint, sampling setting, condition, or aggregation request is normally a parameterization change, not a reason for a new task or Python file.
+
+When an existing task is almost sufficient, extend its coherent scientific interface instead of cloning it. Split into a new task only when the operation has a different estimand, intervention, input/output semantics, or scientific responsibility.
 
 ---
 
-## 15. `inference/`
+## 15. Scientific Model Outputs
 
-`inference/` owns model execution mechanics.
+Normalized model outputs should preserve the information needed for scientifically valid downstream comparisons.
 
-Potential responsibilities:
-
-* batching;
-* device placement;
-* execution coordination;
-* inference mode;
-* prediction materialization.
-
-Potential modules:
-
-```text
-inference/
-├── formal.py
-└── materialization.py
-```
-
-`dual_uq.inference.formal` owns model-independent formal request inventory,
-deterministic orchestration identities, artifact-binding decisions, derived
-resume/reuse state, fresh-work selection, and scorer-dispatch composition.
-The orchestration identity is deterministically derived from the scientific
-fingerprint, but remains a distinct operational role; artifact paths never
-enter the scientific request identity. Inventory tables are immutable derived
-snapshots, not mutable status databases.
-
-`dual_uq.inference.materialization` exclusively owns validation, discovery,
-atomic persistence, and immutable-conflict handling for normalized formal
-score shards. It delegates record-level correctness to the shared
-`ScoreRequest`/`ScoreRecord` dispatch validator rather than introducing a
-second resume contract.
-
-Workflow adapters may prove exact historical compatibility under an
-authoritative reuse policy. Authorization and per-request compatibility remain
-separate predicates. Accepted historical results are copied through the same
-canonical materializer with source execution/artifact, reuse-contract, and
-compatibility-validation provenance; source artifacts remain immutable.
-
-Model architecture and checkpoint-specific behavior remain owned by model adapters.
-
-Inference may produce, materialize, or serialize predictions.
-
-Inference does not automatically own the shared scientific prediction contract.
-
-Inference should not own scientific metrics or evaluation policy.
-
----
-
-## 16. Prediction Contracts
-
-Prediction contracts are model-independent scientific data contracts, not concrete model-adapter or execution-engine implementation details.
-
-Do not define a general `PredictionRecord` inside a concrete adapter such as:
-
-```text
-models/proteinmpnn.py
-```
-
-Do not assume that `inference/` is automatically the canonical owner merely because inference produces predictions.
-
-Before introducing a final normalized prediction abstraction:
-
-1. audit existing model outputs;
-2. audit persisted prediction formats;
-3. audit downstream consumers;
-4. identify stable common semantics;
-5. determine the most appropriate model-independent owner.
-
-A future normalized prediction contract may include:
+Possible fields include:
 
 ```text
 protein_id
 candidate_id
-input/backbone identity
-residue_mapping
-aa_alphabet
-scores/log_probs
-valid_mask
+structure / condition identity
+residue mapping
+amino-acid ordering
+raw or normalized model outputs
+valid mask
 model_id
 checkpoint_id
-provenance
+seed / realization identity
 ```
 
-The canonical owner must remain model-independent.
+Do not decide ownership of a normalized output type merely from who produces it. Ownership should follow the stable scientific meaning consumed by multiple downstream packages.
 
-Do not create a new top-level `prediction/` subsystem until concrete usage justifies it.
+Preserve primitive outputs when storage cost is reasonable so that new metrics, calibration analyses, and error stratifications can reuse existing inference.
 
-Downstream uncertainty, metrics, and evaluation should prefer normalized project-level prediction contracts over model-native files where practical.
-
-Preserve information-rich predictions when storage cost is reasonable so changes in metrics do not require unnecessary inference reruns.
-
-Successful scalar score measurements use `dual_uq.models.scoring.ScoreRecord`.
-The record envelope is model-independent, but score meaning remains bound to
-its explicit scorer and `score_contract_id`; model-specific scientific fields
-are not collapsed into a generic `score` or `primary_score` value.
+Do not rerun expensive model inference merely because a downstream summary definition changed, when stored primitive outputs already contain the required information.
 
 ---
 
-## 17. `uncertainty/`
+## 16. Uncertainty
 
-`uncertainty/` owns uncertainty definitions, uncertainty estimators, and reusable uncertainty computations.
+`uncertainty/` owns uncertainty definitions, estimators, and reusable uncertainty computations.
 
-Potential capabilities include:
+Distinct concepts may include:
 
 ```text
 structure uncertainty
@@ -1009,827 +832,716 @@ evaluator uncertainty
 joint uncertainty
 ```
 
-Potential modules:
+Do not collapse these into a generic uncertainty framework simply because they share mathematical utilities.
 
-```text
-uncertainty/
-├── structure.py
-├── evaluator.py
-└── joint.py
-```
+A fitted transformation that changes the meaning of an uncertainty estimator belongs with that estimator or a clearly adjacent scientific owner.
 
-Do not organize reusable uncertainty code by roadmap identifiers such as:
-
-```text
-p3.py
-p4.py
-p5.py
-```
-
-Distinct uncertainty concepts may share lower-level functions without being collapsed into one generic framework.
-
-A fitted transformation that materially changes an uncertainty estimator belongs with the capability that owns that estimator.
-
-Do not introduce a generic `uncertainty/calibration.py` merely because calibration-related analysis exists elsewhere.
+Keep uncertainty quantity, predictive quality, and calibration quality conceptually distinct.
 
 ---
 
-## 18. `metrics/`
+## 17. Metrics
 
 `metrics/` owns deterministic scientific metric definitions.
 
 Examples include:
 
-```text
-sequence recovery
-ranking
-calibration metrics
-stability
-diversity
-reliability statistics
-```
+- sequence recovery;
+- ranking quantities;
+- stability and diversity metrics;
+- calibration-error metrics;
+- reliability-related deterministic statistics;
+- score transformations that are themselves estimands.
 
-Calibration-related responsibilities in `metrics/` are deterministic scientific quantities, such as appropriate calibration-error or scoring metrics.
+A metric should have a clear scientific meaning, sign convention, normalization, and observation domain.
 
-Metrics do not own cohort-level inference, resampling, or reliability-study orchestration.
+Metric APIs should consume scientific objects or arrays, not experiment directory structures.
 
-Metric APIs should consume scientific objects/arrays rather than experiment directory layouts.
+Do not create a new metric because a new report, arm, experiment, dataset, threshold, or display label changes.
 
-Prefer:
+A new metric requires a genuinely different estimand or equation. Different thresholds, subsets, grouping choices, or presentation names should normally reuse the same metric implementation and be expressed in evaluation/configuration/reporting as appropriate.
 
-```python
-value = sequence_recovery(
-    predicted_sequence,
-    native_sequence,
-    mask,
-)
-```
+Do not copy a metric into an experiment-specific module to change one constant. Parameterize the real variation at the correct boundary while keeping the equation owned here.
 
-not:
-
-```python
-value = calculate_scale1_recovery(
-    csv_path,
-    output_dir,
-)
-```
-
-Metric definitions must not live in reporting or experiment scripts.
+Thresholded metrics should not erase their underlying continuous measurements when those measurements remain scientifically informative.
 
 ---
 
-## 19. `evaluation/`
+## 18. Evaluation and Statistical Inference
 
-`evaluation/` owns statistical aggregation, comparison, and population/cohort-level scientific interpretation.
+`evaluation/` owns aggregation, comparison, resampling, and population/cohort-level scientific inference.
 
-Potential responsibilities include:
+Responsibilities may include:
 
 ```text
-protein-level aggregation
+per-protein aggregation
 cluster/family aggregation
 confidence intervals
-bootstrapping/resampling
+bootstrapping / resampling
 model comparison
 cohort comparison
 calibration assessment
 reliability analysis
+stratified error analysis
 ```
 
-Calibration ownership in `evaluation/` refers to population/cohort-level analysis such as:
+Evaluation should make explicit:
 
-* reliability curves;
-* aggregation;
-* confidence intervals;
-* resampling;
-* model/cohort comparison.
+- observational unit;
+- resampling unit;
+- pairing structure;
+- aggregation rule;
+- treatment of missing or invalid observations;
+- comparison population.
 
-Deterministic calibration metrics remain owned by `metrics/`.
+Do not treat residues or probes as independent proteins when the scientific estimand is protein-, family-, or cluster-level.
 
-Estimator-specific calibration transformations remain with the estimator capability that they modify.
+Do not compare methods on silently different populations unless population difference is itself the scientific question.
 
-Observational and resampling units must be explicit.
+For aggregate results, preserve access to per-protein or per-example distributions when feasible.
 
-Evaluation consumes scientific results.
-
-It should not own model execution.
-
-Avoid pseudo-replication caused by treating residues or probes as independent proteins when the scientific unit is protein, family, or cluster.
+Evaluation consumes metric values and primitive model outputs where necessary; it does not own model execution.
 
 ---
 
-## 20. `workflows/`
-
-`workflows/` composes reusable capabilities into explicit scientific procedures.
-
-Examples:
-
-```text
-build_dataset
-acquire_and_validate_records
-select_cohort
-generate_candidates
-score_sequences
-estimate_uncertainty
-evaluate_predictions
-release_dataset
-```
-
-A workflow may coordinate:
-
-* I/O;
-* domain capabilities;
-* adapters;
-* policies;
-* artifact writing.
-
-Canonical formulas and scientific definitions remain in lower-level owners.
-
-Avoid a universal:
-
-```python
-DualUQPipeline(mode=...)
-```
-
-with many mode flags.
-
-Prefer several explicit, auditable workflows.
-
----
-
-## 21. `reporting/`
+## 19. Reporting
 
 `reporting/` owns presentation-oriented transformations.
 
 Responsibilities may include:
 
-* summary tables;
-* figure-ready data;
-* human-readable scientific summaries;
-* scientific report rendering.
+- summary tables;
+- figure-ready data;
+- report-card views;
+- human-readable scientific summaries;
+- plotting data preparation.
 
-Reporting consumes scientific results.
+Reporting may organize or visualize scientific results, but it must not redefine:
 
-It must not redefine:
+- metric equations;
+- cohort membership;
+- admission criteria;
+- thresholds used in the underlying scientific analysis;
+- uncertainty semantics;
+- aggregation units.
 
-* metrics;
-* admission policy;
-* selection policy;
-* scientific thresholds;
-* uncertainty semantics.
-
-Task-specific Codex design/review/implementation reports are not architectural reporting artifacts.
+Keep observation and interpretation distinguishable in generated reports.
 
 ---
 
-## 22. `cli/`
+## 20. Runners and CLI
 
-CLI code should remain thin.
+`runners/` composes reusable capabilities into explicit experiment procedures.
 
-Its responsibilities are:
+A runner may coordinate:
+
+- configuration loading;
+- input/output paths;
+- adapters;
+- task execution;
+- evaluation;
+- artifact writing;
+- concise execution status.
+
+Runners should remain thin relative to the scientific owners they compose.
+
+Prefer several clear runners over a universal pipeline with many mode flags.
+
+`cli/` should remain thinner still:
 
 ```text
 parse arguments
-validate application configuration
-construct dependencies
-invoke workflow
-report concise status
+→ construct typed inputs and dependencies
+→ invoke runner
+→ report concise status
 ```
+
+Reject malformed required inputs where they are consumed. Do not insert a separate preflight/readiness stage merely to prove that execution is allowed to begin.
 
 Scientific algorithms do not belong in CLI modules.
 
-CLI/file configuration should be converted into typed domain/application specifications before entering reusable scientific modules.
+---
+
+## 21. Configuration Boundary
+
+Configuration files are external representations, not domain APIs.
+
+Preferred flow:
+
+```text
+YAML / JSON / CLI
+        ↓
+parse into typed scientific or runtime specification
+        ↓
+scientific implementation
+```
+
+Structural parsing errors should fail at this boundary. Do not turn configuration handling into a separate readiness workflow.
+
+Distinguish:
+
+### 21.1 Scientific definitions
+
+Definitions that determine scientific meaning, for example:
+
+- amino-acid ordering;
+- mask semantics;
+- metric equation;
+- normalization semantics;
+- mutation semantics.
+
+These should normally remain with their scientific owner rather than becoming freely adjustable global configuration.
+
+### 21.2 Experiment configuration
+
+Values defining the scientific comparison, for example:
+
+- dataset/cohort;
+- structural conditions;
+- model/checkpoint;
+- thresholds;
+- selected metrics;
+- seed policy;
+- perturbation magnitude;
+- sampling budget.
+
+### 21.3 Runtime configuration
+
+Execution-only values, for example:
+
+- device;
+- batch size;
+- worker count;
+- cache location;
+- output location;
+- log level.
+
+Runtime configuration should not intentionally change scientific meaning.
+
+### 21.4 Local configuration
+
+Machine-specific settings such as local paths or credentials should normally be ignored by version control.
+
+Do not pass repository-wide untyped dictionaries deep into scientific modules.
+
+Experiment-varying values should not be hidden as module constants, duplicated literals, filename conventions, or branches on experiment names. If changing a value is a normal scientific operation, make that variation explicit at the smallest appropriate interface.
+
+Prefer extending an existing typed specification over creating a new configuration format for each experiment. Closely related experiments should normally differ by configuration values and selected reusable capabilities, not by separate Python implementations.
+
+Do not parameterize for hypothetical future variation. Parameterize values that already vary, are expected to vary in the active research program, or materially determine the scientific interpretation.
 
 ---
 
-## 23. Scientific Artifact Lifecycle
+## 22. Experiment Architecture
 
-Keep four concepts distinct:
+`experiments/` contains version-controlled scientific intent.
+
+An experiment should be understandable in terms of:
 
 ```text
-data
-experiments
-runs
-artifacts
+question
+hypothesis or competing explanations
+assumptions and plausible confounders
+population / cohort
+intervention or varying factor
+controlled factors
+measurement
+aggregation / analysis plan
+discriminating outcomes
 ```
 
-They are not interchangeable.
+Not every exploratory run needs a long protocol document. A small configuration plus a concise README or protocol note is often sufficient.
 
-### 23.1 `data/`
+Experiment names should describe scientific purpose rather than chronology.
 
-Contains information that can serve as input to subsequent scientific computation.
-
-Recommended structure:
+Prefer:
 
 ```text
-data/
-├── raw/
-├── interim/
-├── processed/
-└── manifests/
-```
-
-#### `raw/`
-
-Source-native external inputs such as:
-
-* PDB/mmCIF;
-* AlphaFold DB;
-* UniProt metadata;
-* authoritative external mappings.
-
-Raw inputs should be treated as immutable where practical.
-
-#### `interim/`
-
-Reusable normalized/intermediate scientific data.
-
-Examples:
-
-* normalized structures;
-* resolved mappings;
-* normalized source metadata.
-
-#### `processed/`
-
-Canonical processed datasets suitable as inputs to later scientific computation.
-
-#### `manifests/`
-
-Dataset identity, source binding, membership, and provenance records.
-
-Do not store execution logs, figures, task reports, or worker responses under `data/`.
-
----
-
-### 23.2 `experiments/`
-
-Contains version-controlled scientific intent.
-
-Experiment directories may contain:
-
-```text
-README/protocol description
-configs/
-protocols/
-release_specs/
-small reference manifests
-```
-
-Experiment directories should not become the primary location for:
-
-* runtime logs;
-* large predictions;
-* worker responses;
-* temporary execution output.
-
-Experiment names should describe scientific purpose.
-
-Examples:
-
-```text
-model_behavior_validation
-design_baseline
 structure_uncertainty
-evaluator_uncertainty
-joint_uncertainty
-pareto_reliability
+scoring_sensitivity
+functional_state_response
+calibration_analysis
 mechanism_analysis
 counterfactual_analysis
 ```
 
-Historical roadmap IDs may remain in metadata.
+rather than:
 
-Dataset construction and release experiments use the semantic namespace
-`experiments/dataset/`.  Its subdirectories separate construction
-(`construction/sampling_frame`, `construction/admission`,
-`construction/full_frame`, `construction/redundancy`, and
-`construction/expansion`) from release material (`releases/cohort`,
-`releases/scoring_protocol`, and `releases/confirmatory`) and derived
-evaluation (`analysis/structural_response` and `analysis/pair_validity`).
-Historical paths such as `scale1a1` and `scale1b_v2` remain read-only inputs
-when frozen manifests bind them; they are not active output namespaces.
+```text
+stage2
+scale1b_v3
+final_final
+run_new2
+```
+
+Historical IDs may remain in metadata where useful for reproduction.
+
+### 22.1 Controlled comparisons
+
+When experiments compare methods or conditions, keep non-target factors aligned whenever possible:
+
+- cohort membership;
+- preprocessing;
+- model/checkpoint;
+- decoding/sampling settings;
+- seed policy;
+- evaluation subset;
+- metric implementation;
+- aggregation unit.
+
+When they cannot be aligned, make the mismatch explicit rather than treating the result as a clean causal comparison.
+
+### 22.2 Exploratory vs confirmatory work
+
+Exploratory analyses may generate hypotheses and useful visualizations.
+
+Confirmatory analyses should avoid silently tuning thresholds, filters, cohorts, or metrics on the same evidence later presented as independent confirmation.
+
+Architecture should not force every exploratory analysis into formal release machinery.
 
 ---
 
-### 23.3 `runs/`
+## 23. Data, Runs, and Artifacts
 
-Contains execution instances.
-
-Conceptually:
+Keep these concepts distinct:
 
 ```text
-runs/
-└── <experiment>/
-    └── <run-id>/
-        ├── run_manifest.json
-        ├── logs/
-        ├── intermediate/
-        ├── predictions/
-        └── metrics/
+data        reusable scientific inputs
+experiments version-controlled scientific intent
+runs        concrete execution instances
+artifacts   durable outputs worth preserving or sharing
 ```
 
-Run IDs are execution identities and may contain timestamps, hashes, or opaque identifiers.
+### 23.1 `data/`
 
-Runs are usually mutable and gitignored.
+`data/raw/` contains source-native inputs such as PDB/mmCIF, AlphaFold DB structures, UniProt metadata, and authoritative mappings.
+
+`data/interim/` contains reusable normalized or intermediate scientific representations.
+
+`data/processed/` contains processed datasets or tables that are stable enough to serve as inputs to later analyses.
+
+Raw source data should not be casually rewritten.
+
+Persistent structures belong to reusable data, not to experiment chronology. A `structure_id` should normally resolve to one canonical repository-relative file, for example:
+
+```text
+data/processed/structures/<scientific-namespace>/<structure-id>.cif
+```
+
+Experiment tables record structure identity, canonical path, parent structure, source/condition, and perturbation parameters. They do not copy the same structure into `pilot_v2/structures`, `pilot_v3/structures`, and later variants. Historical experiment-local structures may remain when moving them would damage reproduction, but active constructors must use the canonical store. A read-only external consumer may receive a symlink; a consumer that mutates input receives a temporary copy.
+
+### 23.2 `runs/`
+
+`runs/` contains concrete execution state. During execution it may include restart state and temporary pieces, but the retained form should be compact:
+
+```text
+runs/<experiment>/<run-id>/
+├── config.*
+├── logs/
+├── results.parquet
+├── summary.json
+├── figures/
+└── selected_checkpoint.pt
+```
+
+Runs are normally mutable and ignored by Git.
+
+Run IDs may use timestamps or opaque identifiers because they identify executions, not scientific concepts.
+
+Do not treat `runs/` as a permanent external-tool filesystem or an input archive. Once a consolidated result exists, remove regenerable shards, chunks, temporary manifests, copied source structures, screening/build/repair directories, subprocess work products, and superseded checkpoints. Preserve information-rich scientific measurements when they support later diagnosis; directory trees whose only purpose was execution do not qualify.
+
+External tools run in a project-local temporary workspace:
+
+```text
+canonical structure or generated sequence
+    → project-local temporary input/work directory
+    → external program
+    → compact result records
+    → temporary workspace removed
+```
+
+Temporary copies must not become persistent run artifacts. If an execution can resume, intermediate checkpoints may exist while it is active. After the predefined selection rule runs, retain the selected/best checkpoint, training curve, and validation metrics; default retention is `best_only` or `keep_last: 1` where no best-model selection exists.
+
+Shard and chunk boundaries are execution details. Consolidation must validate expected semantic keys or row counts, after which the redundant partitions are deleted. Do not add a new cleanup script for each workflow; cleanup belongs to the existing runner/CLI that creates the temporary state or to the existing run-archive capability.
+
+### 23.3 `artifacts/`
+
+`artifacts/` contains outputs that are scientifically worth preserving beyond one run, such as:
+
+- selected benchmark data;
+- reusable checkpoints;
+- compact published tables;
+- durable model outputs;
+- release-ready benchmark material when an actual release exists.
+
+Do not promote every generated file into `artifacts/`.
+
+Do not require every artifact to have a manifest or content hash.
+
+For ordinary research outputs, explicit configuration, semantic identity, counts, and code revision are usually more useful than cryptographic provenance.
 
 ---
 
-### 23.4 `artifacts/`
+## 24. Reproducibility and Provenance
 
-Contains promoted, validated, durable scientific outputs.
+Record what can materially affect scientific interpretation.
 
-Examples:
+Relevant provenance may include:
 
-```text
-artifacts/
-├── checkpoints/
-└── releases/
-```
+- source dataset identity;
+- cohort or selection policy;
+- structural condition;
+- model/checkpoint;
+- preprocessing;
+- scientifically meaningful parameters;
+- seed or seed policy;
+- software/code revision;
+- important uncommitted changes;
+- external data source version when relevant.
 
-Canonical release flow:
-
-```text
-compute
-→ staging
-→ validate
-→ manifest/hash
-→ promote
-```
-
-Do not partially overwrite frozen releases.
-
----
-
-## 24. Naming Architecture
-
-Use four naming rules:
-
-```text
-Code names       → scientific/engineering capabilities
-Experiment names → scientific purpose
-Artifact names   → artifact meaning + optional version
-Metadata         → historical/legacy identity
-```
-
-Prefer:
-
-```text
-dataset/admission.py
-design_baseline
-paired_structure_dataset_v1
-```
-
-over:
-
-```text
-scale1a1.py
-p2/
-final_dataset
-```
-
-Version suffixes are valid when the semantic base name is meaningful:
-
-```text
-dataset_manifest_v2
-prediction_schema_v3
-design_baseline_cohort_v1
-```
-
-Historical identifiers may remain in provenance:
-
-```yaml
-legacy_ids:
-  - scale1a3
-```
-
-Code names encode concepts.
-
-Metadata preserves history.
-
----
-
-## 25. Candidate and Cohort Identity
-
-Distinguish stable object identity from scientific semantics.
-
-Opaque IDs are acceptable:
-
-```text
-candidate_000042
-```
-
-when metadata defines their meaning.
-
-Avoid packing many scientific dimensions into semi-semantic IDs such as:
-
-```text
-index36_matched_afdb_03_c07
-```
-
-when every component must be decoded.
-
-Prefer explicit structured metadata:
-
-```text
-protein_id
-candidate_id
-backbone_source
-generation_source
-scoring_source
-condition
-hamming_distance
-replicate
-seed
-model_id
-checkpoint_id
-```
-
-Do not encode the full Cartesian product of experimental conditions into nested directory paths.
-
-Partition storage only where it materially improves I/O.
-
-Cohort names should describe scientific purpose rather than size.
-
-Prefer:
-
-```text
-paired_structure_cohort
-design_baseline_cohort
-cross_mechanism_cohort
-```
-
-with counts stored as metadata:
-
-```yaml
-cohort_id: paired_structure_cohort
-n_proteins: 36
-```
-
----
-
-## 26. Provenance and Versioning
-
-Scientific artifacts should preserve relevant:
-
-* source identities;
-* source hashes;
-* dataset/release identity;
-* scientific policy;
-* model/checkpoint;
-* configuration;
-* seed;
-* schema version;
-* scientific-definition version;
-* code revision.
-
-Historical stage identifiers may also be retained.
-
-Example:
-
-```yaml
-release_id: design_baseline_cohort_v1
-
-legacy_ids:
-  - scale1b
-```
-
-Do not use one ambiguous `version` field for unrelated concepts.
-
-Distinguish where relevant:
-
-```text
-schema_version
-artifact_format_version
-scientific_definition_version
-protocol_version
-model_version
-checkpoint_id
-```
-
-A serialization-format change is not necessarily a scientific-definition change.
-
-A metric-equation change is not merely a schema change.
+Do not record every incidental runtime detail simply because it is available.
 
 Machine-specific absolute paths must not serve as scientific identity.
 
-Repository-owned artifacts should normally use repository-relative logical paths.
+Prefer repository-relative logical paths or stable external identifiers.
 
-External/shared artifacts should use stable identifiers or portable URIs with appropriate hashes/provenance.
+### 24.1 Hashing
+
+SHA256, checksum, and content-hash validation are **not part of the default research workflow**. Do not add, calculate, compare, or repeatedly verify hashes merely to strengthen provenance, detect ordinary file changes, validate regenerable outputs, or make a task appear more rigorous.
+
+Prefer semantic scientific identity instead: dataset/cohort identity, model and checkpoint name/version, experiment parameters, seed, code revision, row counts or key scientific summaries when useful, and direct inspection of the outputs that matter to the scientific question.
+
+Do not introduce hash fields, checksum sidecars, hash ledgers, hash-based cache identity, manifest hashes, or hash-validation steps for ordinary Parquet/CSV/JSON files, figures, summaries, source files, experiment intermediates, predictions, or derived tables.
+
+A cryptographic hash is an exception, not a default. Use one only when an explicit external interface already requires content-addressed identity or when the task specifically requires verifying an otherwise unidentifiable external binary/checkpoint. Do not generalize that exception into repository-wide hash validation.
+
+Never build hash chains such as `input hash → output hash → manifest hash → release hash`, and do not rerun SHA256 validation as a routine completion check.
 
 ---
 
-## 27. Schemas
+## 25. Randomness
 
-Persistent machine-readable repository-level contracts belong under:
+Scientific randomness should be intentional and interpretable.
+
+Use explicit root seeds or documented seed policies when stochastic variation can affect the conclusion.
+
+Do not derive scientific randomness from:
+
+- wall-clock time;
+- process ID;
+- filesystem iteration order;
+- worker scheduling order;
+- unstable language hashes.
+
+Parallelization should not silently change the statistical experiment.
+
+When exact bitwise determinism is costly and scientifically unnecessary, characterize stochastic variability rather than introducing heavy machinery solely to reproduce identical bytes.
+
+---
+
+## 26. Caching and Reuse
+
+Incorrect cache reuse is a scientific correctness error.
+
+Cache identity should include inputs capable of changing the scientific result, such as:
+
+- protein/input identity;
+- structure or condition identity;
+- model/checkpoint;
+- preprocessing;
+- scientific configuration;
+- relevant semantic version identifiers.
+
+Normally exclude unrelated runtime metadata such as:
+
+- log level;
+- report path;
+- timestamp;
+- worker count;
+- plotting settings.
+
+Prefer transparent, inspectable caches that can be invalidated easily.
+
+A stored primitive model output should be reused for new downstream analyses when its scientific inputs and semantics match the new question.
+
+---
+
+## 27. Direct Scientific Evidence
+
+Research work should move toward informative execution, not toward proving readiness to execute.
+
+The default loop is:
 
 ```text
-schemas/
+scientific question
+→ smallest meaningful computation or experiment
+→ inspect real output
+→ investigate an observed ambiguity, discrepancy, or failure
+→ update the scientific interpretation
 ```
+
+Do not create a separate preflight, readiness check, pre-run audit, dry-run validation, or validation-gate phase for ordinary research work. Do not scan the repository, inputs, environment, or generated artifacts merely to establish that work is "ready" when the real computation can provide stronger evidence at acceptable cost.
+
+Required inputs and invariants should be checked naturally by the component that consumes them. If an input is malformed or an invariant is violated, fail clearly at that boundary and fix the concrete problem. Do not build a second preliminary workflow that predicts whether the same boundary might fail.
+
+Use a targeted preliminary check only when direct execution is materially irreversible, exceptionally expensive, security-sensitive, or capable of corrupting important external data. Even then, check only the specific risk that justifies the check.
+
+Tests are tools for resolving concrete uncertainty, not mandatory stages. Prefer direct scientific evidence such as residue/mask inspection, cohort comparison, per-protein distributions, leakage analysis, or seed sensitivity when those quantities determine the conclusion. Do not escalate mechanically into broader suites after the relevant uncertainty is resolved.
+
+---
+
+## 28. Failure Semantics
+
+Architecture should preserve three broad failure classes.
+
+### Software / invariant failure
 
 Examples:
 
-```text
-dataset_manifest.schema.json
-prediction_record.schema.json
-release_manifest.schema.json
-```
+- impossible internal state;
+- malformed scientific representation;
+- inconsistent mapping;
+- violated required shape or index assumption.
 
-Python-internal contracts may remain with their scientific owner.
+Fail clearly.
 
-Schemas are not configuration.
-
-Do not place persistent schemas under `configs/`.
-
----
-
-## 28. Test Architecture
-
-Use one primary organizational axis:
-
-```text
-tests/
-├── unit/
-├── integration/
-├── regression/
-├── contracts/
-└── fixtures/
-```
-
-### Unit Tests
-
-Cover stable reusable scientific behavior.
-
-Example:
-
-```text
-tests/unit/
-├── structure/
-│   └── test_mapping.py
-├── dataset/
-│   ├── test_admission.py
-│   ├── test_redundancy.py
-│   └── test_selection.py
-├── models/
-├── uncertainty/
-└── evaluation/
-```
-
-General unit tests should use semantic rather than stage-based names.
-
-### Integration Tests
-
-Cover component/workflow boundaries.
+### Scientific / data outcome
 
 Examples:
 
-```text
-source acquisition → normalization
-model adapter → normalized prediction representation
-dataset components → dataset workflow
-```
+- candidate does not satisfy a scientific criterion;
+- no valid residue mapping exists;
+- requested comparison population is insufficient;
+- hypothesis is unsupported.
 
-### Regression Tests
+Represent the outcome and reason without disguising it as a software error.
 
-Protect previously observed failures.
+### Infrastructure / operational failure
 
-Regression identity should describe the protected behavior where practical.
+Examples:
 
-### Contract Tests
+- GPU failure;
+- network timeout;
+- missing remote asset;
+- subprocess crash;
+- storage failure.
 
-Protect frozen:
+Report operationally and retry only when appropriate.
 
-* releases;
-* manifests;
-* schemas;
-* membership;
-* scientifically important historical expectations.
-
-Example:
-
-```text
-tests/contracts/releases/
-└── design_baseline_cohort_v1/
-    ├── test_membership.py
-    ├── test_manifest.py
-    └── expected.yaml
-```
-
-Reusable contract assertions should be shared rather than copied between releases.
-
-Prefer:
-
-* fixtures;
-* parameterization;
-* small helper assertions;
-
-over inheritance-heavy test frameworks.
-
-Tests should normally import production scientific definitions rather than duplicate them.
-
-Independent simple reference implementations may be used as oracles where appropriate.
-
-Do not create expected values by copying the production implementation line-for-line.
+Never reinterpret operational failure as scientific exclusion.
 
 ---
 
-## 29. Extension Decision Tree
+## 29. Performance
 
-When adding behavior:
+Correctness and scientific equivalence precede speed.
+
+Optimize measured or clearly dominant bottlenecks.
+
+Prefer standard techniques such as:
+
+- batching;
+- vectorization;
+- streaming;
+- memory-aware tensor operations;
+- transparent caching;
+- validated mixed precision.
+
+Performance changes must preserve:
+
+- masks;
+- residue mappings;
+- normalization scope;
+- sampling distribution;
+- random streams where required;
+- aggregation unit.
+
+Do not silently change per-protein semantics into per-batch semantics.
+
+---
+
+## 30. Extension Decision Process
+
+When adding behavior, first inspect the relevant existing implementation and ask whether the requested difference is new science or only a new setting of existing science. Keep this inspection targeted to likely owners and callers; it is normal code understanding, not a preflight workflow.
 
 ```text
-Does an existing package own the concept?
-        |
-        +-- YES
-        |     ↓
-        |   extend a cohesive module there
-        |
-        +-- NO
+Does relevant handling logic already exist?
+    |
+    +-- YES → reuse it directly or extend that owner
+    |
+    +-- NO / INCOMPLETE
+         |
+         Does an existing function/module/task/runner own the same scientific operation?
+         |
+         +-- YES → extend its coherent interface
+         |          and express the new variation through arguments/configuration
+         |
+         +-- NO
               |
-              Is this orchestration?
+              Is this only a different experiment composition?
               |
-              +-- YES → workflows/
+              +-- YES → reuse existing runner/task/CLI + configuration
               |
               +-- NO
-                    |
-                    Is it source/model-specific?
-                    |
-                    +-- YES → adapter near the stable contract it produces
-                    |
-                    +-- NO
-                          |
-                          Is it a stable scientific capability
-                          with multiple meaningful responsibilities?
-                          |
-                          +-- YES → consider new package
-                          |
-                          +-- NO → reconsider the abstraction
+                   |
+                   Is the behavior model/source specific?
+                   |
+                   +-- YES → extend or add the adapter near the representation it produces
+                   |
+                   +-- NO
+                        |
+                        Is there a genuinely new reusable scientific responsibility?
+                        |
+                        +-- YES → create one cohesive owner
+                        |
+                        +-- NO → reconsider the requested abstraction
 ```
 
-A new package should normally satisfy all of:
+A new `.py` file or directory is the last option in this process, not the default unit of progress. A new task name, experiment name, ablation, figure, checkpoint, cohort, or analysis request does **not** justify a new source file or folder.
 
-1. coherent scientific responsibility;
+Before creating either one, be able to state why the existing owner cannot express the behavior cleanly. If the answer is only “to keep this task separate,” do not create it.
+
+A new top-level package should normally require:
+
+1. a coherent scientific responsibility;
 2. multiple meaningful operations or dependencies;
-3. no appropriate existing owner;
-4. improved dependency direction.
+3. no suitable existing owner;
+4. a clearer dependency structure.
 
-Do not create a package merely because one task requires several files.
-
-New abstractions must pay for themselves by removing or preventing concrete coupling.
+The first use of a concept does not automatically justify a framework, package, task folder, or standalone script. Prefer a small extension of existing code over either premature framework construction or repeated task-specific implementations.
 
 ---
 
-## 30. Stage-to-Capability Migration
+## 31. Historical Code and Migration
 
-Historical stage-oriented code should migrate incrementally.
+Historical stage-oriented code should be treated as evidence about earlier scientific behavior, not as the preferred template for new implementation.
 
-Preferred transformation:
-
-```text
-historical stage implementation
-        ↓
-characterize existing behavior
-        ↓
-identify stable scientific responsibility
-        ↓
-extract canonical reusable capability
-        ↓
-policy/config + release contract
-        ↓
-migrate callers
-        ↓
-validate frozen behavior
-        ↓
-remove obsolete duplication
-```
-
-Example:
+When active work requires migration:
 
 ```text
-Scale1A3-specific redundancy implementation
+understand current scientific behavior
+→ identify its real responsibility
+→ identify invariants and edge cases
+→ move or consolidate into the active owner
+→ migrate current callers
+→ run focused scientific comparisons
+→ remove obsolete duplication when safe
 ```
 
-may become:
+Do not perform a repository-wide rewrite solely for aesthetic consistency.
 
-```text
-src/dual_uq/dataset/redundancy.py
-+
-experiment-specific redundancy policy
-+
-release provenance legacy_id=scale1a3
-```
+Do not add new wrappers, hashes, or checking machinery merely to keep two duplicate implementations synchronized.
 
-Do not mechanically rename historical files before understanding their scientific responsibility.
+Prefer one active implementation and a clearly labeled reproduction-only historical path when historical reproduction remains necessary.
 
 ---
 
-## 31. Compatibility Wrappers
+## 32. StructCal Boundary
 
-Temporary compatibility is allowed:
+`StructCal` is the repository-wide public benchmark identity (`structcal` in paths and Python identifiers).
+
+Dual-UQ remains the repository/package identity unless explicitly changed elsewhere.
+
+StructCal studies invariance–sensitivity calibration under structural conditions.
+
+The current scientific distinction is:
 
 ```text
-legacy entry point
-        ↓
-canonical reusable capability
+Track I — structural invariance
+    clean PDB/AFDB representation-variation pairs
+    expected behavior: unnecessary response should remain small
+
+Track II — functional sensitivity
+    Apo/Holo PRIMARY pairs and functional-state PRIMARY pairs
+    expected behavior: biologically meaningful structural change may require response
+
+Track III — invariance–sensitivity calibration
+    joint evaluation of Track-I and Track-II evidence
+    this is not a duplicated third cohort
 ```
 
-Example:
+Arm identifies the source/type of structural variation. Track identifies the scientific evaluation objective. They are different concepts and must not be inferred from one another.
 
-```python
-def legacy_scale1_admission(...):
-    return evaluate_admission(
-        ...,
-        policy=legacy_policy,
-    )
+### 32.1 Global comparison population
+
+StructCal v1 uses one global 30%-sequence-identity clustering and one shared split across the complete formal protein universe. This is part of the scientific comparison design, not an execution convenience.
+
+`splits.parquet` is the scientific source for cluster and split assignment. Arm-specific or historical method-development splits may be retained as provenance but must not silently replace the shared comparison split.
+
+Do not create arm-specific splits that change the comparison population unless the scientific question explicitly requires a different population.
+
+### 32.2 Model-independent benchmark core
+
+The public model-independent benchmark core contains the scientific objects needed to define the comparison:
+
+```text
+proteins
+structures
+condition pairs
+residue mappings
+benchmark instances
+cluster/split assignments
 ```
 
-Compatibility wrappers preserve documented contracts during migration.
+Keep model responses, model-specific eligibility, model scores, and execution state outside this core. Generic scientific eligibility and model capability are different questions; combine them only when evaluating a concrete model.
 
-They are not canonical scientific implementations.
+Structural annotations that are useful for stratification or mechanism analysis may remain a separate scientific layer rather than being forced into the minimal benchmark core.
 
-Do not retain obsolete wrappers indefinitely after all relevant callers have migrated.
+### 32.3 Historical cohorts
+
+Historical PDB/AFDB, Apo/Holo, and other construction paths may remain as reproduction sources.
+
+Projection into the active StructCal representation should preserve scientifically meaningful decisions already established by those sources—such as admission, PRIMARY selection, condition orientation, residue mapping, descriptor calculation, and controlled-intervention construction—unless the research task explicitly intends to revisit one of them.
+
+Do not rerun upstream discovery or model work merely to make the directory structure cleaner.
+
+Do not require release machinery during ordinary StructCal development. Stronger artifact-identity checks are appropriate only for a real external/publication boundary or another concrete integrity need.
 
 ---
 
-## 32. Migration Safety
+## 33. ReSC Boundary
 
-Do not perform a Big-Bang rewrite.
+`ReSC` is the repository-wide name for Reliable Structural Conditioning (`resc` in paths and Python identifiers).
 
-Before moving scientifically meaningful behavior, establish characterization/contract coverage for relevant:
+ReSC method development should reuse the same model adapters, task semantics, metrics, and evaluation paths used for comparable baseline methods wherever the scientific operation is the same.
 
-* admission outcomes;
-* rejection reasons;
-* cohort membership;
-* cluster assignments;
-* redundancy counts;
-* residue mappings;
-* manifest identity;
-* release hashes.
+Do not create a private ReSC-only implementation of a metric, data construction rule, or evaluation path merely to simplify one experiment.
 
-Then migrate using:
+Method-specific code belongs in a ReSC-specific module only when the behavior is genuinely part of the ReSC method itself, for example a learned transformation, conditioning rule, or method-specific parameterization.
+
+The architectural goal is:
 
 ```text
-1. characterize existing behavior
-2. identify stable responsibility
-3. extract reusable implementation
-4. retain policy/release-specific data separately
-5. migrate callers
-6. validate frozen contracts
-7. remove obsolete duplication
+shared scientific population
++ shared task semantics
++ shared metrics/evaluation
++ ordinary model adapter
++ ReSC-specific method component
+→ comparable evidence about ReSC
 ```
 
-Architecture improvement should normally be driven by active scientific work, not broad mechanical cleanup.
+This separation makes it easier to determine whether an observed improvement comes from the method rather than from a different evaluation path, cohort, preprocessing rule, or metric implementation.
 
 ---
 
-## 33. Dependency and Cycle Discipline
+## 34. Architecture for Scientific Diagnosis
 
-Top-level scientific packages should remain acyclic where practical.
+The repository should make surprising results diagnosable without rewriting the pipeline.
 
-If a cycle appears, do not resolve it using:
+For any major comparison, it should be possible to inspect or recover enough intermediate information to ask:
 
-```text
-dynamic imports
-runtime monkey-patching
-global service locators
-moving arbitrary code into core
-```
+1. Was the quantity measured correctly?
+2. Were the compared proteins/conditions actually comparable?
+3. Were residue mapping and masks correct?
+4. Did preprocessing or filtering differ?
+5. Did aggregation or missingness semantics differ?
+6. Could stochasticity explain the effect?
+7. Does the result remain after reasonable stratification?
+8. Is the scientific hypothesis itself unsupported?
 
-Instead inspect ownership.
+Architecture should preserve the data needed for these questions when the storage cost is reasonable.
 
-Typical causes of cycles include:
-
-* a scientific contract owned by the wrong package;
-* orchestration leaking into domain code;
-* adapter details leaking upward;
-* shared types placed too high or too low;
-* peer packages owning overlapping concepts.
-
-Resolve the ownership problem before introducing technical workarounds.
-
----
-
-## 34. Architectural Change Discipline
-
-Architecture should evolve from demonstrated project needs.
-
-Do not modify repository-wide architecture merely because a cleaner theoretical design is imaginable.
-
-A durable architecture change should normally be justified by at least one of:
-
-* repeated duplication;
-* repeated dependency-direction problems;
-* repeated scientific-contract ambiguity;
-* multiple real callers requiring the same abstraction;
-* an active migration from stage-specific code;
-* a demonstrated testing/provenance limitation.
-
-Task-specific architectural decisions that are not yet repository-wide should normally be documented under:
-
-```text
-docs/decisions/
-```
-
-rather than immediately promoted into `ARCHITECTURE.md`.
+Do not optimize the pipeline so aggressively around a single headline output that scientific diagnosis becomes impossible.
 
 ---
 
@@ -1837,20 +1549,26 @@ rather than immediately promoted into `ARCHITECTURE.md`.
 
 The architecture is working when:
 
-* a new model does not require rewriting dataset logic;
-* a new metric does not require unnecessary model inference;
-* historical experiment IDs do not leak into reusable implementation;
-* scientific definitions have canonical owners;
-* residue/index mappings are explicit and centralized;
-* project-level contracts are model/source independent;
-* external model/source details remain behind adapters;
-* configuration does not leak as unstructured dictionaries through reusable scientific code;
-* top-level dependency cycles are absent;
-* experiment directories describe scientific intent rather than runtime state;
-* frozen artifacts remain reconstructable and auditable;
-* tests describe scientific behavior rather than roadmap chronology;
-* adding a new experiment mostly means configuring and composing existing capabilities;
-* reusable components operate on compatible new datasets or frames through inputs and policies rather than internal rewrites.
+- a new scientific question can often be answered by composing existing scientific capabilities;
+- a new model does not require rewriting dataset construction or metrics;
+- a new metric usually does not require rerunning model inference when primitive outputs already exist;
+- residue/index mappings are explicit and centralized;
+- cohort and comparison populations are inspectable;
+- biological redundancy and split leakage can be checked directly;
+- scientific observation units and aggregation units are explicit;
+- uncertainty quantities remain distinguishable;
+- external model/source details stay behind adapters;
+- experiment chronology does not leak into reusable implementation names;
+- one scientific concept normally has one active implementation;
+- a new experiment usually reuses existing Python modules and differs through explicit inputs/configuration rather than adding another task-specific `.py` file;
+- scientific choices that legitimately vary are explicit rather than buried in literals, paths, or experiment-name branches;
+- stable scientific definitions remain centralized instead of being duplicated or made arbitrarily configurable;
+- reporting cannot silently redefine scientific results;
+- surprising outputs can be traced through mapping, filtering, scoring, aggregation, and stochasticity;
+- ordinary research work begins with informative computation rather than preflight, audit, or readiness gates;
+- ordinary research work does not require unnecessary hashes, manifests, release gates, or framework code;
+- stronger reproducibility machinery is introduced only where it changes the trustworthiness of an actual scientific result or external artifact;
+- adding an experiment mostly means selecting a cohort, configuring a controlled comparison, composing existing operations, and interpreting evidence.
 
 ---
 
@@ -1859,19 +1577,25 @@ The architecture is working when:
 Dual-UQ should encode:
 
 ```text
-scientific concepts
+scientific questions
 +
-explicit contracts
+explicit scientific objects
 +
-reusable capabilities
+one owner per reusable concept
 +
-clear dependency direction
+continuous extension of existing code
 +
-source/model boundaries
+explicit parameterization of real variation
 +
-experiment specifications
+clear source/model boundaries
 +
-provenance-controlled artifacts
+controlled experiment composition
++
+information-rich measurements
++
+explicit metrics and aggregation
++
+proportional reproducibility
 ```
 
 not:
@@ -1881,246 +1605,23 @@ roadmap chronology
 +
 copied stage scripts
 +
-boolean-mode pseudo-abstractions
+new Python files for every experiment
++
+near-duplicate tasks or metrics
++
+hard-coded experiment choices and paths
++
+parallel scientific implementations
++
+model assumptions spread across the repository
 +
 global configuration dictionaries
 +
-model-specific assumptions everywhere
+boolean-mode pseudo-frameworks
 +
-deep condition-specific directory trees
+unnecessary schema/hash/manifest machinery
 +
-duplicated scientific definitions
+report-driven scientific definitions
 ```
 
-The architectural objective is not maximum abstraction.
-
-It is the minimum stable architecture required to make protein-design research software scientifically correct, reproducible, reusable, extensible, and auditable.
-
-## 37. Canonical Execution Framework
-
-The canonical benchmark framework separates three workflows:
-
-```text
-model-independent construction
-    → canonical benchmark tables
-
-canonical tables + model adapter + Task
-    → primitive model outputs + canonical metrics
-
-method development checkpoint + ordinary adapter
-    → the same canonical evaluation path
-```
-
-The active package boundaries are:
-
-| Package | Owns | Must not own |
-| --- | --- | --- |
-| `benchmark/` | frozen schema registry, canonical IDs, condition semantics, table contracts, relational validation, provenance, generic instances | model execution or historical experiment orchestration |
-| `construction/` | asset/protein/structure normalization, mapping, comparability, admission, annotations, generic eligibility, functional-state policy | model scores or evaluator behavior |
-| `models/` | adapter interfaces, capabilities, registries, and concrete model behavior | benchmark identity, pair orientation, canonical metric equations |
-| `tasks/` | semantic operations: local sensitivity, generative propagation, sequence scoring, multistate generation | model-specific invocation or table construction |
-| `metrics/` | deterministic canonical metric equations | filesystem orchestration or model loading |
-| `runners/` | thin construction/evaluation/release composition boundaries | a second private evaluation path for a method |
-| `reporting/` | multidimensional report-card presentation | redefining metrics or admission |
-
-The frozen JSON files under `schemas/` are the single machine-readable schema authority.
-Canonical table writers derive required fields, column order, primary keys, and prohibited
-fields from those schemas. Canonical condition orientation is semantic and immutable; it is
-never inferred from input order, geometry, timestamps, or model output. Historical PDB/AFDB,
-Apo/Holo, and functional-state orchestration remains read-only input/provenance until an
-explicit semantic converter is authorized. No canonical execution step creates a release
-manifest by implication.
-
-## 38. Research Software Engineering Boundaries
-
-Dual-UQ is research software. Engineering rigor should protect scientific semantics
-and reproducibility, not reproduce production-platform process complexity.
-
-The default standard for an ordinary research task is:
-
-```text
-scientific definition unique
-implementation owner unique
-inputs and outputs clear
-key results reproducible
-freeze only when scientifically necessary
-```
-
-More hashes, smoke tests, manifests, and release gates are not inherently more
-scientific. Validation must be proportional to scientific risk. A specific frozen
-cohort, protocol, checkpoint, or formal release contract may impose stricter
-requirements; those requirements must be explicit and local to that scientific
-contract rather than silently becoming the default for every analysis.
-
-### 38.1 SHA256 policy
-
-SHA256 is required only when content identity is itself part of the scientific
-contract. Valid default uses include:
-
-* frozen cohorts and protocols;
-* external model checkpoints;
-* formal benchmark releases;
-* critical inputs whose identity cannot be established by another stable identity.
-
-Do not calculate or validate SHA256 by default for ordinary analysis Parquet,
-summary JSON, figures, Markdown reports, temporary manifests, derived tables,
-source files, or regenerable experiment intermediates. Git history is the default
-source-version record. Experiment provenance should prefer semantic metadata such as
-cohort, configuration, model/checkpoint version, seed, software version, and data
-source.
-
-Do not create SHA chains such as:
-
-```text
-input SHA → output SHA → manifest SHA → release SHA → manifest-of-manifest SHA
-```
-
-For a frozen release, one top-level manifest should identify the scientifically
-relevant frozen inputs and release identity. Ordinary experiments should not acquire
-release machinery merely because they produce files.
-
-### 38.2 Smoke-test policy
-
-Smoke tests are required only at execution boundaries with meaningful runtime risk,
-such as:
-
-* external model invocation;
-* GPU execution;
-* external binaries;
-* network-dependent acquisition;
-* newly changed CLI or runtime integration.
-
-Do not create or run smoke tests for deterministic Python data transformations,
-statistical analysis, schema validation, path adjustments, or report generation when
-focused tests already exercise the changed behavior.
-
-### 38.3 Validation levels
-
-Validation has three proportional levels:
-
-```text
-LEVEL 1 — ordinary research development (default)
-focused pytest
-+ Ruff when Python code changes
-
-LEVEL 2 — shared scientific contract change
-focused and relevant integration/regression tests
-+ Ruff
-+ import or compile checks when module boundaries change
-
-LEVEL 3 — frozen benchmark or formal release
-relevant scientific regression
-+ canonical schema validation
-+ frozen-input identity verification
-+ release-level provenance
-```
-
-Do not mechanically run `compileall`, import smoke, JSON validation, exhaustive SHA
-validation, full regression, or release-manifest validation for every task. A low-cost
-check such as `git diff --check` may be useful, but it is a code-quality check, not a
-scientific validation result. Every scientific invariant should have one authoritative
-validator; do not stack several equivalent validators around the same fact.
-
-### 38.4 Scientific tests over implementation tests
-
-Tests should protect scientific semantics and stable contracts, including:
-
-* residue mapping and condition pairing;
-* admission and structured exclusion reasons;
-* metric equations and score signs;
-* aggregation and pairing units;
-* deterministic identifiers;
-* schema primary/foreign keys;
-* cardinality and coverage invariants where scientifically meaningful.
-
-Internal helper order, CLI wrappers, file movement, log text, and trivial parameter
-pass-through generally do not require dedicated tests. By default, run focused tests
-for the changed owner. Run broader regression only when a shared scientific contract,
-canonical schema, scorer semantics, frozen construction, or formal release is changed.
-
-### 38.5 Proportional provenance and artifacts
-
-Provenance should record what can affect scientific interpretation: input cohort,
-structural conditions, model/checkpoint, important parameters, seed, software
-version, and relevant data sources. It should not record every helper version,
-directory timestamp, or hash of every incidental file.
-
-Large regenerable derived artifacts do not belong in Git and do not need per-file
-hashes. Git should contain source, configuration, frozen protocols, small summaries,
-and necessary manifests. Large Parquet outputs, generated sequence collections,
-predictions, and intermediate structures should live in experiment storage and be
-reconstructed from an explicit command plus semantic provenance.
-
-### 38.6 Architecture and historical-code restraint
-
-One scientific concept should have one active implementation. When mapping,
-admission, propagation, scoring, or another concept has multiple active
-implementations, prefer consolidating ownership or deleting duplication over adding
-hashes, manifests, validators, or regression machinery to keep implementations in
-sync. Do not add engineering machinery solely to make validation more systematic.
-
-The first caller of a capability should normally remain a clear domain
-implementation. Extract a shared abstraction after a second independent scientific
-caller demonstrates real repeated semantics. Do not create a framework on the first
-use merely because future reuse is imaginable.
-
-Historical frozen pipelines may remain for reproduction, but should not be further
-engineered with wrappers, SHA migration, or new test matrices unless an active
-scientific contract requires it. Ordinary research workflows should use plain
-Python, configuration, explicit experiment directories, and small runners; do not
-introduce workflow engines, artifact registries, state databases, release services,
-automatic migration frameworks, or schedulers without a demonstrated scientific
-need.
-
-When a scientific operation is available through the canonical `construction/`
-boundary, new scientific work MUST use that path rather than importing historical
-`dataset/` construction implementations. Historical code may remain as a deterministic
-reproduction owner until a real canonical conversion or benchmark-release need exists.
-
-### 38.7 Error classes and completion standard
-
-Use three default error classes:
-
-* scientific invariant violation: fail immediately;
-* scientific exclusion: record a structured reason;
-* infrastructure failure: report clearly and permit retry where appropriate.
-
-A normal analysis is complete when its inputs are correct, core scientific formulas
-are validated, important cardinality or coverage is reasonable, focused tests pass,
-the result is readable, and frozen upstream artifacts are unchanged. It does not
-automatically require SHA verification, smoke tests, compile checks, full regression,
-or a release manifest.
-
-## 39. StructCal v1 Benchmark Boundary
-
-`StructCal` is the public benchmark identity; `Dual-UQ` remains the repository and
-Python package identity. The canonical release is `artifacts/releases/structcal_v1/`.
-
-StructCal evaluates invariance–sensitivity calibration under structural conditions.
-Arm identifies the source of structural variation; Track identifies the scientific
-evaluation objective. They are not interchangeable.
-
-```text
-TRACK_I_STRUCTURAL_INVARIANCE
-    frozen clean PDB/AFDB representation-variation pairs
-
-TRACK_II_FUNCTIONAL_SENSITIVITY
-    frozen Apo/Holo PRIMARY + functional-state PRIMARY pairs
-
-TRACK_III_INVARIANCE_SENSITIVITY_CALIBRATION
-    joint Track-I × Track-II evaluation; no duplicated third cohort
-```
-
-StructCal v1 has one global 30%-identity clustering and one authoritative split across
-the complete formal protein universe. `splits.parquet` owns cluster and split identity;
-Arm-specific and historical method-development splits are provenance only.
-
-The public model-independent Core contains exactly proteins, structures,
-condition-pairs, residue-mappings, benchmark-instances, and splits. Public Core does
-not contain SHA/checksum fields, model-specific eligibility, model scores, or model
-responses. Generic instance eligibility is combined with model capability metadata at
-execution time. Structural annotations remain a separate release layer.
-
-Formal release conversion may project immutable historical cohorts into this contract,
-but it must not rerun or revise discovery, admission, PRIMARY selection, orientation,
-mapping, descriptor calculation, controlled intervention construction, or model work.
+The architecture is successful when it helps the repository answer protein-design research questions with fewer hidden assumptions, cleaner comparisons, and evidence that is easier to challenge and reproduce.

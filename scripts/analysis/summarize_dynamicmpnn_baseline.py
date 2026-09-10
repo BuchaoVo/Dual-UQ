@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 import pandas as pd
 
-from dual_uq.evaluation.dynamicmpnn_baseline import compare_with_frozen_baseline, summarize_dynamic_scores
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+from dual_uq.core.hashing import sha256_file as _sha256
+from dual_uq.evaluation.dynamicmpnn_baseline import (
+    compare_with_frozen_baseline,
+    summarize_dynamic_scores,
+)
 
 
 def _quantile(values: pd.Series, q: float) -> float:

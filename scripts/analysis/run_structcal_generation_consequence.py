@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dual_uq.core.artifacts import write_immutable_json, write_immutable_parquet
 from dual_uq.evaluation.apo_holo_local_response import build_decoding_realizations
 from dual_uq.evaluation.cross_model_representation_cases import make_degenerate_dynamic_case
 from dual_uq.evaluation.generation_consequence import (
@@ -22,31 +23,15 @@ from dual_uq.evaluation.generation_consequence import (
 )
 from dual_uq.models.proteinmpnn import ProteinMPNNStructureInput
 from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
+    CHECKPOINTS,
+    DEFAULT_RUN_ROOT,
     MODEL_SPECS,
-    _coordinates,
+    REGIMES,
+    coordinates_from_case_group,
     filter_dynamicmpnn_contiguous_cases,
+    load_structcal_model,
     safe_output_path,
 )
-from scripts.analysis.run_structcal_cross_model_representation_sensitivity import _load_model
-
-DEFAULT_OUTPUT = Path("runs/structcal_cross_model_representation_sensitivity")
-REGIMES = ("identical", "exact_se3", "controlled", "operational_pdb_afdb")
-CHECKPOINTS = {
-    "proteinmpnn": "v_48_020",
-    "esm_if1": "esm_if1_gvp4_t16_142M_UR50",
-    "pifold": "official_checkpoint_pth",
-    "dynamicmpnn": "single_chain_k2",
-}
-
-
-def _write_once(path: Path, frame: pd.DataFrame) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        if not pd.read_parquet(path).equals(frame):
-            raise RuntimeError(f"refusing to overwrite non-identical artifact: {path}")
-        return
-    frame.to_parquet(path, index=False)
-
 
 def _seed(protein_id: str) -> int:
     return int.from_bytes(hashlib.sha256(protein_id.encode()).digest()[:4], "big")
@@ -163,7 +148,7 @@ def score_regime(
             sequence_values = ordered["wt_sequence_projection"].astype(str).drop_duplicates()
             if len(sequence_values) != 1:
                 raise ValueError(f"case sequence is not constant: {pair_id}/{condition}")
-            coordinates = _coordinates(ordered)
+            coordinates = coordinates_from_case_group(ordered)
             positions = tuple(int(value) for value in ordered["canonical_position"])
             protein_id = str(ordered.iloc[0]["protein_id"])
             cache_key = (
@@ -219,7 +204,7 @@ def score_regime(
     path = safe_output_path(
         output_root, f"generation_shards/{model_name}/{checkpoint_id}/{regime}/{filename}"
     )
-    _write_once(path, response)
+    write_immutable_parquet(path, response)
     summary = {
         "status": "COMPLETE",
         "model": model_name,
@@ -236,9 +221,7 @@ def score_regime(
     summary_name = "summary.json" if shard_count is None else filename.replace(
         "greedy_generation_response", "summary"
     ).replace(".parquet", ".json")
-    path.with_name(summary_name).write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    write_immutable_json(path.with_name(summary_name), summary)
     return summary
 
 
@@ -270,7 +253,7 @@ def merge_shards(
     response = response.sort_values(
         ["model_id", "regime", "pair_id"], kind="mergesort", ignore_index=True
     )
-    _write_once(root / "greedy_generation_response.parquet", response)
+    write_immutable_parquet(root / "greedy_generation_response.parquet", response)
     summary = {
         "status": "COMPLETE",
         "model": model_name,
@@ -280,16 +263,14 @@ def merge_shards(
         "proteins": int(response["protein_id"].nunique()),
         "merged_shards": shard_count,
     }
-    (root / "summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    write_immutable_json(root / "summary.json", summary)
     return summary
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=Path("."))
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--output-root", type=Path, default=DEFAULT_RUN_ROOT)
     parser.add_argument("--model", choices=tuple(CHECKPOINTS), required=True)
     parser.add_argument("--regime", choices=REGIMES, action="append")
     parser.add_argument("--device", default="cuda:0")
@@ -319,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
         adapter, checkpoint_id = None, CHECKPOINTS["pifold"]
     else:
         checkpoint = "v_48_020" if args.model == "proteinmpnn" else "default"
-        adapter, checkpoint_id = _load_model(
+        adapter, checkpoint_id = load_structcal_model(
             args.model, checkpoint, project_root, output_root, args.device
         )
     generation_cache: dict[tuple[Any, ...], GreedyGeneration] = {}

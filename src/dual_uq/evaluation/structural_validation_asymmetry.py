@@ -7,7 +7,6 @@ upstream structural-validation artifacts.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +16,8 @@ import numpy as np
 import pandas as pd
 
 from dual_uq.core.atomic_io import atomic_write_new_bytes
+from dual_uq.core.hashing import sha256_file as _sha
+from dual_uq.evaluation.independent_structure_validation import spearman_correlation
 from dual_uq.geometry import kabsch_align, rmsd
 from dual_uq.inference.independent_structure_validation import (
     StructuralValidationAsymmetryError,
@@ -43,13 +44,6 @@ def _finite(value: Any, label: str) -> float:
     if not np.isfinite(number):
         raise StructuralValidationAsymmetryError(f"{label} is not finite")
     return number
-
-
-def _spearman(left: pd.Series, right: pd.Series) -> float | None:
-    values = pd.concat([left, right], axis=1).dropna()
-    if len(values) < 3 or values.iloc[:, 0].nunique() < 2 or values.iloc[:, 1].nunique() < 2:
-        return None
-    return float(values.iloc[:, 0].rank(method="average").corr(values.iloc[:, 1].rank(method="average")))
 
 
 def _coords(value: Any, label: str) -> np.ndarray:
@@ -233,7 +227,9 @@ def build_structural_validation_asymmetry(
             associations.append({
                 "outcome": outcome,
                 "descriptor": descriptor,
-                "spearman": _spearman(merged[outcome], merged[descriptor]),
+                "spearman": spearman_correlation(
+                    merged[outcome], merged[descriptor]
+                ),
                 "n_proteins": int(merged[[outcome, descriptor]].dropna().shape[0]),
             })
     association_table = pd.DataFrame(associations)
@@ -286,14 +282,6 @@ def build_structural_validation_asymmetry(
         "association_rows": len(association_table),
     }
     return StructuralValidationAsymmetryResult(absolute, wt, merged, association_table, summary, provenance)
-
-
-def _sha(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _write_immutable(path: Path, payload: bytes) -> str:

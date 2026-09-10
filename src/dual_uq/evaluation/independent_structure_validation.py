@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from dual_uq.core.atomic_io import atomic_write_new_bytes
+from dual_uq.core.hashing import sha256_file as _sha
 from dual_uq.geometry import kabsch_align, rmsd
 from dual_uq.inference.independent_structure_validation import (
     IndependentStructureValidationError,
@@ -46,7 +46,9 @@ def _aligned_rmsd(mobile: Any, target: Any, label: str) -> float:
     return value
 
 
-def _spearman(left: pd.Series, right: pd.Series) -> float | None:
+def spearman_correlation(left: pd.Series, right: pd.Series) -> float | None:
+    """Compute rank correlation when both inputs support an identified estimate."""
+
     values = pd.concat([left, right], axis=1).dropna()
     if len(values) < 3 or values.iloc[:, 0].nunique() < 2 or values.iloc[:, 1].nunique() < 2:
         return None
@@ -149,7 +151,18 @@ def build_independent_structure_analysis(
     for outcome in outcomes:
         for descriptor in descriptor_names:
             if descriptor in merged:
-                association_rows.append({"outcome": outcome, "descriptor": descriptor, "spearman": _spearman(merged[outcome], merged[descriptor]), "n_proteins": int(merged[[outcome, descriptor]].dropna().shape[0])})
+                association_rows.append(
+                    {
+                        "outcome": outcome,
+                        "descriptor": descriptor,
+                        "spearman": spearman_correlation(
+                            merged[outcome], merged[descriptor]
+                        ),
+                        "n_proteins": int(
+                            merged[[outcome, descriptor]].dropna().shape[0]
+                        ),
+                    }
+                )
     associations = pd.DataFrame(association_rows)
     summary = {
         "cohort_proteins": len(proteins),
@@ -179,14 +192,6 @@ def build_independent_structure_analysis(
     }
     provenance = {"rows": len(comparison), "input_tables": {"generation": len(generation_summary), "compatibility": len(compatibility_summary), "remodeling": len(remodeling_summary)}}
     return IndependentStructureValidationResult(comparison, merged, associations, summary, provenance)
-
-
-def _sha(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def materialize_independent_structure_analysis(

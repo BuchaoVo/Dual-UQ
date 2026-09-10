@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 import pandas as pd
 
+from dual_uq.core.hashing import sha256_file as _sha256
 from dual_uq.evaluation.physical_robustness import (
     ESMFOLD_SAMPLE_INDICES,
     paired_sequence_effects,
@@ -29,14 +29,6 @@ def _portable_path(path: Path, project_root: Path) -> str:
         return path.resolve().relative_to(project_root.resolve()).as_posix()
     except ValueError:
         return path.as_posix()
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _build_evaluability_comparison(project_root: Path, screen_path: Path, output_root: Path) -> tuple[Path, dict[str, object]]:
@@ -281,7 +273,7 @@ def build_outputs(
     (output_root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     report = _render_report(summary, failed)
     (output_root / "report.md").write_text(report, encoding="utf-8")
-    input_manifest = input_manifest or project_root / "runs/physical_validation/evoef2/cohort_inputs/input_manifest.json"
+    input_manifest = input_manifest or project_root / "runs/physical_validation/evoef2/input_manifest.json"
     executable = project_root / "third_party/EvoEF2/EvoEF2"
     release_manifest = {
         "schema": "evoef2_physical_compatibility_manifest_v1",

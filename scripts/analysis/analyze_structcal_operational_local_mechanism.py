@@ -26,46 +26,29 @@ from dual_uq.evaluation.pair_conditioned_local_mechanism import (
     pair_fixed_effect_local_associations,
     summarize_protein_correlations,
 )
+from dual_uq.reporting.structcal import (
+    DESCRIPTOR_LABELS,
+    MODEL_LABELS,
+    SHORT_DESCRIPTOR_LABELS,
+)
+from dual_uq.reporting.structcal import (
+    dataframe_records as _records,
+)
+from dual_uq.reporting.structcal import (
+    format_decimal as _format,
+)
+from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
+    DEFAULT_RUN_ROOT,
+    MAIN_MODELS,
+)
 
-MODELS = {
-    "dynamicmpnn": "single_chain_k2",
-    "esm_if1": "esm_if1_gvp4_t16_142M_UR50",
-    "pifold": "official_checkpoint_pth",
-    "proteinmpnn": "v_48_020",
-}
+MODELS = MAIN_MODELS
 EXPECTED_COVERAGE = {
     "dynamicmpnn": (62, 56, 54),
     "esm_if1": (68, 60, 57),
     "pifold": (68, 60, 57),
     "proteinmpnn": (68, 60, 57),
 }
-MODEL_LABELS = {
-    "dynamicmpnn": "DynamicMPNN",
-    "esm_if1": "ESM-IF1",
-    "pifold": "PiFold",
-    "proteinmpnn": "ProteinMPNN",
-}
-DESCRIPTOR_LABELS = {
-    "ca_displacement": "Cα displacement",
-    "fragment_7_rmsd": "7-residue RMSD",
-    "neighborhood_distance_deformation": "12 Å neighborhood",
-    "torsion_phi_psi_change": "φ/ψ change",
-}
-SHORT_DESCRIPTOR_LABELS = {
-    "ca_displacement": "Cα disp.",
-    "fragment_7_rmsd": "7-res. RMSD",
-    "neighborhood_distance_deformation": "12 Å neigh.",
-    "torsion_phi_psi_change": "φ/ψ change",
-}
-
-
-def _records(frame: pd.DataFrame) -> list[dict[str, Any]]:
-    return json.loads(frame.to_json(orient="records"))
-
-
-def _format(value: float) -> str:
-    return f"{value:.4f}"
-
 
 def _protein_summary(
     associations: pd.DataFrame,
@@ -564,7 +547,7 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("runs/structcal_cross_model_representation_sensitivity"),
+        default=DEFAULT_RUN_ROOT,
     )
     parser.add_argument("--bootstrap-replicates", type=int, default=10_000)
     parser.add_argument("--permutations", type=int, default=1_000)

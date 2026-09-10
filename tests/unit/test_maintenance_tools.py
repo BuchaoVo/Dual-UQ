@@ -38,6 +38,30 @@ def test_inventory_is_deterministic_and_excludes_generated_trees(tmp_path: Path)
     assert first["total_file_bytes"] == 3
 
 
+def test_tree_stats_contains_every_entry_without_following_symlinks(tmp_path: Path) -> None:
+    module = _load_script("inventory_project")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("git", encoding="utf-8")
+    (tmp_path / "nested").mkdir()
+    (tmp_path / "nested" / "data.txt").write_text("data", encoding="utf-8")
+    (tmp_path / "data-link").symlink_to(tmp_path / "nested" / "data.txt")
+    report = tmp_path / "artifacts" / "tree.txt"
+
+    summary = module.write_tree_stats_atomic(tmp_path, report)
+    contents = report.read_text(encoding="utf-8")
+
+    assert summary == {
+        "directories": 4,
+        "regular_files": 3,
+        "symlinks": 1,
+        "regular_file_bytes": 7,
+    }
+    assert "f\t3\t./.git/config" in contents
+    assert "l\t" in contents and "\t./data-link" in contents
+    assert "f\t4\t./nested/data.txt" in contents
+    assert "f\tSELF\t./artifacts/tree.txt" in contents
+
+
 def test_archive_run_moves_only_terminal_run_and_rejects_collision(tmp_path: Path) -> None:
     module = _load_script("archive_run")
     run_dir = tmp_path / "runs" / "track" / "stage" / "run-1"

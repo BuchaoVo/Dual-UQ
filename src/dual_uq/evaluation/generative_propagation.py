@@ -7,7 +7,6 @@ the frozen fixed-probe descriptors.
 
 from __future__ import annotations
 
-import io
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dual_uq.core.artifacts import parquet_bytes
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_bytes
 from dual_uq.models.proteinmpnn import PROTEINMPNN_ALPHABET
@@ -413,14 +413,8 @@ def _immutable_bytes(path: Path, payload: bytes) -> str:
     return "created"
 
 
-def _parquet_bytes(frame: pd.DataFrame) -> bytes:
-    buffer = io.BytesIO()
-    frame.to_parquet(buffer, index=False)
-    return buffer.getvalue()
-
-
 def _immutable_parquet(path: Any, frame: pd.DataFrame) -> tuple[str, str]:
-    payload = _parquet_bytes(frame)
+    payload = parquet_bytes(frame)
     return _immutable_bytes(path, payload), sha256_bytes(payload)
 
 

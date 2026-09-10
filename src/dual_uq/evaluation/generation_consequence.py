@@ -12,18 +12,12 @@ import pandas as pd
 
 from dual_uq.models.proteinmpnn import PROTEINMPNN_ALPHABET, ProteinMPNNStructureInput
 
-from .cross_model_representation_sensitivity import cluster_bootstrap_summary
+from .cross_model_representation_sensitivity import (
+    cluster_bootstrap_summary,
+    constant_pair_metadata,
+)
 
 STANDARD_AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
-
-
-def _constant(group: pd.DataFrame, column: str, default: Any = None) -> Any:
-    if column not in group:
-        return default
-    values = group[column].drop_duplicates()
-    if len(values) > 1:
-        raise ValueError(f"pair metadata is not constant: {column}")
-    return values.iloc[0] if len(values) else default
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +39,10 @@ def normalized_hamming(left: str, right: str) -> float:
 
 
 @contextmanager
-def greedy_multinomial(torch_module: Any) -> Iterator[None]:
+def greedy_multinomial(
+    torch_module: Any,
+    probability_trace: list[np.ndarray] | None = None,
+) -> Iterator[None]:
     """Run an official sampler with its token draw replaced by exact argmax.
 
     The model's encoder, decoder, autoregressive state, masks, and position order
@@ -59,6 +56,10 @@ def greedy_multinomial(torch_module: Any) -> Iterator[None]:
         del args, kwargs
         if num_samples != 1:
             raise ValueError("greedy decoding only supports one token draw")
+        if probability_trace is not None:
+            probability_trace.append(
+                np.asarray(probabilities.detach().cpu(), dtype=np.float64).squeeze(0)
+            )
         return probabilities.argmax(dim=-1, keepdim=True)
 
     torch_module.multinomial = argmax_draw
@@ -201,10 +202,14 @@ def build_generation_response(
                 "checkpoint_id": checkpoint_id,
                 "regime": regime,
                 "pair_id": str(pair_id),
-                "protein_id": str(_constant(group, "protein_id", "")),
-                "identity_cluster_id": _constant(group, "identity_cluster_id"),
-                "perturbation_family": _constant(group, "perturbation_family"),
-                "requested_dose": _constant(group, "requested_dose"),
+                "protein_id": str(constant_pair_metadata(group, "protein_id", "")),
+                "identity_cluster_id": constant_pair_metadata(
+                    group, "identity_cluster_id"
+                ),
+                "perturbation_family": constant_pair_metadata(
+                    group, "perturbation_family"
+                ),
+                "requested_dose": constant_pair_metadata(group, "requested_dose"),
                 "reference_label": labels[0],
                 "comparison_label": labels[1],
                 "n_evaluable_positions": len(native),

@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 
-from dual_uq.core.atomic_io import atomic_write_new_bytes
+from dual_uq.core.artifacts import parquet_bytes, write_immutable_bytes
+from dual_uq.core.hashing import sha256_bytes as _sha256_bytes
 from dual_uq.evaluation.apo_holo_generative_propagation import (
     GenerativePropagationResult,
     summarize_generation_propagation,
@@ -18,27 +17,15 @@ from dual_uq.evaluation.apo_holo_generative_propagation import (
 from dual_uq.inference.apo_holo_generation import load_apo_holo_generation_records
 
 
-def _sha256_bytes(payload: bytes) -> str:
-    return hashlib.sha256(payload).hexdigest()
-
-
 def _write_table(path: Path, table: pd.DataFrame) -> str:
-    buffer = BytesIO()
-    table.to_parquet(buffer, index=False)
-    payload = buffer.getvalue()
-    if path.exists() and path.read_bytes() != payload:
-        raise RuntimeError(f"immutable artifact conflict: {path}")
-    if not path.exists():
-        atomic_write_new_bytes(path, payload)
+    payload = parquet_bytes(table)
+    write_immutable_bytes(path, payload)
     return _sha256_bytes(payload)
 
 
 def _write_json(path: Path, payload: object) -> str:
     rendered = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
-    if path.exists() and path.read_bytes() != rendered:
-        raise RuntimeError(f"immutable artifact conflict: {path}")
-    if not path.exists():
-        atomic_write_new_bytes(path, rendered)
+    write_immutable_bytes(path, rendered)
     return _sha256_bytes(rendered)
 
 
@@ -135,10 +122,7 @@ def materialize_model_result(
     hashes["summary"] = _write_json(output_root / "summary.json", summary)
     report = _report(summary).encode("utf-8")
     report_path = output_root / "report.md"
-    if report_path.exists() and report_path.read_bytes() != report:
-        raise RuntimeError(f"immutable artifact conflict: {report_path}")
-    if not report_path.exists():
-        atomic_write_new_bytes(report_path, report)
+    write_immutable_bytes(report_path, report)
     hashes["report"] = _sha256_bytes(report)
     manifest = {
         "schema_version": "apo_holo_generative_propagation_manifest_v1",

@@ -14,7 +14,9 @@ from .pdb_archive import fetch_pdb_mmcif, normalize_pdb_id
 from .sifts import fetch_sifts_xml, parse_sifts_residue_mapping
 
 
-def _normalise_residue_name(name: Any) -> str | None:
+def normalise_residue_name(name: Any) -> str | None:
+    """Normalize a one- or three-letter residue name without inventing unknowns."""
+
     if name is None:
         return None
     value = str(name).strip().upper()
@@ -95,8 +97,8 @@ def build_pair(
     canonical_uniprot_length = int(afdb["canonical_uniprot_length"])
     mapping_coverage = len(mapped_positions) / canonical_uniprot_length
 
-    pdb_letters = mapping["pdb_residue_name"].map(_normalise_residue_name)
-    uniprot_letters = mapping["uniprot_residue_name"].map(_normalise_residue_name)
+    pdb_letters = mapping["pdb_residue_name"].map(normalise_residue_name)
+    uniprot_letters = mapping["uniprot_residue_name"].map(normalise_residue_name)
     comparable = pdb_letters.notna() & uniprot_letters.notna()
     if comparable.any():
         sequence_identity = float(

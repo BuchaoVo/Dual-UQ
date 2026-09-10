@@ -18,15 +18,14 @@ from dual_uq.evaluation.cross_model_representation_sensitivity import (
     protein_level_response,
 )
 from dual_uq.models.proteinmpnn import AUTHORIZED_VANILLA_CHECKPOINTS
+from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
+    DEFAULT_RUN_ROOT,
+    MAIN_MODELS,
+    REGIMES,
+    STRUCTCAL_RELEASE_ROOT,
+)
 
 METRICS = ("r_jsd_bits", "r_prob", "r_flip", "abs_delta_nll")
-MAIN_MODELS = {
-    "proteinmpnn": "v_48_020",
-    "esm_if1": "esm_if1_gvp4_t16_142M_UR50",
-    "pifold": "official_checkpoint_pth",
-    "dynamicmpnn": "single_chain_k2",
-}
-REGIMES = ("identical", "exact_se3", "controlled", "operational_pdb_afdb")
 NOISE = {
     filename.removesuffix(".pt"): value[1]
     for filename, value in AUTHORIZED_VANILLA_CHECKPOINTS.items()
@@ -163,10 +162,10 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("runs/structcal_cross_model_representation_sensitivity"),
+        default=DEFAULT_RUN_ROOT,
     )
     parser.add_argument(
-        "--release-root", type=Path, default=Path("artifacts/releases/structcal_v1")
+        "--release-root", type=Path, default=STRUCTCAL_RELEASE_ROOT
     )
     args = parser.parse_args()
     root = args.output_root.resolve()

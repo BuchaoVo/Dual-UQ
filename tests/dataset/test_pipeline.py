@@ -486,4 +486,5 @@ def test_frozen_scientific_contracts_have_one_canonical_implementation() -> None
 
     assert "from dual_uq.core.hashing import sha256_file" in derivation
     assert "from ..stages.resolution import" in fragments
-    assert "from dual_uq.preflight import" in mapping
+    assert "def compute_mapping_quality_metrics(" in mapping
+    assert "def classify_mapping_quality(" in mapping

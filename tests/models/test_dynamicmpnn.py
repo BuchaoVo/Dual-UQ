@@ -8,6 +8,8 @@ import pytest
 from dual_uq.models.dynamicmpnn import (
     DynamicMPNNInputCase,
     DynamicMPNNInputError,
+    build_natural_decoding_order,
+    teacher_forcing_edge_context,
     validate_dynamic_input,
 )
 
@@ -94,3 +96,28 @@ def test_validation_rejects_nonstandard_coordinate_shape() -> None:
         validate_dynamic_input(_case(coordinates=np.zeros((6, 2, 4, 3))))
 
     assert exc_info.value.reason == "invalid_backbone_coordinates"
+
+
+def test_natural_decoding_order_is_explicit_and_stable() -> None:
+    assert build_natural_decoding_order(4) == (0, 1, 2, 3)
+
+
+def test_teacher_forcing_edge_context_excludes_future_tokens() -> None:
+    # Edge convention is source -> destination; src < dst is the causal prefix.
+    edge_index = np.asarray([[0, 3, 1, 2], [1, 0, 3, 2]], dtype=np.int64)
+    sequence_a = np.asarray([0, 1, 2, 3], dtype=np.int64)
+    sequence_b = np.asarray([0, 1, 9, 8], dtype=np.int64)
+    context_a = teacher_forcing_edge_context(sequence_a, edge_index)
+    context_b = teacher_forcing_edge_context(sequence_b, edge_index)
+
+    # The prefix edge 0 -> 1 retains its token; the future edge 3 -> 0 is masked.
+    assert context_a[0] == context_b[0] == 0
+    assert context_a[1] == context_b[1] == -1
+
+
+def test_teacher_forcing_edge_context_responds_to_prefix_tokens() -> None:
+    edge_index = np.asarray([[0], [3]], dtype=np.int64)
+    context_a = teacher_forcing_edge_context(np.asarray([0, 1, 2, 3]), edge_index)
+    context_b = teacher_forcing_edge_context(np.asarray([9, 1, 2, 3]), edge_index)
+    assert context_a[0] == 0
+    assert context_b[0] == 9

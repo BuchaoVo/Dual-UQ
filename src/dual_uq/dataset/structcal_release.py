@@ -673,6 +673,23 @@ def _apo_structure_metadata(tables: Mapping[str, pd.DataFrame]) -> dict[str, dic
 
 def _build_apo_tables(tables: Mapping[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     metadata = _apo_structure_metadata(tables)
+    apo_mappings = tables["apo_mappings"].copy()
+    for side in ("apo", "holo"):
+        apo_mappings[f"_{side}_residue_id"] = [
+            _residue_id(chain, number)
+            for chain, number in zip(
+                apo_mappings[f"pdb_chain_id_{side}"],
+                apo_mappings[f"pdb_residue_number_{side}"],
+                strict=True,
+            )
+        ]
+    apo_mappings["_common_coordinate_visible"] = (
+        apo_mappings["_apo_residue_id"].notna()
+        & apo_mappings["_holo_residue_id"].notna()
+    )
+    visible_counts = (
+        apo_mappings.groupby("pair_id")["_common_coordinate_visible"].sum().to_dict()
+    )
     structures: list[dict[str, object]] = []
     pair_rows: list[dict[str, object]] = []
     instance_rows: list[dict[str, object]] = []
@@ -739,8 +756,10 @@ def _build_apo_tables(tables: Mapping[str, pd.DataFrame]) -> dict[str, pd.DataFr
                 "admission_reason": None,
                 "common_mapped_count": int(source["common_mapped_count"]),
                 "common_mapped_fraction": float(source["common_fraction"]),
-                "common_coordinate_visible_count": int(source["common_mapped_count"]),
-                "common_coordinate_visible_fraction": float(source["common_fraction"]),
+                "common_coordinate_visible_count": int(visible_counts[pair_id]),
+                "common_coordinate_visible_fraction": (
+                    int(visible_counts[pair_id]) / int(source["canonical_sequence_length"])
+                ),
                 "ligand_context_class": "APO_HOLO",
                 "perturbation_family": None,
                 "perturbation_dose": None,
@@ -764,31 +783,35 @@ def _build_apo_tables(tables: Mapping[str, pd.DataFrame]) -> dict[str, pd.DataFr
         )
 
     mapping_rows: list[dict[str, object]] = []
-    for row in tables["apo_mappings"].to_dict(orient="records"):
+    for row in apo_mappings.to_dict(orient="records"):
         canonical_aa = _text(row.get("uniprot_residue_name_apo")) or _text(
             row.get("uniprot_residue_name_holo")
         )
         if canonical_aa is None:
             raise StructCalReleaseError("Apo/Holo mapping lacks canonical amino-acid identity")
+        visible_1 = pd.notna(row["_apo_residue_id"])
+        visible_2 = pd.notna(row["_holo_residue_id"])
+        residue_1 = row["_apo_residue_id"] if visible_1 else None
+        residue_2 = row["_holo_residue_id"] if visible_2 else None
         mapping_rows.append(
             {
                 "pair_id": str(row["pair_id"]),
                 "protein_id": str(row["protein_id"]).upper(),
                 "canonical_position": int(row["canonical_position"]),
                 "canonical_aa": canonical_aa,
-                "condition_1_residue_id": _residue_id(row["pdb_chain_id_apo"], row["pdb_residue_number_apo"]),
-                "condition_2_residue_id": _residue_id(row["pdb_chain_id_holo"], row["pdb_residue_number_holo"]),
+                "condition_1_residue_id": residue_1,
+                "condition_2_residue_id": residue_2,
                 "condition_1_aa": _text(row["uniprot_residue_name_apo"]),
                 "condition_2_aa": _text(row["uniprot_residue_name_holo"]),
                 "condition_1_mapped": True,
                 "condition_2_mapped": True,
-                "condition_1_coordinate_visible": True,
-                "condition_2_coordinate_visible": True,
+                "condition_1_coordinate_visible": visible_1,
+                "condition_2_coordinate_visible": visible_2,
                 "common_mapped": True,
-                "common_coordinate_visible": True,
-                "condition_1_missing_reason": None,
-                "condition_2_missing_reason": None,
-                "mapping_status": "COMMON_VISIBLE",
+                "common_coordinate_visible": visible_1 and visible_2,
+                "condition_1_missing_reason": _missing_reason(True, visible_1),
+                "condition_2_missing_reason": _missing_reason(True, visible_2),
+                "mapping_status": _mapping_status(True, True, visible_1, visible_2),
             }
         )
     return {

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import hashlib
 
-import pandas as pd
-
 from dual_uq.evaluation.apo_holo_generative_propagation import (
     summarize_generation_propagation,
 )

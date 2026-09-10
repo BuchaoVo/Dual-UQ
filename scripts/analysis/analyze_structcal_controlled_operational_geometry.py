@@ -26,6 +26,16 @@ from dual_uq.evaluation.cross_model_representation_sensitivity import (
     cluster_bootstrap_summary,
 )
 from dual_uq.evaluation.pair_conditioned_local_mechanism import LOCAL_DESCRIPTORS
+from dual_uq.reporting.structcal import (
+    MODEL_LABELS,
+)
+from dual_uq.reporting.structcal import (
+    dataframe_records as _records,
+)
+from dual_uq.reporting.structcal import (
+    format_decimal as _format,
+)
+from dual_uq.workflows.structcal_cross_model_representation_sensitivity import DEFAULT_RUN_ROOT
 
 GEOMETRY_MODEL = "proteinmpnn"
 K_NEIGHBORS = 5
@@ -39,21 +49,6 @@ FEATURE_LABELS = {
     "torsion_phi_psi_change_median": "φ/ψ change median",
     "aligned_ca_rmsd": "Aligned Cα RMSD",
 }
-MODEL_LABELS = {
-    "dynamicmpnn": "DynamicMPNN",
-    "esm_if1": "ESM-IF1",
-    "pifold": "PiFold",
-    "proteinmpnn": "ProteinMPNN",
-}
-
-
-def _records(frame: pd.DataFrame) -> list[dict[str, Any]]:
-    return json.loads(frame.to_json(orient="records"))
-
-
-def _format(value: float) -> str:
-    return f"{value:.4f}"
-
 
 def _feature_parts(feature: str) -> tuple[str, str]:
     for statistic in ("median", "q75", "q90"):
@@ -553,7 +548,7 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("runs/structcal_cross_model_representation_sensitivity"),
+        default=DEFAULT_RUN_ROOT,
     )
     parser.add_argument("--bootstrap-replicates", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=2_026_09_07)

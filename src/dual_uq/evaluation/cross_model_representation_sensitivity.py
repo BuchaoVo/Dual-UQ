@@ -15,6 +15,52 @@ from .structcal_local_response import (
 )
 
 
+def common_pair_intersection(
+    response: pd.DataFrame,
+    *,
+    models: tuple[str, ...] | None = None,
+) -> pd.DataFrame:
+    """Restrict a model-response table to exactly shared pair identities.
+
+    Pair identity, rather than protein identity, is the intersection unit because
+    one protein may contribute more than one structural pair.
+    """
+
+    required = {"model_id", "pair_id", "protein_id", "identity_cluster_id"}
+    missing = sorted(required.difference(response.columns))
+    if missing or response.empty:
+        raise ValueError(f"response is missing common-intersection columns: {missing}")
+    selected = (
+        tuple(sorted(response["model_id"].astype(str).unique()))
+        if models is None
+        else models
+    )
+    if not selected or len(set(selected)) != len(selected):
+        raise ValueError("models must be a non-empty unique sequence")
+    available = set(response["model_id"].astype(str))
+    absent = sorted(set(selected).difference(available))
+    if absent:
+        raise ValueError(f"requested models are absent: {absent}")
+    subset = response.loc[response["model_id"].astype(str).isin(selected)].copy()
+    if subset.duplicated(["model_id", "pair_id"]).any():
+        raise ValueError("response contains duplicate model/pair rows")
+    pair_sets = [
+        set(subset.loc[subset["model_id"].astype(str).eq(model), "pair_id"].astype(str))
+        for model in selected
+    ]
+    shared = set.intersection(*pair_sets)
+    if not shared:
+        raise ValueError("models have no shared pair identities")
+    result = subset.loc[subset["pair_id"].astype(str).isin(shared)].copy()
+    counts = result.groupby("pair_id", sort=False)["model_id"].nunique()
+    if not counts.eq(len(selected)).all():
+        raise RuntimeError("common-pair intersection is incomplete")
+    metadata = result[["pair_id", "protein_id", "identity_cluster_id"]].drop_duplicates()
+    if metadata["pair_id"].duplicated().any():
+        raise ValueError("pair metadata differs across models")
+    return result.sort_values(["model_id", "pair_id"], kind="mergesort", ignore_index=True)
+
+
 def attach_controlled_metadata(
     response: pd.DataFrame, metadata: pd.DataFrame
 ) -> pd.DataFrame:
@@ -274,7 +320,11 @@ def paired_probability_metrics(
     }
 
 
-def _constant(group: pd.DataFrame, column: str, default: Any = None) -> Any:
+def constant_pair_metadata(
+    group: pd.DataFrame, column: str, default: Any = None
+) -> Any:
+    """Return one pair-level metadata value, rejecting inconsistent rows."""
+
     if column not in group:
         return default
     values = group[column].drop_duplicates()
@@ -320,7 +370,9 @@ def build_response_rows(
                 "canonical_position", kind="mergesort"
             )
             axes.append(tuple(int(value) for value in selected["canonical_position"]))
-            labels.append(str(_constant(selected, "condition_label", condition)))
+            labels.append(
+                str(constant_pair_metadata(selected, "condition_label", condition))
+            )
             key = (str(pair_id), condition)
             if key not in distributions:
                 raise ValueError(f"missing probability matrix: {key}")
@@ -344,13 +396,13 @@ def build_response_rows(
             "semantic_class": semantic_class,
             "regime": regime,
             "pair_id": str(pair_id),
-            "protein_id": str(_constant(group, "protein_id", "")),
-            "identity_cluster_id": _constant(group, "identity_cluster_id"),
-            "split": _constant(group, "split"),
-            "track_or_diagnostic": _constant(group, "track_or_diagnostic"),
-            "state_family": _constant(group, "state_family"),
-            "perturbation_family": _constant(group, "perturbation_family"),
-            "requested_dose": _constant(group, "requested_dose"),
+            "protein_id": str(constant_pair_metadata(group, "protein_id", "")),
+            "identity_cluster_id": constant_pair_metadata(group, "identity_cluster_id"),
+            "split": constant_pair_metadata(group, "split"),
+            "track_or_diagnostic": constant_pair_metadata(group, "track_or_diagnostic"),
+            "state_family": constant_pair_metadata(group, "state_family"),
+            "perturbation_family": constant_pair_metadata(group, "perturbation_family"),
+            "requested_dose": constant_pair_metadata(group, "requested_dose"),
             "reference_label": labels[0],
             "comparison_label": labels[1],
         }
@@ -370,7 +422,9 @@ def build_response_rows(
                     "top1_right": STANDARD_AMINO_ACIDS[int(top1_right[index])],
                 }
             )
-        canonical_count = int(_constant(group, "n_canonical_positions", len(sequence)))
+        canonical_count = int(
+            constant_pair_metadata(group, "n_canonical_positions", len(sequence))
+        )
         pair_rows.append(
             {
                 **metadata,

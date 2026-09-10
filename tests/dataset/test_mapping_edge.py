@@ -14,6 +14,50 @@ from dual_uq.mapped_confidence import build_mapped_confidence_residue_table
 from dual_uq.schema import AmbiguousLegacyResidueIdentifier
 from dual_uq.sifts import parse_sifts_residue_mapping
 
+_QUALITY_THRESHOLDS = {
+    "min_full_length_mapping_coverage": 0.90,
+    "min_entity_mapping_coverage": 0.90,
+    "min_sequence_identity": 0.95,
+    "min_observed_ca_fraction": 0.90,
+    "warn_full_length_mapping_coverage": 0.70,
+    "max_internal_unmapped_fraction": 0.05,
+}
+
+
+def _mapping_quality_fixture(uniprot_positions: list[int]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    letters = ["ALA", "CYS", "ASP", "GLU"][: len(uniprot_positions)]
+    return (
+        pd.DataFrame(
+            {
+                "pdb_residue_number": [str(index) for index in range(1, len(letters) + 1)],
+                "pdb_residue_name": letters,
+                "uniprot_residue_number": uniprot_positions,
+                "uniprot_residue_name": list("ACDE"[: len(letters)]),
+            }
+        ),
+        pd.DataFrame(
+            {"pdb_residue_number": [str(index) for index in range(1, len(letters) + 1)]}
+        ),
+    )
+
+
+def test_mapping_quality_classifies_full_length_support() -> None:
+    mapping, ca = _mapping_quality_fixture([1, 2, 3, 4])
+    metrics = mapping_module.compute_mapping_quality_metrics(
+        mapping, ca, uniprot_length=4, pdb_entity_length=4
+    )
+    status, _ = mapping_module.classify_mapping_quality(metrics, _QUALITY_THRESHOLDS)
+    assert status == "pass_full_length"
+
+
+def test_mapping_quality_rejects_small_internal_fragment() -> None:
+    mapping, ca = _mapping_quality_fixture([101, 102, 103])
+    metrics = mapping_module.compute_mapping_quality_metrics(
+        mapping, ca, uniprot_length=500, pdb_entity_length=3
+    )
+    status, _ = mapping_module.classify_mapping_quality(metrics, _QUALITY_THRESHOLDS)
+    assert status == "fail_preflight"
+
 
 def _write_sifts(
     path: Path,

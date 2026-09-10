@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 from dataclasses import asdict
 from pathlib import Path
 
 import pandas as pd
 
 from dual_uq.core.hashing import sha256_canonical
+from dual_uq.core.hashing import sha256_file as _sha
 from dual_uq.evaluation.structural_validation_asymmetry import (
     build_structural_validation_asymmetry,
     materialize_structural_validation_asymmetry,
@@ -23,14 +23,6 @@ from dual_uq.inference.independent_structure_validation import (
 
 def _path(root: Path, value: Path) -> Path:
     return value if value.is_absolute() else root / value
-
-
-def _sha(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _model_identity(model_path: Path | None) -> dict[str, str]:

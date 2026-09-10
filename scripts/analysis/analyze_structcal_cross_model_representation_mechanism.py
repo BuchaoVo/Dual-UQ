@@ -18,13 +18,12 @@ from dual_uq.evaluation.cross_model_representation_mechanism import (
 from dual_uq.evaluation.cross_model_representation_sensitivity import (
     cluster_bootstrap_summary,
 )
-
-MAIN_MODELS = {
-    "proteinmpnn": "v_48_020",
-    "esm_if1": "esm_if1_gvp4_t16_142M_UR50",
-    "pifold": "official_checkpoint_pth",
-    "dynamicmpnn": "single_chain_k2",
-}
+from dual_uq.reporting.structcal import format_decimal as _format
+from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
+    DEFAULT_RUN_ROOT,
+    MAIN_MODELS,
+    STRUCTCAL_RELEASE_ROOT,
+)
 
 
 def _geometry(cases: pd.DataFrame, pair_metadata: pd.DataFrame) -> pd.DataFrame:
@@ -64,19 +63,15 @@ def _association_summary(associations: pd.DataFrame, group_columns: list[str]) -
     return pd.DataFrame(rows)
 
 
-def _format(value: float) -> str:
-    return f"{value:.4f}"
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("runs/structcal_cross_model_representation_sensitivity"),
+        default=DEFAULT_RUN_ROOT,
     )
     parser.add_argument(
-        "--release-root", type=Path, default=Path("artifacts/releases/structcal_v1")
+        "--release-root", type=Path, default=STRUCTCAL_RELEASE_ROOT
     )
     args = parser.parse_args()
     root = args.output_root.resolve()

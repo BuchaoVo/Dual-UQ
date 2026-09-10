@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dual_uq.core.artifacts import parquet_bytes
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_bytes
 
@@ -271,12 +271,6 @@ def _immutable_bytes(path: Path, payload: bytes) -> str:
     return "created"
 
 
-def _parquet_bytes(frame: pd.DataFrame) -> bytes:
-    buffer = io.BytesIO()
-    frame.to_parquet(buffer, index=False)
-    return buffer.getvalue()
-
-
 def materialize_cross_structure_analysis(
     result: CrossStructureCompatibilityResult,
     output_root: Path,
@@ -293,7 +287,7 @@ def materialize_cross_structure_analysis(
     outputs: dict[str, Any] = {}
     statuses = []
     for filename, frame in tables.items():
-        payload = _parquet_bytes(frame)
+        payload = parquet_bytes(frame)
         status = _immutable_bytes(output_root / filename, payload)
         statuses.append(status)
         outputs[filename] = {"path": filename, "rows": len(frame), "sha256": sha256_bytes(payload)}

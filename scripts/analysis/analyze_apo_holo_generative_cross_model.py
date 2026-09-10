@@ -3,55 +3,31 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
-from dual_uq.core.atomic_io import atomic_write_new_bytes
+from dual_uq.core.artifacts import json_safe, parquet_bytes, write_immutable_bytes
+from dual_uq.core.hashing import sha256_bytes as _sha256
 from dual_uq.evaluation.apo_holo_generative_cross_model import (
     ApoHoloGenerativeCrossModelResult,
     build_cross_model_result,
 )
 
 
-def _sha256(payload: bytes) -> str:
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _json_safe(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, (np.floating, float)):
-        return None if not np.isfinite(value) else float(value)
-    if isinstance(value, (np.integer, int)):
-        return int(value)
-    return value
-
-
 def _write_bytes(path: Path, payload: bytes) -> str:
-    if path.exists():
-        if path.read_bytes() != payload:
-            raise RuntimeError(f"immutable artifact conflict: {path}")
-    else:
-        atomic_write_new_bytes(path, payload)
+    write_immutable_bytes(path, payload)
     return _sha256(payload)
 
 
 def _write_table(path: Path, table: pd.DataFrame) -> str:
-    buffer = BytesIO()
-    table.to_parquet(buffer, index=False)
-    return _write_bytes(path, buffer.getvalue())
+    return _write_bytes(path, parquet_bytes(table))
 
 
 def _write_json(path: Path, value: Any) -> str:
-    payload = (json.dumps(_json_safe(value), ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
+    payload = (json.dumps(json_safe(value), ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
     return _write_bytes(path, payload)
 
 
@@ -254,7 +230,13 @@ def main(argv: list[str] | None = None) -> int:
             residue_geometry_path=args.residue_geometry,
             local_reference_spearman=args.local_reference_spearman,
         )
-        print(json.dumps(_json_safe({"status": "COMPLETE", "manifest": manifest}), indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                json_safe({"status": "COMPLETE", "manifest": manifest}),
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return 0
     except (OSError, RuntimeError, TypeError, ValueError, KeyError) as exc:
         print(json.dumps({"status": "BLOCKED", "message": str(exc)}, sort_keys=True))

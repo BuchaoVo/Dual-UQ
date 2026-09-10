@@ -8,6 +8,7 @@ from dual_uq.evaluation.cross_model_representation_sensitivity import (
     attach_controlled_metadata,
     build_response_rows,
     cluster_bootstrap_summary,
+    common_pair_intersection,
     controlled_severity_differences,
     paired_probability_metrics,
     paired_protein_differences,
@@ -22,6 +23,24 @@ def _rows(*indices: int, confidence: float = 0.9) -> np.ndarray:
     result = np.full((len(indices), 20), (1.0 - confidence) / 19.0)
     result[np.arange(len(indices)), indices] = confidence
     return result
+
+
+def test_common_intersection_uses_pair_not_only_protein_identity() -> None:
+    response = pd.DataFrame(
+        [
+            {"model_id": model, "pair_id": pair, "protein_id": protein, "identity_cluster_id": cluster}
+            for model, pair, protein, cluster in (
+                ("a", "p1", "x", "c1"),
+                ("a", "p2", "x", "c1"),
+                ("b", "p1", "x", "c1"),
+            )
+        ]
+    )
+
+    common = common_pair_intersection(response, models=("a", "b"))
+
+    assert common["pair_id"].unique().tolist() == ["p1"]
+    assert len(common) == 2
 
 
 def test_identical_probability_views_have_zero_response() -> None:

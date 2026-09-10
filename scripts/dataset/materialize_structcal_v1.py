@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from dual_uq.dataset.structcal_release import (
@@ -24,7 +25,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mmseqs-binary",
         type=Path,
-        default=Path("/home/zbc/data/software/miniconda/envs/proteinopd/bin/mmseqs"),
+        default=Path(os.environ.get("MMSEQS_BINARY", "mmseqs")),
     )
     return parser
 

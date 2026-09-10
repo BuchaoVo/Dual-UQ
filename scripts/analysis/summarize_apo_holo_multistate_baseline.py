@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import io
 import json
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+from dual_uq.core.artifacts import parquet_bytes
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_file
 from dual_uq.evaluation.multi_state_baseline_summary import build_summary
@@ -168,12 +168,6 @@ def _write_immutable(path: Path, data: bytes) -> None:
             raise ValueError(f"immutable output conflict: {path}") from None
 
 
-def _parquet_bytes(frame: pd.DataFrame) -> bytes:
-    stream = io.BytesIO()
-    frame.to_parquet(stream, index=False)
-    return stream.getvalue()
-
-
 def run(args: argparse.Namespace) -> dict[str, Any]:
     project_root = Path(args.project_root).resolve()
     input_paths = {
@@ -204,8 +198,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     output_root.mkdir(parents=True, exist_ok=True)
     table_path = output_root / "protein_summary.parquet"
     association_path = output_root / "associations.parquet"
-    _write_immutable(table_path, _parquet_bytes(result.protein_summary))
-    _write_immutable(association_path, _parquet_bytes(result.associations))
+    _write_immutable(table_path, parquet_bytes(result.protein_summary))
+    _write_immutable(association_path, parquet_bytes(result.associations))
     summary = {
         **result.summary,
         "input_protein_count": {

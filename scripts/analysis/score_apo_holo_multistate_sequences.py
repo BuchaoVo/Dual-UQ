@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from dual_uq.core.atomic_io import atomic_write_new_bytes
-from dual_uq.evaluation.multi_state_baseline import compatibility_endpoints
 from dual_uq.evaluation.apo_holo_local_response import build_decoding_realizations
-from dual_uq.models.proteinmpnn import ProteinMPNNStructureInput, load_authorized_proteinmpnn_adapter
+from dual_uq.evaluation.multi_state_baseline import compatibility_endpoints
 from dual_uq.models.esm_if1 import load_esm_if1
-
+from dual_uq.models.proteinmpnn import (
+    ProteinMPNNStructureInput,
+    load_authorized_proteinmpnn_adapter,
+)
 from scripts.analysis.score_apo_holo_multistate_baseline import (
     ESM_IF1_CHECKPOINT_SHA256,
     ESM_IF1_REVISION,
@@ -63,9 +66,16 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             backbone_noise=0.0,
         )
     else:
+        checkpoint_path = args.checkpoint_path or os.environ.get(
+            "ESM_IF1_CHECKPOINT_PATH"
+        )
+        if checkpoint_path is None:
+            raise ValueError(
+                "ESM-IF1 requires --checkpoint-path or ESM_IF1_CHECKPOINT_PATH"
+            )
         adapter = load_esm_if1(
             Path(args.source_root or project_root / "third_party/esm"),
-            Path(args.checkpoint_path or "/home/zbc/.cache/torch/hub/checkpoints/esm_if1_gvp4_t16_142M_UR50.pt"),
+            Path(checkpoint_path),
             expected_revision=ESM_IF1_REVISION,
             expected_checkpoint_sha256=ESM_IF1_CHECKPOINT_SHA256,
             device=args.device,

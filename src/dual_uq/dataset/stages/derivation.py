@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
+from dual_uq.core.artifacts import json_bytes as _json_bytes
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_canonical, sha256_file
 
@@ -903,13 +904,6 @@ def _atomic_write_new(path: Path, payload: bytes) -> None:
         raise P1ValidationError(
             "immutable_output_exists", f"Refusing to overwrite P1 output: {path}"
         ) from exc
-
-
-def _json_bytes(payload: Mapping[str, Any]) -> bytes:
-    return (
-        json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False, allow_nan=False)
-        + "\n"
-    ).encode("utf-8")
 
 
 def _provenance_bytes(table: pd.DataFrame) -> bytes:

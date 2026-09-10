@@ -6,7 +6,9 @@ import pytest
 
 from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
     MODEL_SPECS,
+    build_structcal_scorer,
     filter_dynamicmpnn_contiguous_cases,
+    load_structcal_model,
     response_shard_path,
     safe_output_path,
     score_cases_with_callback,
@@ -69,6 +71,83 @@ def test_score_cases_uses_same_sequence_axis_for_both_views() -> None:
     assert len(residue) == 2
     assert len(pair) == 1
     assert len(quality) == 1
+
+
+def test_structcal_scorer_keeps_native_pifold_input_contract() -> None:
+    calls: list[tuple[tuple[int, ...], int]] = []
+
+    class Adapter:
+        def probability_distributions(self, structure: object) -> np.ndarray:
+            calls.append((tuple(structure.coordinates.shape), structure.sequence_length))  # type: ignore[attr-defined]
+            return np.full((2, 20), 0.05)
+
+    scorer = build_structcal_scorer("pifold", Adapter())
+    result = scorer(
+        sequence="AC",
+        coordinates=np.zeros((2, 4, 3), dtype=np.float32),
+        positions=(1, 2),
+    )
+
+    assert result.shape == (2, 20)
+    assert calls == [((2, 4, 3), 2)]
+
+
+def test_model_loader_forwards_explicit_proteinmpnn_configuration(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, object] = {}
+    adapter = object()
+
+    def load_adapter(**kwargs: object) -> object:
+        captured.update(kwargs)
+        return adapter
+
+    monkeypatch.setattr(
+        "dual_uq.workflows.structcal_cross_model_representation_sensitivity."
+        "load_authorized_proteinmpnn_adapter",
+        load_adapter,
+    )
+    checkpoint = tmp_path / "custom.pt"
+    observed, checkpoint_id = load_structcal_model(
+        "proteinmpnn",
+        "v_48_020",
+        tmp_path,
+        tmp_path / "run",
+        "cpu",
+        checkpoint_path=checkpoint,
+        backbone_noise=0.2,
+    )
+
+    assert observed is adapter
+    assert checkpoint_id == "custom"
+    assert captured["checkpoint_path"] == checkpoint
+    assert captured["backbone_noise"] == 0.2
+
+
+def test_model_loader_reads_machine_specific_pifold_paths_from_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, object] = {}
+    adapter = object()
+    source = tmp_path / "PiFold"
+    checkpoint = tmp_path / "checkpoint.pth"
+
+    monkeypatch.setenv("PIFOLD_SOURCE_PATH", str(source))
+    monkeypatch.setenv("PIFOLD_CHECKPOINT_PATH", str(checkpoint))
+    monkeypatch.setattr(
+        "dual_uq.workflows.structcal_cross_model_representation_sensitivity."
+        "load_authorized_pifold_adapter",
+        lambda **kwargs: captured.update(kwargs) or adapter,
+    )
+
+    observed, checkpoint_id = load_structcal_model(
+        "pifold", "default", tmp_path, tmp_path / "run", "cpu"
+    )
+
+    assert observed is adapter
+    assert checkpoint_id == "official_checkpoint_pth"
+    assert captured["implementation_path"] == source
+    assert captured["checkpoint_path"] == checkpoint
 
 
 def test_score_cases_accepts_coordinates_after_parquet_round_trip(tmp_path: Path) -> None:

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
-from dual_uq.preflight import classify_preflight, compute_preflight_metrics
+from dual_uq.pairing import normalise_residue_name
 from dual_uq.schema import (
     RESIDUE_MAPPING_SCHEMA_VERSION,
     AmbiguousLegacyResidueIdentifier,
@@ -391,6 +391,108 @@ def audit_sequence_discrepancies(
     return result
 
 
+def compute_mapping_quality_metrics(
+    mapping: pd.DataFrame,
+    pdb_ca_table: pd.DataFrame,
+    *,
+    uniprot_length: int,
+    pdb_entity_length: int,
+) -> dict[str, Any]:
+    """Measure sequence, mapping, and observed-coordinate support."""
+
+    mapped_positions = np.sort(
+        mapping["uniprot_residue_number"].dropna().astype(int).unique()
+    )
+    mapped_count = len(mapped_positions)
+    if mapped_count == 0:
+        raise ValueError("No mapped UniProt residue positions.")
+
+    pdb_letters = mapping["pdb_residue_name"].map(normalise_residue_name)
+    uniprot_letters = mapping["uniprot_residue_name"].map(normalise_residue_name)
+    comparable = pdb_letters.notna() & uniprot_letters.notna()
+    sequence_identity = (
+        float((pdb_letters[comparable].values == uniprot_letters[comparable].values).mean())
+        if comparable.any()
+        else float("nan")
+    )
+    observed, join_diagnostics = join_residue_mapping_to_ca(mapping, pdb_ca_table)
+    observed_positions = observed["uniprot_residue_number"].dropna().astype(int).unique()
+    first_position = int(mapped_positions.min())
+    last_position = int(mapped_positions.max())
+    span_length = last_position - first_position + 1
+    internal_unmapped_count = span_length - mapped_count
+    return {
+        "mapped_residue_count": mapped_count,
+        "uniprot_length": int(uniprot_length),
+        "pdb_entity_length": int(pdb_entity_length),
+        "full_length_mapping_coverage": float(mapped_count / int(uniprot_length)),
+        "entity_mapping_coverage": float(mapped_count / int(pdb_entity_length)),
+        "sequence_identity": sequence_identity,
+        "observed_ca_count": len(observed_positions),
+        "observed_ca_fraction_of_mapped": float(len(observed_positions) / mapped_count),
+        "first_mapped_uniprot_position": first_position,
+        "last_mapped_uniprot_position": last_position,
+        "n_terminal_unmapped_count": int(first_position - 1),
+        "c_terminal_unmapped_count": int(uniprot_length - last_position),
+        "internal_unmapped_count": int(internal_unmapped_count),
+        "internal_unmapped_fraction": float(internal_unmapped_count / max(span_length, 1)),
+        "pdb_to_uniprot_length_ratio": float(pdb_entity_length / uniprot_length),
+        **join_diagnostics,
+    }
+
+
+def classify_mapping_quality(
+    metrics: dict[str, Any], thresholds: dict[str, float]
+) -> tuple[str, str]:
+    """Classify a mapping from its explicit quality metrics."""
+
+    identity_ok = metrics["sequence_identity"] >= thresholds["min_sequence_identity"]
+    entity_ok = (
+        metrics["entity_mapping_coverage"]
+        >= thresholds["min_entity_mapping_coverage"]
+    )
+    observed_ok = (
+        metrics["observed_ca_fraction_of_mapped"]
+        >= thresholds["min_observed_ca_fraction"]
+    )
+    internal_ok = (
+        metrics["internal_unmapped_fraction"]
+        <= thresholds["max_internal_unmapped_fraction"]
+    )
+    full_coverage = metrics["full_length_mapping_coverage"]
+    if (
+        full_coverage >= thresholds["min_full_length_mapping_coverage"]
+        and identity_ok
+        and entity_ok
+        and observed_ok
+        and internal_ok
+    ):
+        return "pass_full_length", "Suitable for the main A0 screening pipeline."
+    if (
+        full_coverage >= thresholds["warn_full_length_mapping_coverage"]
+        and identity_ok
+        and entity_ok
+        and observed_ok
+    ):
+        return (
+            "warn_construct_difference",
+            "Construct or precursor difference; retain only as an edge-case control.",
+        )
+
+    reasons = []
+    if full_coverage < thresholds["warn_full_length_mapping_coverage"]:
+        reasons.append("low_full_length_mapping_coverage")
+    if not identity_ok:
+        reasons.append("low_sequence_identity")
+    if not entity_ok:
+        reasons.append("incomplete_entity_mapping")
+    if not observed_ok:
+        reasons.append("missing_observed_ca")
+    if not internal_ok:
+        reasons.append("internal_mapping_gaps")
+    return "fail_preflight", ";".join(reasons) or "quality_threshold_failure"
+
+
 def compute_pair_quality(
     mapping: pd.DataFrame,
     pdb_ca: pd.DataFrame,
@@ -399,21 +501,21 @@ def compute_pair_quality(
     pdb_entity_length: int,
     thresholds: Mapping[str, float],
 ) -> dict[str, Any]:
-    """Delegate all pair-QC metrics and classification to the frozen preflight API."""
-    metrics = compute_preflight_metrics(
+    """Compute pair-QC metrics and classify the mapping in one owner."""
+    metrics = compute_mapping_quality_metrics(
         mapping,
         pdb_ca,
         uniprot_length=canonical_length,
         pdb_entity_length=pdb_entity_length,
     )
-    preflight_status, preflight_reason = classify_preflight(metrics, dict(thresholds))
+    mapping_status, mapping_reason = classify_mapping_quality(metrics, dict(thresholds))
     return {
         **metrics,
         "pair_qc_status": (
-            "pair_qc_pass" if preflight_status == "pass_full_length" else "pair_qc_fail"
+            "pair_qc_pass" if mapping_status == "pass_full_length" else "pair_qc_fail"
         ),
-        "preflight_status": preflight_status,
-        "preflight_reason": preflight_reason,
+        "preflight_status": mapping_status,
+        "preflight_reason": mapping_reason,
         "mapping_coverage": metrics["full_length_mapping_coverage"],
         "mapped_interval": [
             metrics["first_mapped_uniprot_position"],

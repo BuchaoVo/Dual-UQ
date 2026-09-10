@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
@@ -78,14 +79,6 @@ class PhysicalCondition:
     source_chain_id: str
     projection_coordinates: Any
     wt_sequence: str
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def load_physical_conditions(project_root: Path, protein_ids: Iterable[str]) -> tuple[PhysicalCondition, ...]:
@@ -402,71 +395,73 @@ def evaluate_records(
         raise PhysicalEvaluationError("generated subset lacks both conditions")
     rows: list[dict[str, Any]] = []
     ordinal = 0
-    for _, generated_row in generated.sort_values(["protein_id", "backbone_condition", "sample_index"]).iterrows():
-        protein_id = str(generated_row["protein_id"])
-        generated_condition = str(generated_row["backbone_condition"])
-        sequence = str(generated_row["sequence"])
-        sequence_hash = str(generated_row["sequence_hash"])
-        if sequence_sha256(sequence) != sequence_hash:
-            raise PhysicalEvaluationError("generated sequence hash mismatch")
-        for evaluated_condition in ("PDB", "AFDB"):
-            condition = by_key[(protein_id, evaluated_condition)]
-            case = output / protein_id / f"generated_{generated_condition.lower()}_{int(generated_row['sample_index']):03d}_{evaluated_condition.lower()}"
-            input_path = case / "input.pdb"
-            input_path.parent.mkdir(parents=True, exist_ok=True)
-            input_path.write_bytes(render_common_mask_pdb(
-                condition.source_path, f"{protein_id}:{evaluated_condition}",
-                condition.projection_coordinates, sequence,
-            ))
-            terms, repaired = evaluate_structure(protocol, input_path, case)
-            if _repaired_sequence(repaired) != sequence:
-                raise PhysicalEvaluationError(f"EvoEF2 repair changed requested sequence: {protein_id}")
-            rows.append({
-                "protein_id": protein_id,
-                "generated_condition": generated_condition,
-                "evaluated_condition": evaluated_condition,
-                "sample_index": int(generated_row["sample_index"]),
-                "sample_class": str(generated_row["sample_class"]),
-                "sequence_hash": sequence_hash,
-                "structure_sha256": condition.source_sha256,
-                "source_chain_id": condition.source_chain_id,
-                "repair_runs": protocol.repair_runs,
-                "rotamer_library": protocol.rotamer_library,
-                "energy_terms": json.dumps(terms, sort_keys=True),
-                "total_energy": terms["Total"],
-                "case_ordinal": ordinal,
-            })
-            ordinal += 1
-    for protein_id in requested_ids:
-        for evaluated_condition in ("PDB", "AFDB"):
-            condition = by_key[(protein_id, evaluated_condition)]
-            sequence = condition.wt_sequence
-            case = output / protein_id / f"wt_{evaluated_condition.lower()}"
-            input_path = case / "input.pdb"
-            input_path.parent.mkdir(parents=True, exist_ok=True)
-            input_path.write_bytes(render_common_mask_pdb(
-                condition.source_path, f"{protein_id}:{evaluated_condition}",
-                condition.projection_coordinates, sequence,
-            ))
-            terms, repaired = evaluate_structure(protocol, input_path, case)
-            if _repaired_sequence(repaired) != sequence:
-                raise PhysicalEvaluationError(f"EvoEF2 repair changed WT sequence: {protein_id}")
-            rows.append({
-                "protein_id": protein_id,
-                "generated_condition": "WT",
-                "evaluated_condition": evaluated_condition,
-                "sample_index": -1,
-                "sample_class": "reference",
-                "sequence_hash": sequence_sha256(sequence),
-                "structure_sha256": condition.source_sha256,
-                "source_chain_id": condition.source_chain_id,
-                "repair_runs": protocol.repair_runs,
-                "rotamer_library": protocol.rotamer_library,
-                "energy_terms": json.dumps(terms, sort_keys=True),
-                "total_energy": terms["Total"],
-                "case_ordinal": ordinal,
-            })
-            ordinal += 1
+    with tempfile.TemporaryDirectory(prefix=".evoef2-", dir=output) as temporary:
+        workspace = Path(temporary)
+        for _, generated_row in generated.sort_values(["protein_id", "backbone_condition", "sample_index"]).iterrows():
+            protein_id = str(generated_row["protein_id"])
+            generated_condition = str(generated_row["backbone_condition"])
+            sequence = str(generated_row["sequence"])
+            sequence_hash = str(generated_row["sequence_hash"])
+            if sequence_sha256(sequence) != sequence_hash:
+                raise PhysicalEvaluationError("generated sequence hash mismatch")
+            for evaluated_condition in ("PDB", "AFDB"):
+                condition = by_key[(protein_id, evaluated_condition)]
+                case = workspace / f"case_{ordinal:06d}"
+                input_path = case / "input.pdb"
+                input_path.parent.mkdir(parents=True, exist_ok=True)
+                input_path.write_bytes(render_common_mask_pdb(
+                    condition.source_path, f"{protein_id}:{evaluated_condition}",
+                    condition.projection_coordinates, sequence,
+                ))
+                terms, repaired = evaluate_structure(protocol, input_path, case)
+                if _repaired_sequence(repaired) != sequence:
+                    raise PhysicalEvaluationError(f"EvoEF2 repair changed requested sequence: {protein_id}")
+                rows.append({
+                    "protein_id": protein_id,
+                    "generated_condition": generated_condition,
+                    "evaluated_condition": evaluated_condition,
+                    "sample_index": int(generated_row["sample_index"]),
+                    "sample_class": str(generated_row["sample_class"]),
+                    "sequence_hash": sequence_hash,
+                    "structure_sha256": condition.source_sha256,
+                    "source_chain_id": condition.source_chain_id,
+                    "repair_runs": protocol.repair_runs,
+                    "rotamer_library": protocol.rotamer_library,
+                    "energy_terms": json.dumps(terms, sort_keys=True),
+                    "total_energy": terms["Total"],
+                    "case_ordinal": ordinal,
+                })
+                ordinal += 1
+        for protein_id in requested_ids:
+            for evaluated_condition in ("PDB", "AFDB"):
+                condition = by_key[(protein_id, evaluated_condition)]
+                sequence = condition.wt_sequence
+                case = workspace / f"case_{ordinal:06d}"
+                input_path = case / "input.pdb"
+                input_path.parent.mkdir(parents=True, exist_ok=True)
+                input_path.write_bytes(render_common_mask_pdb(
+                    condition.source_path, f"{protein_id}:{evaluated_condition}",
+                    condition.projection_coordinates, sequence,
+                ))
+                terms, repaired = evaluate_structure(protocol, input_path, case)
+                if _repaired_sequence(repaired) != sequence:
+                    raise PhysicalEvaluationError(f"EvoEF2 repair changed WT sequence: {protein_id}")
+                rows.append({
+                    "protein_id": protein_id,
+                    "generated_condition": "WT",
+                    "evaluated_condition": evaluated_condition,
+                    "sample_index": -1,
+                    "sample_class": "reference",
+                    "sequence_hash": sequence_sha256(sequence),
+                    "structure_sha256": condition.source_sha256,
+                    "source_chain_id": condition.source_chain_id,
+                    "repair_runs": protocol.repair_runs,
+                    "rotamer_library": protocol.rotamer_library,
+                    "energy_terms": json.dumps(terms, sort_keys=True),
+                    "total_energy": terms["Total"],
+                    "case_ordinal": ordinal,
+                })
+                ordinal += 1
     result = pd.DataFrame(rows)
     if len(result) != expected * 2 + len(requested_ids) * 2:
         raise PhysicalEvaluationError("physical result cardinality differs")
@@ -479,7 +474,7 @@ def prepare_inputs(
     sample_indices: Iterable[int],
     output_root: Path,
 ) -> Path:
-    """Materialize common-mask inputs, then let a fresh process score them.
+    """Materialize only reusable WT inputs, then let a fresh process score them.
 
     Projection loading validates large frozen tables.  Keeping preparation and
     EvoEF2 subprocess execution in separate CLI phases avoids forking a large
@@ -527,13 +522,7 @@ def prepare_inputs(
         sample_index = int(generated_row["sample_index"])
         for evaluated_condition in ("PDB", "AFDB"):
             condition = by_key[(protein_id, evaluated_condition)]
-            case = output / protein_id / f"generated_{generated_condition.lower()}_{sample_index:03d}_{evaluated_condition.lower()}"
-            input_path = case / "input.pdb"
-            input_path.parent.mkdir(parents=True, exist_ok=True)
-            input_path.write_bytes(render_common_mask_pdb(
-                condition.source_path, f"{protein_id}:{evaluated_condition}",
-                condition.projection_coordinates, sequence,
-            ))
+            input_path = wt_input_paths[(protein_id, evaluated_condition)]
             cases.append({
                 "protein_id": protein_id,
                 "generated_condition": generated_condition,
@@ -606,26 +595,29 @@ def score_prepared_inputs(
         # Keep EvoEF2's mutable repair/log outputs isolated per case.  This is
         # required when split manifests share WT input paths or run in parallel;
         # it does not alter the scientific input or scoring protocol.
-        case_workdir = input_path.parent / f".evoef2_case_{ordinal:04d}"
         build_status = "not_applicable" if case["generated_condition"] == "WT" else "not_started"
         try:
-            scoring_input = input_path
-            if case["generated_condition"] != "WT":
-                wt_path_value = case.get("wt_input_path")
-                if not wt_path_value:
-                    raise PhysicalEvaluationError("prepared generated case lacks WT input for BuildMutant")
-                scoring_input = build_mutant(
-                    protocol,
-                    input_base / str(wt_path_value),
-                    sequence,
-                    case_workdir / "build",
-                )
-                build_status = "success"
-            terms, repaired = evaluate_structure(protocol, scoring_input, case_workdir / "score")
-            if _repaired_sequence(repaired) != sequence:
-                raise PhysicalEvaluationError(
-                    f"EvoEF2 repair changed requested sequence: {case['protein_id']}"
-                )
+            with tempfile.TemporaryDirectory(
+                prefix=f".evoef2-case-{ordinal:06d}-", dir=manifest_path.parent
+            ) as temporary:
+                case_workdir = Path(temporary)
+                scoring_input = input_path
+                if case["generated_condition"] != "WT":
+                    wt_path_value = case.get("wt_input_path")
+                    if not wt_path_value:
+                        raise PhysicalEvaluationError("prepared generated case lacks WT input for BuildMutant")
+                    scoring_input = build_mutant(
+                        protocol,
+                        input_base / str(wt_path_value),
+                        sequence,
+                        case_workdir / "build",
+                    )
+                    build_status = "success"
+                terms, repaired = evaluate_structure(protocol, scoring_input, case_workdir / "score")
+                if _repaired_sequence(repaired) != sequence:
+                    raise PhysicalEvaluationError(
+                        f"EvoEF2 repair changed requested sequence: {case['protein_id']}"
+                    )
         except PhysicalEvaluationError as exc:
             if case["generated_condition"] != "WT" and build_status == "not_started":
                 build_status = "failed"
@@ -702,26 +694,29 @@ def screen_prepared_inputs(
         }
         build_status = "not_applicable" if case["generated_condition"] == "WT" else "not_started"
         try:
-            if case["generated_condition"] != "WT":
-                wt_value = case.get("wt_input_path")
-                if not wt_value:
-                    raise PhysicalEvaluationError("prepared generated case lacks WT input for BuildMutant")
-                built = build_mutant(
-                    protocol, input_base / str(wt_value), sequence,
-                    input_path.parent / f".evoef2_screen_{ordinal:04d}" / "build",
+            with tempfile.TemporaryDirectory(
+                prefix=f".evoef2-screen-{ordinal:06d}-", dir=manifest_path.parent
+            ) as temporary:
+                case_workdir = Path(temporary)
+                if case["generated_condition"] != "WT":
+                    wt_value = case.get("wt_input_path")
+                    if not wt_value:
+                        raise PhysicalEvaluationError("prepared generated case lacks WT input for BuildMutant")
+                    built = build_mutant(
+                        protocol, input_base / str(wt_value), sequence,
+                        case_workdir / "build",
+                    )
+                    build_status = "success"
+                    repair_input = built
+                else:
+                    repair_input = input_path
+                repaired = repair_structure(
+                    protocol, repair_input, case_workdir / "repair",
                 )
-                build_status = "success"
-                repair_input = built
-            else:
-                repair_input = input_path
-            repaired = repair_structure(
-                protocol, repair_input,
-                input_path.parent / f".evoef2_screen_{ordinal:04d}" / "repair",
-            )
-            if _repaired_sequence(repaired) != sequence:
-                raise PhysicalEvaluationError(
-                    f"EvoEF2 repair changed requested sequence: {case['protein_id']}"
-                )
+                if _repaired_sequence(repaired) != sequence:
+                    raise PhysicalEvaluationError(
+                        f"EvoEF2 repair changed requested sequence: {case['protein_id']}"
+                    )
         except PhysicalEvaluationError as exc:
             if case["generated_condition"] != "WT" and build_status == "not_started":
                 build_status = "failed"

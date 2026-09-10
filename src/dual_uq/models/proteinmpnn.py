@@ -600,6 +600,7 @@ def load_authorized_proteinmpnn_adapter(
     checkpoint_path: Path,
     device_name: str,
     backbone_noise: float,
+    allow_noncode_worktree_drift: bool = False,
 ) -> ProteinMPNNAdapter:
     """Lazy-load the hash-verified ProteinMPNN implementation and checkpoint."""
     try:
@@ -619,10 +620,15 @@ def load_authorized_proteinmpnn_adapter(
             "ProteinMPNN implementation commit differs from the authorization",
         )
     if not implementation_worktree_is_clean(implementation_path):
-        raise ProteinMPNNScoringError(
-            "implementation_worktree_dirty",
-            "ProteinMPNN implementation contains tracked-file drift",
-        )
+        code_is_clean = subprocess.run(
+            ["git", "-C", str(implementation_path), "diff", "--quiet", "HEAD", "--", "*.py"],
+            check=False,
+        ).returncode == 0
+        if not allow_noncode_worktree_drift or not code_is_clean:
+            raise ProteinMPNNScoringError(
+                "implementation_worktree_dirty",
+                "ProteinMPNN implementation contains tracked-file drift",
+            )
     try:
         checkpoint_id = sha256_file(checkpoint_path)
     except OSError as exc:

@@ -11,30 +11,25 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dual_uq.core.artifacts import parquet_bytes, write_immutable_bytes, write_immutable_json
 from dual_uq.evaluation.controlled_operational_geometry import cluster_bootstrap_spearman
 from dual_uq.evaluation.cross_model_representation_sensitivity import cluster_bootstrap_summary
 from dual_uq.evaluation.generation_consequence import (
     generation_dose_response,
     summarize_generation,
 )
-from scripts.analysis.run_structcal_generation_consequence import CHECKPOINTS, REGIMES
+from dual_uq.workflows.structcal_cross_model_representation_sensitivity import (
+    CHECKPOINTS,
+    DEFAULT_RUN_ROOT,
+    PRIMARY_MODELS,
+    REGIMES,
+)
 
-MODELS = ("proteinmpnn", "esm_if1", "pifold", "dynamicmpnn")
-
-
-def _write_once(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        if path.read_bytes() != payload:
-            raise RuntimeError(f"refusing to overwrite non-identical artifact: {path}")
-        return
-    path.write_bytes(payload)
+MODELS = PRIMARY_MODELS
 
 
 def _write_table(path: Path, frame: pd.DataFrame) -> None:
-    buffer = BytesIO()
-    frame.to_parquet(buffer, index=False)
-    _write_once(path, buffer.getvalue())
+    write_immutable_bytes(path, parquet_bytes(frame))
 
 
 def _response(output_root: Path) -> pd.DataFrame:
@@ -367,7 +362,7 @@ def _figure(
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=200, metadata={"Software": "Dual-UQ"})
     plt.close(fig)
-    _write_once(output, buffer.getvalue())
+    write_immutable_bytes(output, buffer.getvalue())
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -375,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("runs/structcal_cross_model_representation_sensitivity"),
+        default=DEFAULT_RUN_ROOT,
     )
     args = parser.parse_args(argv)
     output_root = args.output_root.resolve()
@@ -388,11 +383,10 @@ def main(argv: list[str] | None = None) -> int:
     _write_table(output_root / "greedy_generation_summary.parquet", summary)
     _write_table(output_root / "generation_dose_response.parquet", dose)
     _write_table(output_root / "probability_generation_association.parquet", associations)
-    _write_once(
-        output_root / "generation_consequence_summary.json",
-        (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode(),
+    write_immutable_json(output_root / "generation_consequence_summary.json", payload)
+    write_immutable_bytes(
+        output_root / "generation_consequence_report.md", _report(payload, summary).encode()
     )
-    _write_once(output_root / "generation_consequence_report.md", _report(payload, summary).encode())
     _figure(response, summary, dose, output_root / "figures/generation_consequence.png")
     print(json.dumps({"status": "COMPLETE", "verdict": payload["verdict"]}, sort_keys=True))
     return 0

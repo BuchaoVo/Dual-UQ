@@ -8,7 +8,6 @@ ESM-IF1 execution is restricted to the separately provisioned environment.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Any
 
 import numpy as np
 
+from dual_uq.core.hashing import sha256_file
 from dual_uq.models.proteinmpnn import STANDARD_AMINO_ACIDS, validate_protein_sequence
 
 OFFICIAL_MODEL_NAME = "esm_if1_gvp4_t16_142M_UR50"
@@ -28,14 +28,10 @@ class ESMIF1ContractError(ValueError):
 
 
 def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
     try:
-        with path.open("rb") as handle:
-            for block in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(block)
+        return sha256_file(path)
     except OSError as exc:
         raise ESMIF1ContractError(f"checkpoint is unreadable: {path}") from exc
-    return digest.hexdigest()
 
 
 def _git_output(source_root: Path, *args: str) -> str:

@@ -73,7 +73,12 @@ def main(argv: list[str] | None = None) -> int:
                     device=args.device,
                 )
             cases = proteinmpnn_cases if args.model == "ProteinMPNN" else esm_if1_cases
-            position, protein, metadata = run_model_local_response(adapter, cases, args.model)
+            position, protein, metadata = run_model_local_response(
+                adapter,
+                cases,
+                args.model,
+                condition_order=("APO", "HOLO"),
+            )
             result = materialize_model_local_response(
                 position, protein, metadata, args.output_root
             )

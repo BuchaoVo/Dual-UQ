@@ -13,6 +13,7 @@ from dual_uq.evaluation.physical_robustness import (
     parse_energy_terms,
     paired_sequence_effects,
     preference_effects,
+    prepare_inputs,
     score_prepared_inputs,
     screen_prepared_inputs,
     summarize_protein_effects,
@@ -228,6 +229,7 @@ def test_score_prepared_inputs_records_tool_failure_without_scientific_drop(
         "BuildMutant", "BuildMutant", "PhysicalEvaluationError",
         "PhysicalEvaluationError", "BuildMutant", "BuildMutant",
     ]
+    assert not list(tmp_path.glob(".evoef2-case-*"))
 
 
 def test_screen_marks_build_failure_without_running_energy(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -273,3 +275,55 @@ def test_screen_marks_build_failure_without_running_energy(monkeypatch: pytest.M
     assert result["status"].tolist() == ["failed"] * 4 + ["success"] * 2
     assert result["failure_type"].iloc[:4].tolist() == ["BuildMutant"] * 4
     assert result["failure_type"].iloc[4:].isna().all()
+    assert not list(tmp_path.glob(".evoef2-screen-*"))
+
+
+def test_prepare_inputs_materializes_only_reusable_wt_structures(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace
+    from dual_uq.evaluation import physical_robustness as module
+
+    rows = []
+    for condition in ("PDB", "AFDB"):
+        sequence = "A" if condition == "PDB" else "C"
+        rows.append(
+            {
+                "protein_id": "p",
+                "backbone_condition": condition,
+                "sample_index": 0,
+                "sample_class": "paired",
+                "sequence": sequence,
+                "sequence_hash": __import__("hashlib").sha256(sequence.encode()).hexdigest(),
+            }
+        )
+    conditions = tuple(
+        SimpleNamespace(
+            protein_id="p",
+            condition=condition,
+            source_path=tmp_path / f"{condition}.cif",
+            source_sha256=condition,
+            source_chain_id="A",
+            projection_coordinates=(),
+            wt_sequence="G",
+        )
+        for condition in ("PDB", "AFDB")
+    )
+    monkeypatch.setattr(module, "load_physical_conditions", lambda *args, **kwargs: conditions)
+    monkeypatch.setattr(module.pd, "read_parquet", lambda *args, **kwargs: pd.DataFrame(rows))
+    monkeypatch.setattr(module, "render_common_mask_pdb", lambda *args, **kwargs: b"ATOM\n")
+
+    output = tmp_path / "prepared"
+    manifest = prepare_inputs(
+        project_root=tmp_path,
+        protein_ids=("p",),
+        sample_indices=(0,),
+        output_root=output,
+    )
+
+    payload = __import__("json").loads(manifest.read_text())
+    assert len(payload["cases"]) == 6
+    assert len(list(output.rglob("input.pdb"))) == 2
+    assert {
+        case["input_path"] for case in payload["cases"]
+    } == {"p/wt_pdb/input.pdb", "p/wt_afdb/input.pdb"}

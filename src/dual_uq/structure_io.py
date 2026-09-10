@@ -115,6 +115,8 @@ def load_backbone_atom_records(
     cif_path: str | Path,
     chain_id: str,
     atom_names: tuple[str, ...],
+    *,
+    coordinate_dtype: np.dtype[Any] | type[np.floating[Any]] = np.float32,
 ) -> dict[tuple[int, str], dict[str, tuple[str, np.ndarray]]]:
     """Stream only requested backbone atoms from the author-selected chain.
 
@@ -163,7 +165,7 @@ def load_backbone_atom_records(
                     float(value("_atom_site.Cartn_y", "nan")),
                     float(value("_atom_site.Cartn_z", "nan")),
                 ],
-                dtype=np.float32,
+                dtype=coordinate_dtype,
             )
             occupancy = float(value("_atom_site.occupancy", "1"))
         except (TypeError, ValueError):

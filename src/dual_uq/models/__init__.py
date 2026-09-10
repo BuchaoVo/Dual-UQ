@@ -1,8 +1,5 @@
 """Model adapters and model-independent scoring request/result contracts."""
 
-from dual_uq.models.capabilities import ModelCapability
-from dual_uq.models.interface import InverseFoldingAdapter
-from dual_uq.models.registry import ModelRegistry
 from dual_uq.models.scoring import (
     CandidateCollection,
     ScoreDispatchError,
@@ -16,7 +13,13 @@ from dual_uq.models.scoring import (
 )
 
 __all__ = [
-    "CandidateCollection", "InverseFoldingAdapter", "ModelCapability", "ModelRegistry",
-    "ScoreDispatchError", "ScoreRecord", "ScoreRequest", "ScorerBinding", "ScoringVariant",
-    "SequenceScorer", "VariantKind", "execute_score_request",
+    "CandidateCollection",
+    "ScoreDispatchError",
+    "ScoreRecord",
+    "ScoreRequest",
+    "ScorerBinding",
+    "ScoringVariant",
+    "SequenceScorer",
+    "VariantKind",
+    "execute_score_request",
 ]

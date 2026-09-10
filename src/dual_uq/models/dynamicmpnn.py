@@ -21,6 +21,8 @@ from typing import Any
 
 import numpy as np
 
+from dual_uq.core.hashing import sha256_file
+
 STANDARD_AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 OFFICIAL_SOURCE_COMMIT = "1f3e326c0f4d275ee8b3918e4726e19d3eef6c3f"
 DEFAULT_CHECKPOINT_RELATIVE_PATH = "third_party/DynamicMPNN/checkpoints/single_chain_k2.ckpt"
@@ -197,14 +199,6 @@ def validate_dynamic_input(case: DynamicMPNNInputCase) -> DynamicMPNNInputValida
     )
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
 def _source_commit(source_root: Path) -> str:
     try:
         return subprocess.check_output(
@@ -250,7 +244,7 @@ class DynamicMPNNAdapter:
         # substantially larger than raw coordinates and full-cohort caching
         # can exhaust host RAM on the StructCal projection.
         self._graph_cache_residue_limit = 10_000
-        self.checkpoint_sha256 = _sha256_file(self.checkpoint_path)
+        self.checkpoint_sha256 = sha256_file(self.checkpoint_path)
         self.source_commit = _source_commit(self.source_root)
         if self.source_commit != OFFICIAL_SOURCE_COMMIT:
             raise RuntimeError(
@@ -333,8 +327,8 @@ class DynamicMPNNAdapter:
         validate_dynamic_input(case)
         if self._torch is None or self._featuriser is None:
             raise RuntimeError("DynamicMPNN adapter has not been loaded")
-        from torch_geometric.data import Data
         from dynamicmpnn.types import BASE_AMINO_ACIDS, FILL_VALUE
+        from torch_geometric.data import Data
 
         torch = self._torch
         cache_key = None

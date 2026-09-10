@@ -202,6 +202,82 @@ def _cases_for_model() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _generic_cases_for_model() -> pd.DataFrame:
+    cases = _cases_for_model().copy()
+    cases["condition"] = cases["condition"].map(
+        {"APO": "REFERENCE", "HOLO": "PERTURBED"}
+    )
+    return cases
+
+
+def test_model_local_response_accepts_opaque_ordered_conditions() -> None:
+    position, protein, metadata = run_model_local_response(
+        _FakeProteinMPNN(),
+        _generic_cases_for_model(),
+        "ProteinMPNN",
+        condition_order=("REFERENCE", "PERTURBED"),
+    )
+
+    assert set(position["condition"]) == {"REFERENCE", "PERTURBED"}
+    assert len(protein) == 1
+    assert metadata["model"] == "ProteinMPNN"
+
+
+def test_model_local_response_accepts_nested_coordinates_after_parquet_roundtrip(tmp_path: Path) -> None:
+    cases = _generic_cases_for_model()
+    cases["coordinates"] = cases["coordinates"].map(lambda value: value.tolist())
+    path = tmp_path / "cases.parquet"
+    cases.to_parquet(path, index=False)
+
+    reread = pd.read_parquet(path)
+    position, protein, _metadata = run_model_local_response(
+        _FakeProteinMPNN(),
+        reread,
+        "ProteinMPNN",
+        condition_order=("REFERENCE", "PERTURBED"),
+    )
+
+    assert len(position) == 4
+    assert len(protein) == 1
+
+
+def test_model_local_response_rejects_more_than_two_conditions() -> None:
+    cases = pd.concat(
+        [
+            _generic_cases_for_model(),
+            _generic_cases_for_model().iloc[[0]].assign(condition="THIRD"),
+        ],
+        ignore_index=True,
+    )
+
+    with pytest.raises(ValueError, match="exactly the ordered condition pair"):
+        run_model_local_response(
+            _FakeProteinMPNN(),
+            cases,
+            "ProteinMPNN",
+            condition_order=("REFERENCE", "PERTURBED"),
+        )
+
+
+def test_manifest_free_model_response_materialization_writes_only_outputs(tmp_path: Path) -> None:
+    position = pd.DataFrame({"protein_id": ["P00001"], "js_bits_mean": [0.1]})
+    protein = pd.DataFrame({"protein_id": ["P00001"], "local_burden_mean": [0.1]})
+
+    result = materialize_model_local_response(
+        position,
+        protein,
+        {"model": "ESM-IF1"},
+        tmp_path,
+        write_manifest=False,
+    )
+
+    assert set(result["write_status"]) == {"position", "protein", "summary"}
+    assert (tmp_path / "position_local_response.parquet").is_file()
+    assert (tmp_path / "protein_local_response.parquet").is_file()
+    assert (tmp_path / "summary.json").is_file()
+    assert not (tmp_path / "manifest.json").exists()
+
+
 class _FakeProteinMPNN:
     implementation_id = "i" * 40
     checkpoint_id = "c" * 64

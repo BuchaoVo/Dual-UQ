@@ -9,7 +9,6 @@ paired model responses.
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 from collections.abc import Iterable, Sequence
 from concurrent.futures import ProcessPoolExecutor
@@ -21,6 +20,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
+from dual_uq.core.artifacts import parquet_bytes
 from dual_uq.core.atomic_io import atomic_write_new_bytes
 from dual_uq.core.hashing import sha256_bytes
 from dual_uq.models.proteinmpnn import (
@@ -376,7 +376,11 @@ def build_decoding_realizations(
     return tuple(result)
 
 
-def _validate_case_axis(cases: pd.DataFrame) -> None:
+def _validate_case_axis(
+    cases: pd.DataFrame,
+    *,
+    condition_order: tuple[str, str] | None = None,
+) -> tuple[str, str]:
     required = {
         "protein_id",
         "pair_id",
@@ -390,8 +394,29 @@ def _validate_case_axis(cases: pd.DataFrame) -> None:
     missing = sorted(required - set(cases.columns))
     if missing:
         raise ApoHoloLocalResponseError(f"model cases missing columns: {missing}")
-    if cases.empty or set(cases["condition"].astype(str)) != {"APO", "HOLO"}:
-        raise ApoHoloLocalResponseError("model cases require APO and HOLO conditions")
+    if cases.empty:
+        raise ApoHoloLocalResponseError("model cases require exactly the ordered condition pair")
+    observed_conditions = tuple(sorted(set(cases["condition"].astype(str))))
+    if condition_order is None:
+        if len(observed_conditions) != 2:
+            raise ApoHoloLocalResponseError(
+                "model cases require exactly the ordered condition pair"
+            )
+        ordered_conditions = observed_conditions
+    else:
+        if (
+            len(condition_order) != 2
+            or len(set(condition_order)) != 2
+            or any(not str(condition).strip() for condition in condition_order)
+        ):
+            raise ApoHoloLocalResponseError(
+                "condition_order must contain two distinct non-empty labels"
+            )
+        ordered_conditions = tuple(str(condition) for condition in condition_order)
+        if set(ordered_conditions) != set(observed_conditions):
+            raise ApoHoloLocalResponseError(
+                "model cases require exactly the ordered condition pair"
+            )
     key = ["protein_id", "pair_id", "condition", "canonical_position"]
     if cases.duplicated(key).any():
         raise ApoHoloLocalResponseError("model cases contain duplicate position rows")
@@ -406,10 +431,12 @@ def _validate_case_axis(cases: pd.DataFrame) -> None:
                 raise ApoHoloLocalResponseError(
                     f"WT projection axis differs for {protein_id}/{pair_id}/{condition}"
                 )
-            coordinate_values = list(ordered["coordinates"])
-            if not coordinate_values:
+            coordinate_value = next(
+                (value for value in ordered["coordinates"] if value is not None), None
+            )
+            if coordinate_value is None:
                 raise ApoHoloLocalResponseError("model case coordinates are empty")
-            coordinates = np.asarray(coordinate_values[0], dtype=np.float32)
+            coordinates = _coerce_coordinates(coordinate_value)
             if coordinates.ndim != 3 or coordinates.shape[0] != len(positions) or coordinates.shape[2] != 3:
                 raise ApoHoloLocalResponseError(
                     f"coordinate shape differs for {protein_id}/{pair_id}/{condition}"
@@ -420,8 +447,33 @@ def _validate_case_axis(cases: pd.DataFrame) -> None:
                 raise ApoHoloLocalResponseError(
                     "model case coordinate rows must be finite or fully missing"
                 )
-        if axes.get("APO") != axes.get("HOLO"):
-            raise ApoHoloLocalResponseError(f"APO/HOLO position axes differ for {protein_id}/{pair_id}")
+        if axes.get(ordered_conditions[0]) != axes.get(ordered_conditions[1]):
+            raise ApoHoloLocalResponseError(
+                f"condition position axes differ for {protein_id}/{pair_id}"
+            )
+    return ordered_conditions
+
+
+def _coerce_coordinates(value: Any) -> np.ndarray:
+    """Normalize native and Parquet-round-tripped nested coordinate values."""
+
+    try:
+        coordinates = np.asarray(value, dtype=np.float32)
+    except (TypeError, ValueError):
+        try:
+            coordinates = np.asarray(
+                [[list(atom) for atom in residue] for residue in value], dtype=np.float32
+            )
+        except (TypeError, ValueError) as exc:
+            raise ApoHoloLocalResponseError("model case coordinates are not numeric") from exc
+    return coordinates
+
+
+def _first_condition_coordinates(group: pd.DataFrame) -> np.ndarray:
+    value = next((item for item in group["coordinates"] if item is not None), None)
+    if value is None:
+        raise ApoHoloLocalResponseError("model case coordinates are empty")
+    return _coerce_coordinates(value)
 
 
 def _model_binding(adapter: Any) -> dict[str, Any]:
@@ -440,10 +492,13 @@ def run_model_local_response(
     adapter: Any,
     cases: pd.DataFrame,
     model_name: str,
+    *,
+    condition_order: tuple[str, str] | None = None,
     realization_count: int = 16,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     """Aggregate one model's paired local response without retaining raw tensors."""
-    _validate_case_axis(cases)
+    ordered_conditions = _validate_case_axis(cases, condition_order=condition_order)
+    condition_a, condition_b = ordered_conditions
     if model_name not in {"ProteinMPNN", "ESM-IF1"}:
         raise ApoHoloLocalResponseError(f"unsupported local-response model: {model_name}")
     if isinstance(realization_count, bool) or not isinstance(realization_count, int) or realization_count <= 0:
@@ -456,46 +511,46 @@ def run_model_local_response(
             str(condition): value.sort_values("canonical_position", kind="mergesort")
             for condition, value in group.groupby("condition", sort=False)
         }
-        positions = tuple(int(value) for value in ordered_groups["APO"]["canonical_position"])
-        first = ordered_groups["APO"].iloc[0]
+        positions = tuple(int(value) for value in ordered_groups[condition_a]["canonical_position"])
+        first = ordered_groups[condition_a].iloc[0]
         sequence = str(first["wt_sequence_projection"])
-        apo_coordinates = np.asarray(ordered_groups["APO"].iloc[0]["coordinates"], dtype=np.float32)
-        holo_coordinates = np.asarray(ordered_groups["HOLO"].iloc[0]["coordinates"], dtype=np.float32)
+        coordinates_a = _first_condition_coordinates(ordered_groups[condition_a])
+        coordinates_b = _first_condition_coordinates(ordered_groups[condition_b])
         if model_name == "ProteinMPNN":
             realizations = build_decoding_realizations(str(protein_id), len(positions), realization_count)
             paired_distributions: list[tuple[np.ndarray, np.ndarray]] = []
             for realization in realizations:
-                apo_input = ProteinMPNNStructureInput(
+                condition_a_input = ProteinMPNNStructureInput(
                     protein_id=str(protein_id),
-                    backbone_condition="APO",
+                    backbone_condition=condition_a,
                     uniprot_positions=positions,
                     wt_sequence_projection=sequence,
-                    coordinates=apo_coordinates,
-                    structure_sha256=str(ordered_groups["APO"].iloc[0].get("structure_sha256") or "") or None,
+                    coordinates=coordinates_a,
+                    structure_sha256=str(ordered_groups[condition_a].iloc[0].get("structure_sha256") or "") or None,
                 )
-                holo_input = ProteinMPNNStructureInput(
+                condition_b_input = ProteinMPNNStructureInput(
                     protein_id=str(protein_id),
-                    backbone_condition="HOLO",
+                    backbone_condition=condition_b,
                     uniprot_positions=positions,
                     wt_sequence_projection=sequence,
-                    coordinates=holo_coordinates,
-                    structure_sha256=str(ordered_groups["HOLO"].iloc[0].get("structure_sha256") or "") or None,
+                    coordinates=coordinates_b,
+                    structure_sha256=str(ordered_groups[condition_b].iloc[0].get("structure_sha256") or "") or None,
                 )
-                apo = np.asarray(
-                    adapter.probability_distributions(apo_input, (sequence,), realization, batch_size=1)[0],
+                distribution_a = np.asarray(
+                    adapter.probability_distributions(condition_a_input, (sequence,), realization, batch_size=1)[0],
                     dtype=float,
                 )
-                holo = np.asarray(
-                    adapter.probability_distributions(holo_input, (sequence,), realization, batch_size=1)[0],
+                distribution_b = np.asarray(
+                    adapter.probability_distributions(condition_b_input, (sequence,), realization, batch_size=1)[0],
                     dtype=float,
                 )
-                if apo.shape != (len(positions), 20) or holo.shape != apo.shape:
+                if distribution_a.shape != (len(positions), 20) or distribution_b.shape != distribution_a.shape:
                     raise ApoHoloLocalResponseError("ProteinMPNN distribution shape is invalid")
-                if not np.isfinite(apo).all() or not np.isfinite(holo).all():
+                if not np.isfinite(distribution_a).all() or not np.isfinite(distribution_b).all():
                     raise ApoHoloLocalResponseError("ProteinMPNN distribution is non-finite")
-                paired_distributions.append((apo, holo))
+                paired_distributions.append((distribution_a, distribution_b))
             js_by_repeat = np.asarray(
-                [[js_bits(apo[index], holo[index]) for index in range(len(positions))] for apo, holo in paired_distributions],
+                [[js_bits(left[index], right[index]) for index in range(len(positions))] for left, right in paired_distributions],
                 dtype=float,
             )
             n_realizations = realization_count
@@ -515,31 +570,34 @@ def run_model_local_response(
                         }
                     )
         else:
-            apo_missing = not np.isfinite(apo_coordinates[:, :3]).all()
-            holo_missing = not np.isfinite(holo_coordinates[:, :3]).all()
-            apo = np.asarray(
+            condition_a_missing = not np.isfinite(coordinates_a[:, :3]).all()
+            condition_b_missing = not np.isfinite(coordinates_b[:, :3]).all()
+            distribution_a = np.asarray(
                 adapter.score_teacher_forced(
                     sequence,
-                    apo_coordinates[:, :3],
-                    allow_missing_coordinates=apo_missing,
+                    coordinates_a[:, :3],
+                    allow_missing_coordinates=condition_a_missing,
                 ),
                 dtype=float,
             )
-            holo = np.asarray(
+            distribution_b = np.asarray(
                 adapter.score_teacher_forced(
                     sequence,
-                    holo_coordinates[:, :3],
-                    allow_missing_coordinates=holo_missing,
+                    coordinates_b[:, :3],
+                    allow_missing_coordinates=condition_b_missing,
                 ),
                 dtype=float,
             )
-            if apo.shape != (len(positions), 20) or holo.shape != apo.shape:
+            if distribution_a.shape != (len(positions), 20) or distribution_b.shape != distribution_a.shape:
                 raise ApoHoloLocalResponseError("ESM-IF1 distribution shape is invalid")
-            if not np.isfinite(apo).all() or not np.isfinite(holo).all():
+            if not np.isfinite(distribution_a).all() or not np.isfinite(distribution_b).all():
                 raise ApoHoloLocalResponseError("ESM-IF1 distribution is non-finite")
-            js_by_repeat = np.asarray([[js_bits(apo[index], holo[index]) for index in range(len(positions))]], dtype=float)
+            js_by_repeat = np.asarray(
+                [[js_bits(distribution_a[index], distribution_b[index]) for index in range(len(positions))]],
+                dtype=float,
+            )
             n_realizations = 1
-            distributions = (apo, holo)
+            distributions = (distribution_a, distribution_b)
             convergence.append(
                 {
                     "protein_id": str(protein_id),
@@ -553,7 +611,7 @@ def run_model_local_response(
         median_js = np.median(js_by_repeat, axis=0)
         q90_js = np.quantile(js_by_repeat, 0.9, axis=0, method="linear")
         near_zero = np.mean(js_by_repeat <= 1e-12, axis=0)
-        for condition, distribution in zip(("APO", "HOLO"), distributions, strict=True):
+        for condition, distribution in zip(ordered_conditions, distributions, strict=True):
             for index, position in enumerate(positions):
                 position_rows.append(
                     {
@@ -720,12 +778,6 @@ def summarize_associations(association_table: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _parquet_bytes(frame: pd.DataFrame) -> bytes:
-    buffer = io.BytesIO()
-    frame.to_parquet(buffer, index=False)
-    return buffer.getvalue()
-
-
 def _immutable_file(path: Path, payload: bytes) -> str:
     if path.exists():
         if path.read_bytes() != payload:
@@ -740,6 +792,8 @@ def materialize_model_local_response(
     protein_table: pd.DataFrame,
     metadata: dict[str, Any],
     output_root: Path,
+    *,
+    write_manifest: bool = True,
 ) -> dict[str, Any]:
     """Materialize compact model response outputs with immutable semantics."""
     output_root = Path(output_root)
@@ -749,8 +803,8 @@ def materialize_model_local_response(
         "summary": output_root / "summary.json",
     }
     payloads = {
-        "position": _parquet_bytes(position_table),
-        "protein": _parquet_bytes(protein_table),
+        "position": parquet_bytes(position_table),
+        "protein": parquet_bytes(protein_table),
         "summary": (json.dumps(
             {
                 **metadata,
@@ -764,6 +818,8 @@ def materialize_model_local_response(
         ) + "\n").encode("utf-8"),
     }
     statuses = {name: _immutable_file(outputs[name], payloads[name]) for name in outputs}
+    if not write_manifest:
+        return {"write_status": statuses, "outputs": {name: path.name for name, path in outputs.items()}}
     manifest = {
         "schema_version": "dual-uq.apo-holo-local-response-model-manifest.v1",
         "model": metadata.get("model"),
